@@ -684,6 +684,7 @@ function renderPin(layer,inc,x,y,cols){
     cursor:pointer;pointer-events:all;transition:transform .12s;z-index:10;`;
   pin.addEventListener('mouseenter',()=>{pin.style.transform='rotate(-45deg) scale(1.35)';});
   pin.addEventListener('mouseleave',()=>{pin.style.transform='rotate(-45deg)';});
+  pin.addEventListener('click',e=>{e.stopPropagation();showDetail(inc.id);});
   layer.appendChild(pin);
 }
 
