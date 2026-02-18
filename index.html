@@ -998,8 +998,14 @@ function openReport(lat,lng,incidentId){
       document.getElementById('fLat').value=lat.toFixed(5);
       document.getElementById('fLng').value=lng.toFixed(5);
       document.getElementById('reportSub').textContent=`📍 ${lat.toFixed(4)}, ${lng.toFixed(4)} — reverse geocoding…`;
-      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16`)
-        .then(r=>r.json()).then(d=>{if(d.display_name)document.getElementById('fAddr').value=d.display_name.split(',').slice(0,4).join(', ');}).catch(()=>{});
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`)
+        .then(r=>r.json()).then(d=>{
+          if(d.display_name){
+            const addr=d.display_name.split(',').slice(0,4).join(', ');
+            document.getElementById('fAddr').value=addr;
+            document.getElementById('reportSub').textContent=`📍 Location: ${addr}`;
+          }
+        }).catch(()=>{});
     }
   }
   
