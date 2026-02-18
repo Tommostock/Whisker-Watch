@@ -878,6 +878,7 @@ mapC.addEventListener('click',e=>{
   const {lat,lng}=px2ll(cx,cy);
   if(!document.getElementById('reportOverlay').classList.contains('open') &&
      !document.getElementById('detailOverlay').classList.contains('open')) {
+    ms.lat=lat;ms.lng=lng;ms.zoom=MAX_Z;sched(); // Zoom in to clicked location
     showLogPrompt(lat,lng,cx,cy);
   }
 });
@@ -1448,7 +1449,7 @@ function flyTo(id){
   closeDetail();
   
   // Pan map to location
-  ms.lat=lat;ms.lng=lng;ms.zoom=15;
+  ms.lat=lat;ms.lng=lng;ms.zoom=MAX_Z;
   sched();
   
   // Show popup above marker after map animation (not full detail modal)
@@ -1547,7 +1548,7 @@ function selectModalAddr(lat,lng,fullAddr){
   document.getElementById('geoStatus').style.color='var(--green)';
   modalAddrDrop.style.display='none';
   // Pan map to show selected location
-  ms.lat=lat;ms.lng=lng;ms.zoom=15;sched();
+  ms.lat=lat;ms.lng=lng;ms.zoom=MAX_Z;sched();
 }
 // ── Search: GetAddress.io (primary) + Nominatim (fallback) ──
 const GA_KEY='EFCcxxrcpEuyW5C36Pvt-A50503';
@@ -1617,17 +1618,17 @@ function gotoPlaceGA(el){
   fetch(`https://api.getaddress.io${url}?api-key=${GA_KEY}`)
     .then(r=>r.json()).then(d=>{
       const lat=+d.latitude,lng=+d.longitude;
-      if(!isNaN(lat)&&lat!==0){ms.lat=lat;ms.lng=lng;ms.zoom=16;sched();openReport(lat,lng,null);
+      if(!isNaN(lat)&&lat!==0){ms.lat=lat;ms.lng=lng;ms.zoom=MAX_Z;sched();openReport(lat,lng,null);
         setTimeout(()=>{document.getElementById('fAddr').value=label;},50);
-      } else nominatimResolve(label,(lat,lng)=>{ms.lat=lat;ms.lng=lng;ms.zoom=16;sched();openReport(lat,lng,null);setTimeout(()=>{document.getElementById('fAddr').value=label;},50);});
-    }).catch(()=>nominatimResolve(label,(lat,lng)=>{ms.lat=lat;ms.lng=lng;ms.zoom=16;sched();openReport(lat,lng,null);setTimeout(()=>{document.getElementById('fAddr').value=label;},50);}));
+      } else nominatimResolve(label,(lat,lng)=>{ms.lat=lat;ms.lng=lng;ms.zoom=MAX_Z;sched();openReport(lat,lng,null);setTimeout(()=>{document.getElementById('fAddr').value=label;},50);});
+    }).catch(()=>nominatimResolve(label,(lat,lng)=>{ms.lat=lat;ms.lng=lng;ms.zoom=MAX_Z;sched();openReport(lat,lng,null);setTimeout(()=>{document.getElementById('fAddr').value=label;},50);}));
 }
 // SEARCH → MAP FLOW: When address selected from search
 // 1. Pan and zoom to location
 // 2. Drop temporary marker (via openReport which sets coords)
 // 3. Open incident entry dialog with address pre-filled
 function gotoPlace(lat,lng,label){
-  ms.lat=lat;ms.lng=lng;ms.zoom=15; // Zoom closer when selecting from search
+  ms.lat=lat;ms.lng=lng;ms.zoom=MAX_Z; // Zoom closer when selecting from search
   sched();
   searchDrop.style.display='none';
   searchIn.value=''; // Clear search box
