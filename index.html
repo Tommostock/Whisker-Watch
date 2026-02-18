@@ -1026,13 +1026,132 @@ function renderList(){
 function renderStats(){
   const el=document.getElementById('statsWrap');
   if(!incidents.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📊</div><div class="empty-txt">Log incidents to see statistics.</div></div>`;return;}
-  const total=incidents.length,confirmed=incidents.filter(i=>i.status==='confirmed').length,suspected=incidents.filter(i=>i.status==='suspected').length,unconfirmed=incidents.filter(i=>i.status==='unconfirmed').length,sighted=incidents.filter(i=>i.status==='sighted').length;
-  const mc={},ac={};incidents.forEach(i=>{mc[i.method]=(mc[i.method]||0)+1;if(i.area&&i.area!=='Unknown')ac[i.area]=(ac[i.area]||0)+1;});
-  const topM=Object.entries(mc).sort((a,b)=>b[1]-a[1]);const topA=Object.entries(ac).sort((a,b)=>b[1]-a[1]);
-  el.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:18px">${[['CONFIRMED',confirmed,'var(--accent)'],['SUSPECTED',suspected,'var(--yellow)'],['UNCONFIRMED',unconfirmed,'var(--green)'],['SUSPECT SIGHTED',sighted,'var(--blue)']].map(([l,n,c])=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:${c};font-family:'Space Mono',monospace">${n}</div><div style="font-size:8px;color:var(--text-muted);letter-spacing:.1em;margin-top:2px">${l}</div></div>`).join('')}</div>
-  <div style="font-family:'Space Mono',monospace;font-size:8px;color:var(--text-muted);letter-spacing:.12em;margin-bottom:10px;text-transform:uppercase">By Method</div>
-  ${topM.map(([m,n])=>`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:9px;margin-bottom:3px"><span style="color:var(--text)">${esc(m)}</span><span style="color:var(--text-muted)">${n}</span></div><div style="height:3px;background:var(--border);border-radius:2px"><div style="height:3px;background:var(--accent);border-radius:2px;width:${(n/total*100).toFixed(0)}%"></div></div></div>`).join('')}
-  ${topA.length?`<div style="font-family:'Space Mono',monospace;font-size:8px;color:var(--text-muted);letter-spacing:.12em;margin:16px 0 10px;text-transform:uppercase">Hotspot Areas</div>${topA.slice(0,8).map(([a,n])=>`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:9px;margin-bottom:3px"><span style="color:var(--text)">${esc(a)}</span><span style="color:var(--text-muted)">${n}</span></div><div style="height:3px;background:var(--border);border-radius:2px"><div style="height:3px;background:var(--accent2);border-radius:2px;width:${(n/total*100).toFixed(0)}%"></div></div></div>`).join('')}`:''}`;
+  const total=incidents.length;
+  const caseOnly=incidents.filter(i=>i.status!=='sighted');
+
+  // ── Status counts ──
+  const confirmed=incidents.filter(i=>i.status==='confirmed').length;
+  const suspected=incidents.filter(i=>i.status==='suspected').length;
+  const unconfirmed=incidents.filter(i=>i.status==='unconfirmed').length;
+  const sighted=incidents.filter(i=>i.status==='sighted').length;
+
+  // ── Helper: build bar rows ──
+  function barRows(entries,maxN,colour){
+    return entries.map(([label,n])=>`<div style="margin-bottom:8px">
+      <div style="display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:9px;margin-bottom:3px">
+        <span style="color:var(--text)">${esc(label)}</span>
+        <span style="color:var(--text-muted)">${n} <span style="font-size:8px;opacity:.6">(${(n/total*100).toFixed(0)}%)</span></span>
+      </div>
+      <div style="height:3px;background:var(--border);border-radius:2px">
+        <div style="height:3px;background:${colour};border-radius:2px;width:${(n/maxN*100).toFixed(0)}%"></div>
+      </div></div>`).join('');
+  }
+  function secTitle(t){return`<div style="font-family:'Space Mono',monospace;font-size:8px;color:var(--text-muted);letter-spacing:.12em;margin:18px 0 10px;text-transform:uppercase;border-top:1px solid var(--border);padding-top:14px">${t}</div>`;}
+
+  // ── Method ──
+  const mc={};caseOnly.forEach(i=>{if(i.method)mc[i.method]=(mc[i.method]||0)+1;});
+  const topM=Object.entries(mc).sort((a,b)=>b[1]-a[1]);
+
+  // ── Severity ──
+  const sc={};caseOnly.forEach(i=>{if(i.severity)sc[i.severity]=(sc[i.severity]||0)+1;});
+  const topS=Object.entries(sc).sort((a,b)=>b[1]-a[1]);
+
+  // ── Animal type ──
+  const atc={};caseOnly.forEach(i=>{if(i.animalType)atc[i.animalType]=(atc[i.animalType]||0)+1;});
+  const topAT=Object.entries(atc).sort((a,b)=>b[1]-a[1]);
+
+  // ── Hotspot areas ──
+  const ac={};incidents.forEach(i=>{if(i.area&&i.area!=='Unknown')ac[i.area]=(ac[i.area]||0)+1;});
+  const topA=Object.entries(ac).sort((a,b)=>b[1]-a[1]);
+
+  // ── Time of day ──
+  const tod={Morning:0,Afternoon:0,Evening:0,Night:0};
+  incidents.forEach(i=>{
+    if(!i.datetime)return;
+    const h=new Date(i.datetime).getHours();
+    if(h>=6&&h<12)tod.Morning++;
+    else if(h>=12&&h<17)tod.Afternoon++;
+    else if(h>=17&&h<22)tod.Evening++;
+    else tod.Night++;
+  });
+  const todEntries=Object.entries(tod).filter(([,n])=>n>0);
+
+  // ── Monthly trend ──
+  const mth={};incidents.forEach(i=>{
+    if(!i.datetime)return;
+    const d=new Date(i.datetime);
+    const key=d.toLocaleDateString('en-GB',{month:'short',year:'numeric'});
+    mth[key]=(mth[key]||0)+1;
+  });
+  const mthEntries=Object.entries(mth).slice(-8);
+
+  // ── Witness & photo coverage ──
+  const withWitness=incidents.filter(i=>i.witnessName&&i.witnessName.trim()).length;
+  const withPhotos=incidents.filter(i=>i.photos&&i.photos.length>0).length;
+  const withStatement=incidents.filter(i=>i.witnessStatement&&i.witnessStatement.trim()).length;
+
+  // ── Sex breakdown (cases only) ──
+  const sexc={};caseOnly.forEach(i=>{const s=i.sex||'Unknown';sexc[s]=(sexc[s]||0)+1;});
+  const topSex=Object.entries(sexc).sort((a,b)=>b[1]-a[1]);
+
+  const maxM=topM.length?topM[0][1]:1;
+  const maxS=topS.length?topS[0][1]:1;
+  const maxAT=topAT.length?topAT[0][1]:1;
+  const maxA=topA.length?topA[0][1]:1;
+  const maxTod=Math.max(...Object.values(tod),1);
+  const maxMth=mthEntries.length?Math.max(...mthEntries.map(([,n])=>n),1):1;
+  const maxSex=topSex.length?topSex[0][1]:1;
+
+  el.innerHTML=`
+
+  <!-- Status grid -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:4px">
+    ${[['CONFIRMED',confirmed,'var(--accent)'],['SUSPECTED',suspected,'var(--yellow)'],['UNCONFIRMED',unconfirmed,'var(--green)'],['SUSPECT SIGHTED',sighted,'var(--blue)']].map(([l,n,c])=>`
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:12px;text-align:center">
+      <div style="font-size:22px;font-weight:800;color:${c};font-family:'Space Mono',monospace">${n}</div>
+      <div style="font-size:8px;color:var(--text-muted);letter-spacing:.1em;margin-top:2px">${l}</div>
+    </div>`).join('')}
+  </div>
+
+  <!-- Coverage pills -->
+  ${secTitle('Evidence Coverage')}
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:4px">
+    ${[['WITH WITNESS',withWitness,'var(--accent2)'],['WITH STATEMENT',withStatement,'var(--yellow)'],['WITH PHOTOS',withPhotos,'var(--blue)']].map(([l,n,c])=>`
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">
+      <div style="font-size:18px;font-weight:800;color:${c};font-family:'Space Mono',monospace">${n}</div>
+      <div style="font-size:7px;color:var(--text-muted);letter-spacing:.08em;margin-top:3px;line-height:1.3">${l}</div>
+    </div>`).join('')}
+  </div>
+
+  <!-- Monthly trend -->
+  ${mthEntries.length>1?`${secTitle('Monthly Trend')}${barRows(mthEntries,maxMth,'var(--accent2)')}` : ''}
+
+  <!-- Time of day -->
+  ${todEntries.length?`${secTitle('Time of Day')}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:4px">
+    ${[['🌅 Morning','6am–12pm',tod.Morning],['☀️ Afternoon','12pm–5pm',tod.Afternoon],['🌆 Evening','5pm–10pm',tod.Evening],['🌙 Night','10pm–6am',tod.Night]].map(([icon,range,n])=>`
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px">
+      <div style="font-size:15px;font-weight:800;color:var(--text);font-family:'Space Mono',monospace">${n}</div>
+      <div style="font-size:8px;color:var(--text-muted);margin-top:2px">${icon} ${range}</div>
+    </div>`).join('')}
+  </div>` : ''}
+
+  <!-- Severity -->
+  ${topS.length?`${secTitle('By Severity')}${barRows(topS,maxS,'var(--accent)')}` : ''}
+
+  <!-- Method -->
+  ${topM.length?`${secTitle('By Method')}${barRows(topM,maxM,'var(--accent)')}` : ''}
+
+  <!-- Animal type -->
+  ${topAT.length?`${secTitle('By Animal Type')}${barRows(topAT,maxAT,'var(--green)')}` : ''}
+
+  <!-- Sex -->
+  ${topSex.length?`${secTitle('By Sex')}${barRows(topSex,maxSex,'var(--text-muted)')}` : ''}
+
+  <!-- Hotspot areas -->
+  ${topA.length?`${secTitle('Hotspot Areas')}${barRows(topA.slice(0,10),maxA,'var(--accent2)')}` : ''}
+
+  `;
 }
 
 // ── Detail ──
