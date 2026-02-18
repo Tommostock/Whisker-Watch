@@ -107,6 +107,19 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .card-loc{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);margin-bottom:5px;}
 .card-meta{display:flex;gap:4px;flex-wrap:wrap;}
 .mtag{font-family:'Space Mono',monospace;font-size:8px;color:var(--text-dim);background:var(--border);padding:2px 5px;border-radius:3px;}
+.timeline-wrap{display:flex;flex-direction:column;gap:0;}
+.timeline-item{display:flex;gap:12px;padding:12px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .15s;}
+.timeline-item:hover{background:var(--surface2);}
+.timeline-dot{flex-shrink:0;width:12px;height:12px;border-radius:50%;border:2px solid var(--border);margin-top:4px;background:var(--surface);}
+.timeline-item.s-confirmed .timeline-dot{background:var(--accent);border-color:var(--accent);}
+.timeline-item.s-suspected .timeline-dot{background:var(--yellow);border-color:var(--yellow);}
+.timeline-item.s-unconfirmed .timeline-dot{background:var(--green);border-color:var(--green);}
+.timeline-item.s-sighted .timeline-dot{background:var(--blue);border-color:var(--blue);}
+.timeline-content{flex:1;min-width:0;}
+.timeline-date{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);margin-bottom:3px;}
+.timeline-title{font-size:12px;font-weight:700;color:var(--text);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.timeline-address{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-dim);margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.timeline-status{font-family:'Space Mono',monospace;font-size:7px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;width:fit-content;}
 .map-wrap{flex:1;position:relative;overflow:hidden;min-width:0;background:#1a1f2a;}
 #mapCanvas{position:absolute;inset:0;width:100%;height:100%;cursor:grab;display:block;}
 #mapCanvas.grabbing{cursor:grabbing;}
@@ -270,6 +283,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
   <div class="sidebar" id="sidebar">
     <div class="sidebar-tabs">
       <div class="tab active" onclick="switchTab('inc')">INCIDENTS</div>
+      <div class="tab" onclick="switchTab('timeline')">TIMELINE</div>
       <div class="tab" onclick="switchTab('stats')">STATS</div>
     </div>
     <div class="tab-pane active" id="pane-inc">
@@ -310,6 +324,23 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
         <span id="filteredCount"></span>
       </div>
       <div class="inc-list" id="incList"></div>
+    </div>
+    <div class="tab-pane" id="pane-timeline">
+      <div style="padding:12px;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <label style="font-size:11px;font-weight:600;color:var(--text-muted)">FILTER:</label>
+        <select id="timelineStatusFilter" onchange="renderTimeline()" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 10px;font-size:12px;color:var(--text);cursor:pointer">
+          <option value="">All Status</option>
+          <option value="confirmed">Confirmed Case</option>
+          <option value="suspected">Suspected Case</option>
+          <option value="unconfirmed">Unconfirmed Case</option>
+          <option value="sighted">Suspect Sighted</option>
+        </select>
+        <select id="timelineAreaFilter" onchange="renderTimeline()" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 10px;font-size:12px;color:var(--text);cursor:pointer">
+          <option value="">All Areas</option>
+        </select>
+        <button onclick="clearTimelineFilters()" style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 10px;font-size:12px;color:var(--text);cursor:pointer;font-weight:600">✕ Clear</button>
+      </div>
+      <div class="timeline-wrap" id="timelineWrap" style="flex:1;overflow-y:auto;padding:16px;"></div>
     </div>
     <div class="tab-pane" id="pane-stats">
       <div class="stats-wrap" id="statsWrap"></div>
@@ -1234,6 +1265,13 @@ function updateAreaFilter(){
   const sel=document.getElementById('fArea');const cur=sel.value;
   sel.innerHTML='<option value="">All Areas</option>'+areas.map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join('');
   if(cur&&areas.includes(cur))sel.value=cur;
+  // Also update timeline area filter
+  const timelineSel=document.getElementById('timelineAreaFilter');
+  if(timelineSel){
+    const timelineCur=timelineSel.value;
+    timelineSel.innerHTML='<option value="">All Areas</option>'+areas.map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join('');
+    if(timelineCur&&areas.includes(timelineCur))timelineSel.value=timelineCur;
+  }
 }
 function renderList(){
   const filtered=getFiltered();const list=document.getElementById('incList');
@@ -1646,10 +1684,58 @@ document.addEventListener('click',e=>{
 
 // ── Tabs ──
 function switchTab(name){
-  const ns=['inc','stats'];
+  const ns=['inc','timeline','stats'];
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',ns[i]===name));
   document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
   document.getElementById('pane-'+name).classList.add('active');
+  if(name==='timeline')renderTimeline();
+}
+
+// ── Timeline ──
+function renderTimeline(){
+  const statusFilter=document.getElementById('timelineStatusFilter').value;
+  const areaFilter=document.getElementById('timelineAreaFilter').value;
+
+  let filtered=incidents.filter(inc=>{
+    if(statusFilter&&inc.status!==statusFilter)return false;
+    if(areaFilter&&inc.area!==areaFilter)return false;
+    return true;
+  });
+
+  // Sort by date descending (newest first)
+  filtered.sort((a,b)=>{
+    const da=a.datetime?+new Date(a.datetime):0;
+    const db=b.datetime?+new Date(b.datetime):0;
+    return db-da;
+  });
+
+  const wrap=document.getElementById('timelineWrap');
+  if(!filtered.length){
+    wrap.innerHTML='<div style="padding:20px;text-align:center;color:var(--text-muted);">No incidents in timeline</div>';
+    return;
+  }
+
+  wrap.innerHTML=filtered.map(inc=>{
+    const d=inc.datetime?new Date(inc.datetime):null;
+    const dateStr=d&&!isNaN(d)?d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'—';
+    const animalTitle=inc.status==='sighted'?'Suspect Sighted':(inc.catName?`${esc(inc.catName)} (${esc(inc.animalType)})`:esc(inc.animalType));
+    const statusLabel={confirmed:'Confirmed Case',suspected:'Suspected Case',unconfirmed:'Unconfirmed Case',sighted:'Suspect Sighted'};
+    return `<div class="timeline-item s-${inc.status}" onclick="showDetail('${inc.id.replace(/'/g,"\\'")}')" style="cursor:pointer">
+      <div class="timeline-dot"></div>
+      <div class="timeline-content">
+        <div class="timeline-date">${dateStr}</div>
+        <div class="timeline-title">${animalTitle}</div>
+        <div class="timeline-address">📍 ${esc(inc.address)}</div>
+        <div class="timeline-status b-${inc.status}">${statusLabel[inc.status]||inc.status}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function clearTimelineFilters(){
+  document.getElementById('timelineStatusFilter').value='';
+  document.getElementById('timelineAreaFilter').value='';
+  renderTimeline();
 }
 
 // ── Toast ──
