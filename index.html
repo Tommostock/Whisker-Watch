@@ -605,7 +605,6 @@ function drawPins(){
       background:${c};border:2px solid rgba(255,255,255,.85);border-radius:50% 50% 50% 0;
       transform:rotate(-45deg);box-shadow:0 0 10px ${c}99,0 2px 6px rgba(0,0,0,.7);
       cursor:pointer;pointer-events:all;transition:transform .12s;z-index:10;`;
-    pin.dataset.incId=inc.id;
     pin.addEventListener('mouseenter',()=>{pin.style.transform='rotate(-45deg) scale(1.35)';});
     pin.addEventListener('mouseleave',()=>{pin.style.transform='rotate(-45deg)';});
     layer.appendChild(pin);
@@ -699,20 +698,23 @@ mapC.addEventListener('wheel',e=>{
 mapC.addEventListener('click',e=>{
   if(Math.abs(e.clientX-(dragStart&&dragStart.x||e.clientX))>4) return;
   const rect=mapC.getBoundingClientRect();
-  const {lat,lng}=px2ll(e.clientX-rect.left,e.clientY-rect.top);
-  // Always open report modal when clicking empty map area (not on a pin)
+  const cx=e.clientX-rect.left, cy=e.clientY-rect.top;
+  // Hit-test pins first — check if click lands within 14px of any marker centre
+  if(showPins){
+    const hit=incidents.find(inc=>{
+      const lat=+inc.lat,lng=+inc.lng;
+      if(isNaN(lat)||isNaN(lng))return false;
+      const {x,y}=ll2px(lat,lng);
+      return Math.hypot(cx-x,cy-y)<14;
+    });
+    if(hit){showDetail(hit.id);return;}
+  }
+  // No pin hit — open new incident report
+  const {lat,lng}=px2ll(cx,cy);
   if(!document.getElementById('reportOverlay').classList.contains('open') &&
      !document.getElementById('detailOverlay').classList.contains('open')) {
     openReport(lat,lng,null);
   }
-});
-
-// Delegated pin click — survives continuous redraws of markerLayer
-document.getElementById('markerLayer').addEventListener('click',e=>{
-  const pin=e.target.closest('[data-inc-id]');
-  if(!pin)return;
-  e.stopPropagation();
-  showDetail(pin.dataset.incId);
 });
 
 function zoomIn(){ms.zoom=Math.min(MAX_Z,ms.zoom+1);closePopup();sched();}
