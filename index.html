@@ -755,7 +755,7 @@ function confirmLog(){
 }
 
 // ── Draggable location pin (shown when report modal is open with coords) ──
-let _dpDragging=false,_dpOffX=0,_dpOffY=0;
+let _dpDragging=false,_dpOffX=0,_dpOffY=0,_dpGeoTimer=null;
 function showDragPin(lat,lng){
   const dp=document.getElementById('dragPin');
   const {x,y}=ll2px(lat,lng);
@@ -766,6 +766,18 @@ function updateDragPin(){
   const lat=parseFloat(document.getElementById('fLat').value);
   const lng=parseFloat(document.getElementById('fLng').value);
   if(!isNaN(lat)&&!isNaN(lng))showDragPin(lat,lng);else hideDragPin();
+}
+function reverseGeocodePin(lat,lng){
+  // Debounced reverse geocoding while dragging
+  clearTimeout(_dpGeoTimer);
+  _dpGeoTimer=setTimeout(()=>{
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
+      .then(r=>r.json()).then(d=>{
+        if(d.display_name){
+          document.getElementById('fAddr').value=d.display_name.split(',').slice(0,5).join(', ');
+        }
+      }).catch(()=>{});
+  },300);
 }
 document.getElementById('dragPinHead').addEventListener('mousedown',e=>{
   e.preventDefault();e.stopPropagation();
@@ -786,16 +798,18 @@ window.addEventListener('mousemove',e=>{
   document.getElementById('dragPin').style.top=(cy-22)+'px';
   document.getElementById('fLat').value=lat.toFixed(5);
   document.getElementById('fLng').value=lng.toFixed(5);
+  // Update address in real-time with debouncing
+  reverseGeocodePin(lat,lng);
 });
 window.addEventListener('mouseup',e=>{
   if(!_dpDragging)return;
   _dpDragging=false;
   document.getElementById('dragPinHead').style.cursor='grab';
-  // Reverse geocode to update address field
+  // Final reverse geocode to ensure address is up-to-date
   const lat=parseFloat(document.getElementById('fLat').value);
   const lng=parseFloat(document.getElementById('fLng').value);
   if(!isNaN(lat)&&!isNaN(lng)){
-    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18`)
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
       .then(r=>r.json()).then(d=>{if(d.display_name)document.getElementById('fAddr').value=d.display_name.split(',').slice(0,5).join(', ');})
       .catch(()=>{});
   }
