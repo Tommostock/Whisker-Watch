@@ -995,12 +995,16 @@ function renderList(){
     const ds=d&&!isNaN(d)?d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—';
     const ts=d&&!isNaN(d)?d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'';
     const sid=inc.id.replace(/'/g,"\\'");
-    const animalTitle=inc.catName?`${esc(inc.catName)} (${esc(inc.animalType)})`:esc(inc.animalType);
+    const animalTitle=inc.status==='sighted'?'Suspect Sighted':(inc.catName?`${esc(inc.catName)} (${esc(inc.animalType)})`:esc(inc.animalType));
+    const cardDesc=inc.status==='sighted'?(inc.sightedDesc?esc(inc.sightedDesc):''):(inc.animalDesc?' — '+esc(inc.animalDesc):'');
+    const metaTags=inc.status==='sighted'
+      ?`<span class="mtag">📅 ${ds} ${ts}</span>${inc.photos&&inc.photos.length?`<span class="mtag">📷 ${inc.photos.length}</span>`:''}`
+      :`<span class="mtag">📅 ${ds} ${ts}</span><span class="mtag">⚡ ${esc(inc.method)}</span><span class="mtag">☠ ${esc(inc.severity)}</span>${inc.photos&&inc.photos.length?`<span class="mtag">📷 ${inc.photos.length}</span>`:''}`;
     return `<div class="inc-card s-${inc.status}" onclick="showDetail('${sid}')">
       <div class="card-hdr"><span class="card-id">${esc(inc.id)}</span><span class="sbadge b-${inc.status}">${inc.status==='confirmed'?'CONFIRMED':inc.status==='suspected'?'SUSPECTED':inc.status==='sighted'?'SUSPECT SIGHTED':'UNCONFIRMED'}</span></div>
-      <div class="card-animal">${animalTitle}${inc.animalDesc?' — '+esc(inc.animalDesc):''}</div>
+      <div class="card-animal">${animalTitle}${cardDesc}</div>
       <div class="card-loc">📍 ${esc(inc.address)}</div>
-      <div class="card-meta"><span class="mtag">📅 ${ds} ${ts}</span><span class="mtag">⚡ ${esc(inc.method)}</span><span class="mtag">☠ ${esc(inc.severity)}</span>${inc.photos&&inc.photos.length?`<span class="mtag">📷 ${inc.photos.length}</span>`:''}</div>
+      <div class="card-meta">${metaTags}</div>
     </div>`;
   }).join('');
 }
