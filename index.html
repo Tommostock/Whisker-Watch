@@ -1260,14 +1260,35 @@ modalAddrIn.addEventListener('keydown',e=>{if(e.key==='Escape')modalAddrDrop.sty
 // Modal-specific search that fills coordinates and address
 function runModalSearch(q){
   if(!q)return;
-  fetch(nominatimUrl(q))
+  fetch(`https://api.getaddress.io/autocomplete/${encodeURIComponent(q)}?api-key=${GA_KEY}&all=true`)
     .then(r=>r.json()).then(data=>{
-      modalAddrDrop.innerHTML=data.length?data.map(d=>{
-        const l=formatResult(d);
-        return`<div class="search-item" onclick="selectModalAddr(${+d.lat},${+d.lon},'${d.display_name.replace(/'/g,"\\'")}')">${esc(l)}</div>`;
-      }).join(''):'<div class="search-item" style="color:var(--text-dim)">No results found</div>';
-      modalAddrDrop.style.display='block';
-    }).catch(()=>{modalAddrDrop.innerHTML='<div class="search-item" style="color:var(--text-dim)">Search unavailable</div>';modalAddrDrop.style.display='block';});
+      const suggestions=(data.suggestions||[]).slice(0,12);
+      if(suggestions.length){
+        modalAddrDrop.innerHTML=suggestions.map(s=>`<div class="search-item" data-ga-url="${s.url}" data-label="${esc(s.address)}" onclick="selectModalAddrGA(this)">${esc(s.address)}</div>`).join('');
+        modalAddrDrop.style.display='block';
+      } else {
+        fetch(nominatimUrl(q)).then(r=>r.json()).then(nd=>{
+          modalAddrDrop.innerHTML=nd.length?nd.map(d=>{const l=formatNomResult(d);return`<div class="search-item" onclick="selectModalAddr(${+d.lat},${+d.lon},'${l.replace(/'/g,"\\'")}')">${esc(l)}</div>`;}).join(''):'<div class="search-item" style="color:var(--text-dim)">No results found</div>';
+          modalAddrDrop.style.display='block';
+        }).catch(()=>{});
+      }
+    }).catch(()=>{
+      fetch(nominatimUrl(q)).then(r=>r.json()).then(nd=>{
+        modalAddrDrop.innerHTML=nd.length?nd.map(d=>{const l=formatNomResult(d);return`<div class="search-item" onclick="selectModalAddr(${+d.lat},${+d.lon},'${l.replace(/'/g,"\\'")}')">${esc(l)}</div>`;}).join(''):'<div class="search-item" style="color:var(--text-dim)">No results found</div>';
+        modalAddrDrop.style.display='block';
+      }).catch(()=>{});
+    });
+}
+function selectModalAddrGA(el){
+  const url=el.dataset.gaUrl,label=el.dataset.label;
+  modalAddrDrop.style.display='none';
+  document.getElementById('fAddr').value=label;
+  fetch(`https://api.getaddress.io${url}?api-key=${GA_KEY}`)
+    .then(r=>r.json()).then(d=>{
+      const lat=+d.latitude,lng=+d.longitude;
+      if(!isNaN(lat)&&lat!==0){selectModalAddr(lat,lng,label);}
+      else nominatimResolve(label,(lat,lng)=>selectModalAddr(lat,lng,label));
+    }).catch(()=>nominatimResolve(label,(lat,lng)=>selectModalAddr(lat,lng,label)));
 }
 
 // ADDRESS AUTOCOMPLETE: When address selected in modal, fill coords + address
@@ -1281,47 +1302,78 @@ function selectModalAddr(lat,lng,fullAddr){
   // Pan map to show selected location
   ms.lat=lat;ms.lng=lng;ms.zoom=15;sched();
 }
-// Build a comprehensive UK-wide Nominatim query URL
+// ── Search: GetAddress.io (primary) + Nominatim (fallback) ──
+const GA_KEY='EFCcxxrcpEuyW5C36Pvt-A50503';
+
+// Resolve a GetAddress suggestion to lat/lng via their /find endpoint
+function gaResolve(suggestion,callback){
+  const pc=suggestion.url.split('/').pop(); // url = "/get/RM8 3ER/..."
+  const path=suggestion.url; // e.g. /get/RM8%203ER/0
+  fetch(`https://api.getaddress.io${path}?api-key=${GA_KEY}`)
+    .then(r=>r.json()).then(d=>{
+      if(d.latitude&&d.longitude){callback(+d.latitude,+d.longitude);}
+      else{nominatimResolve(suggestion.address,callback);}
+    }).catch(()=>nominatimResolve(suggestion.address,callback));
+}
+
+// Fallback: resolve a plain address string via Nominatim
+function nominatimResolve(addr,callback){
+  fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(addr+', UK')}&countrycodes=gb&limit=1`)
+    .then(r=>r.json()).then(d=>{if(d.length)callback(+d[0].lat,+d[0].lon);})
+    .catch(()=>{});
+}
+
+// Nominatim fallback search for place names & landmarks
 function nominatimUrl(q){
-  const params=new URLSearchParams({
-    format:'jsonv2',
-    q,
-    countrycodes:'gb',
-    addressdetails:'1',
-    limit:'15',
-    dedupe:'1',
-    'accept-language':'en'
-  });
+  const params=new URLSearchParams({format:'jsonv2',q,countrycodes:'gb',addressdetails:'1',limit:'8',dedupe:'1','accept-language':'en'});
   return`https://nominatim.openstreetmap.org/search?${params}`;
 }
-// Format a Nominatim result into a readable label
-function formatResult(d){
+function formatNomResult(d){
   const a=d.address||{};
   const parts=[];
-  // Street-level detail
   if(a.house_number&&a.road)parts.push(`${a.house_number} ${a.road}`);
   else if(a.road)parts.push(a.road);
   else if(a.amenity||a.shop||a.leisure||a.tourism)parts.push(a.amenity||a.shop||a.leisure||a.tourism);
-  else if(a.building)parts.push(a.building);
-  // Locality
   if(a.suburb||a.quarter)parts.push(a.suburb||a.quarter);
   if(a.town||a.city||a.village||a.hamlet)parts.push(a.town||a.city||a.village||a.hamlet);
-  // County / region
   if(a.county||a.state_district)parts.push(a.county||a.state_district);
-  // Postcode
   if(a.postcode)parts.push(a.postcode);
   return parts.length?parts.join(', '):d.display_name.split(',').slice(0,4).join(', ');
 }
+
+// Primary: GetAddress.io autocomplete → merge with Nominatim fallback
 function runSearch(q){
   if(!q)return;
-  fetch(nominatimUrl(q))
+  fetch(`https://api.getaddress.io/autocomplete/${encodeURIComponent(q)}?api-key=${GA_KEY}&all=true`)
     .then(r=>r.json()).then(data=>{
-      searchDrop.innerHTML=data.length?data.map(d=>{
-        const l=formatResult(d);
-        return`<div class="search-item" onclick="gotoPlace(${+d.lat},${+d.lon},'${l.replace(/'/g,"\\'")}')">${esc(l)}</div>`;
-      }).join(''):'<div class="search-item" style="color:var(--text-dim)">No results found</div>';
-      searchDrop.style.display='block';
-    }).catch(()=>{searchDrop.innerHTML='<div class="search-item" style="color:var(--text-dim)">Search unavailable</div>';searchDrop.style.display='block';});
+      const suggestions=(data.suggestions||[]).slice(0,12);
+      if(suggestions.length){
+        searchDrop.innerHTML=suggestions.map(s=>`<div class="search-item" data-ga-url="${s.url}" data-label="${esc(s.address)}" onclick="gotoPlaceGA(this)">${esc(s.address)}</div>`).join('');
+        searchDrop.style.display='block';
+      } else {
+        // Fallback to Nominatim for place names / landmarks
+        fetch(nominatimUrl(q)).then(r=>r.json()).then(nd=>{
+          searchDrop.innerHTML=nd.length?nd.map(d=>{const l=formatNomResult(d);return`<div class="search-item" onclick="gotoPlace(${+d.lat},${+d.lon},'${l.replace(/'/g,"\\'")}')">${esc(l)}</div>`;}).join(''):'<div class="search-item" style="color:var(--text-dim)">No results found</div>';
+          searchDrop.style.display='block';
+        }).catch(()=>{searchDrop.innerHTML='<div class="search-item" style="color:var(--text-dim)">Search unavailable</div>';searchDrop.style.display='block';});
+      }
+    }).catch(()=>{
+      fetch(nominatimUrl(q)).then(r=>r.json()).then(nd=>{
+        searchDrop.innerHTML=nd.length?nd.map(d=>{const l=formatNomResult(d);return`<div class="search-item" onclick="gotoPlace(${+d.lat},${+d.lon},'${l.replace(/'/g,"\\'")}')">${esc(l)}</div>`;}).join(''):'<div class="search-item" style="color:var(--text-dim)">No results found</div>';
+        searchDrop.style.display='block';
+      }).catch(()=>{});
+    });
+}
+function gotoPlaceGA(el){
+  const url=el.dataset.gaUrl,label=el.dataset.label;
+  searchDrop.style.display='none';searchIn.value='';
+  fetch(`https://api.getaddress.io${url}?api-key=${GA_KEY}`)
+    .then(r=>r.json()).then(d=>{
+      const lat=+d.latitude,lng=+d.longitude;
+      if(!isNaN(lat)&&lat!==0){ms.lat=lat;ms.lng=lng;ms.zoom=16;sched();openReport(lat,lng,null);
+        setTimeout(()=>{document.getElementById('fAddr').value=label;},50);
+      } else nominatimResolve(label,(lat,lng)=>{ms.lat=lat;ms.lng=lng;ms.zoom=16;sched();openReport(lat,lng,null);setTimeout(()=>{document.getElementById('fAddr').value=label;},50);});
+    }).catch(()=>nominatimResolve(label,(lat,lng)=>{ms.lat=lat;ms.lng=lng;ms.zoom=16;sched();openReport(lat,lng,null);setTimeout(()=>{document.getElementById('fAddr').value=label;},50);}));
 }
 // SEARCH → MAP FLOW: When address selected from search
 // 1. Pan and zoom to location
