@@ -607,7 +607,7 @@ function drawPins(){
       cursor:pointer;pointer-events:all;transition:transform .12s;z-index:10;`;
     pin.addEventListener('click',e=>{
       e.stopPropagation();
-      showPopup(inc,x,y);
+      showDetail(inc.id);
     });
     pin.addEventListener('mouseenter',()=>{pin.style.transform='rotate(-45deg) scale(1.35)';});
     pin.addEventListener('mouseleave',()=>{pin.style.transform='rotate(-45deg)';});
