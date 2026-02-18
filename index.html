@@ -111,7 +111,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 #mapCanvas{position:absolute;inset:0;width:100%;height:100%;cursor:grab;display:block;}
 #mapCanvas.grabbing{cursor:grabbing;}
 #heatCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:block;}
-#markerLayer{position:absolute;inset:0;pointer-events:auto;}
+#markerLayer{position:absolute;inset:0;pointer-events:none;}
 .map-top-left{position:absolute;top:12px;left:12px;z-index:20;display:flex;gap:6px;}
 .map-top-right{position:absolute;top:12px;right:12px;z-index:20;display:flex;flex-direction:column;gap:5px;}
 .map-btn{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:7px 10px;color:var(--text-muted);font-family:'Space Mono',monospace;font-size:9px;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:all .15s;box-shadow:0 2px 8px rgba(0,0,0,.5);}
