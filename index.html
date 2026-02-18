@@ -1196,15 +1196,19 @@ function getFiltered(){
     if(sortField==='date'){
       av=a.datetime?+new Date(a.datetime):0;
       bv=b.datetime?+new Date(b.datetime):0;
+      return av<bv?sortDir:av>bv?-sortDir:0;
     }else if(sortField==='status'){
       const statusPriority={sighted:0,confirmed:1,suspected:2,unconfirmed:3};
       av=statusPriority[a.status]||4;
       bv=statusPriority[b.status]||4;
+      // For status, always sort by priority order (sighted first when descending)
+      // sortDir=-1 means descending, so we want lower priority values first
+      return av<bv?-sortDir:av>bv?sortDir:0;
     }else{
       av=(a[sortField]||'').toLowerCase();
       bv=(b[sortField]||'').toLowerCase();
+      return av<bv?sortDir:av>bv?-sortDir:0;
     }
-    return av<bv?sortDir:av>bv?-sortDir:0;
   });
   return d;
 }
