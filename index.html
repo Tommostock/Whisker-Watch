@@ -257,6 +257,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
   <div class="hdr-right">
     <div class="stat-pill">Total <span class="n" id="cTotal" style="color:var(--text)">0</span></div>
     <div class="stat-pill">Unconfirmed <span class="n" id="cOpen" style="color:var(--green)">0</span></div>
+    <div class="stat-pill">Suspected <span class="n" id="cSuspected" style="color:var(--yellow)">0</span></div>
     <div class="stat-pill">Confirmed <span class="n" id="cClosed" style="color:var(--accent)">0</span></div>
     <!-- TODO: Implement authentication - currently non-functional -->
     <button class="btn btn-ghost btn-sm" onclick="handleLogin()" title="Login (not yet implemented)">Login</button>
@@ -1227,7 +1228,7 @@ function getFiltered(){
 
 // ── Render ──
 function renderAll(){renderList();updateCounts();updateAreaFilter();renderStats();drawPins();if(showHeat)drawHeat();}
-function updateCounts(){document.getElementById('cTotal').textContent=incidents.length;document.getElementById('cOpen').textContent=incidents.filter(i=>i.status==='unconfirmed').length;document.getElementById('cClosed').textContent=incidents.filter(i=>i.status==='confirmed').length;}
+function updateCounts(){document.getElementById('cTotal').textContent=incidents.length;document.getElementById('cOpen').textContent=incidents.filter(i=>i.status==='unconfirmed').length;document.getElementById('cSuspected').textContent=incidents.filter(i=>i.status==='suspected').length;document.getElementById('cClosed').textContent=incidents.filter(i=>i.status==='confirmed').length;}
 function updateAreaFilter(){
   const areas=[...new Set(incidents.map(i=>i.area).filter(a=>a&&a!=='Unknown'))].sort();
   const sel=document.getElementById('fArea');const cur=sel.value;
