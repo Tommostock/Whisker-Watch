@@ -648,8 +648,8 @@ function drawPins(){
       if(members.length===1){
         renderPin(layer,members[0],x,y,cols);
       } else {
-        // Pick most severe status colour
-        const priority=['confirmed','sighted','suspected','unconfirmed'];
+        // Pick most severe status colour (based on priority: sighted > confirmed > suspected > unconfirmed)
+        const priority=['sighted','confirmed','suspected','unconfirmed'];
         const topStatus=priority.find(s=>members.some(m=>m.status===s))||'unconfirmed';
         const c=cols[topStatus]||'#e63946';
         const sz=members.length>99?48:members.length>9?42:36;
@@ -1191,7 +1191,21 @@ function getFiltered(){
   if(filters.area)d=d.filter(i=>i.area===filters.area);
   const q=(document.getElementById('incSearch')?.value||'').trim().toLowerCase();
   if(q){d=d.filter(i=>[i.id,i.address,i.catName,i.animalType,i.animalDesc,i.notes,i.witnessName,i.witnessStatement,i.sightedDesc,i.method,i.severity,i.area].some(v=>v&&String(v).toLowerCase().includes(q)));}
-  d.sort((a,b)=>{let av,bv;if(sortField==='date'){av=a.datetime?+new Date(a.datetime):0;bv=b.datetime?+new Date(b.datetime):0;}else{av=(a[sortField]||'').toLowerCase();bv=(b[sortField]||'').toLowerCase();}return av<bv?sortDir:av>bv?-sortDir:0;});
+  d.sort((a,b)=>{
+    let av,bv;
+    if(sortField==='date'){
+      av=a.datetime?+new Date(a.datetime):0;
+      bv=b.datetime?+new Date(b.datetime):0;
+    }else if(sortField==='status'){
+      const statusPriority={sighted:0,confirmed:1,suspected:2,unconfirmed:3};
+      av=statusPriority[a.status]||4;
+      bv=statusPriority[b.status]||4;
+    }else{
+      av=(a[sortField]||'').toLowerCase();
+      bv=(b[sortField]||'').toLowerCase();
+    }
+    return av<bv?sortDir:av>bv?-sortDir:0;
+  });
   return d;
 }
 
