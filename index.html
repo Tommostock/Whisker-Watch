@@ -130,6 +130,15 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .popup-sub{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);margin-bottom:2px;line-height:1.4;}
 .popup-btn{display:inline-block;margin-top:8px;padding:4px 10px;background:var(--accent);color:white;border-radius:4px;font-size:10px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:600;border:none;}
 .popup-btn:hover{background:#c1121f;}
+.log-prompt{position:absolute;z-index:35;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;box-shadow:0 6px 24px rgba(0,0,0,.6);pointer-events:all;white-space:nowrap;transform:translateX(-50%);}
+.log-prompt::after{content:'';position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:7px solid var(--border);}
+.log-prompt::before{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid var(--surface);}
+.log-prompt-title{font-family:'Space Mono',monospace;font-size:10px;font-weight:700;color:var(--text);margin-bottom:8px;text-align:center;}
+.log-prompt-btns{display:flex;gap:6px;justify-content:center;}
+.log-prompt-yes{padding:5px 14px;background:var(--accent);color:white;border:none;border-radius:4px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;}
+.log-prompt-yes:hover{background:#c1121f;}
+.log-prompt-no{padding:5px 14px;background:transparent;color:var(--text-muted);border:1px solid var(--border);border-radius:4px;font-family:'Syne',sans-serif;font-size:11px;font-weight:700;cursor:pointer;}
+.log-prompt-no:hover{border-color:var(--text-muted);color:var(--text);}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(5px);z-index:200;display:none;align-items:center;justify-content:center;padding:16px;}
 .overlay.open{display:flex;}
 .modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:100%;max-width:540px;max-height:92vh;overflow-y:auto;box-shadow:0 28px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;}
@@ -293,6 +302,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     <canvas id="heatCanvas"></canvas>
     <div id="markerLayer"></div>
     <div id="mapPopup" class="map-popup"></div>
+    <div id="logPrompt" class="log-prompt" style="display:none"></div>
     <div class="map-top-left">
       <button class="map-btn" onclick="toggleSidebar()">☰ PANEL</button>
     </div>
@@ -648,6 +658,24 @@ function showPopup(inc,x,y){
   pop.style.left=left+'px';pop.style.top=top+'px';pop.style.display='block';
 }
 function closePopup(){document.getElementById('mapPopup').style.display='none';}
+let _logLat=null,_logLng=null;
+function showLogPrompt(lat,lng,cx,cy){
+  _logLat=lat;_logLng=lng;
+  const p=document.getElementById('logPrompt');
+  const mW=mapC.width,mH=mapC.height;
+  const pw=160;
+  let left=Math.max(pw/2+8,Math.min(mW-pw/2-8,cx));
+  const top=Math.max(8,cy-72);
+  p.style.left=left+'px';p.style.top=top+'px';
+  p.innerHTML=`<div class="log-prompt-title">📍 Log Incident here?</div>
+    <div class="log-prompt-btns">
+      <button class="log-prompt-yes" onclick="confirmLog()">Yes</button>
+      <button class="log-prompt-no" onclick="closeLogPrompt()">No</button>
+    </div>`;
+  p.style.display='block';
+}
+function closeLogPrompt(){document.getElementById('logPrompt').style.display='none';_logLat=null;_logLng=null;}
+function confirmLog(){closeLogPrompt();openReport(_logLat,_logLng,null);}
 
 // ── Interactions ──
 mapC.addEventListener('mousedown',e=>{
@@ -661,7 +689,7 @@ window.addEventListener('mousemove',e=>{
   const dx=e.clientX-dragStart.x, dy=e.clientY-dragStart.y;
   ms.lat=y2lat(lat2y(dragStart.lat,ms.zoom)-dy,ms.zoom);
   ms.lng=x2lng(lng2x(dragStart.lng,ms.zoom)-dx,ms.zoom);
-  closePopup(); sched();
+  closePopup();closeLogPrompt(); sched();
 });
 window.addEventListener('mouseup',()=>{dragging=false;mapC.classList.remove('grabbing');});
 
@@ -676,7 +704,7 @@ mapC.addEventListener('touchmove',e=>{
   const dx=e.touches[0].clientX-t0.x, dy=e.touches[0].clientY-t0.y;
   ms.lat=y2lat(lat2y(t0.lat,ms.zoom)-dy,ms.zoom);
   ms.lng=x2lng(lng2x(t0.lng,ms.zoom)-dx,ms.zoom);
-  closePopup(); sched();
+  closePopup();closeLogPrompt(); sched();
 },{passive:false});
 mapC.addEventListener('touchend',()=>{t0=null;});
 
@@ -691,7 +719,7 @@ mapC.addEventListener('wheel',e=>{
   const {x:nx,y:ny}=ll2px(cLat,cLng);
   ms.lat=y2lat(lat2y(ms.lat,nz)+(ny-my),nz);
   ms.lng=x2lng(lng2x(ms.lng,nz)+(nx-mx),nz);
-  closePopup(); sched();
+  closePopup();closeLogPrompt(); sched();
 },{passive:false});
 
 mapC.addEventListener('click',e=>{
@@ -708,16 +736,16 @@ mapC.addEventListener('click',e=>{
     });
     if(hit){showDetail(hit.id);return;}
   }
-  // No pin hit — open new incident report
+  // No pin hit — show log prompt at click location
   const {lat,lng}=px2ll(cx,cy);
   if(!document.getElementById('reportOverlay').classList.contains('open') &&
      !document.getElementById('detailOverlay').classList.contains('open')) {
-    openReport(lat,lng,null);
+    showLogPrompt(lat,lng,cx,cy);
   }
 });
 
-function zoomIn(){ms.zoom=Math.min(MAX_Z,ms.zoom+1);closePopup();sched();}
-function zoomOut(){ms.zoom=Math.max(MIN_Z,ms.zoom-1);closePopup();sched();}
+function zoomIn(){ms.zoom=Math.min(MAX_Z,ms.zoom+1);closePopup();closeLogPrompt();sched();}
+function zoomOut(){ms.zoom=Math.max(MIN_Z,ms.zoom-1);closePopup();closeLogPrompt();sched();}
 function fitAll(){
   const v=incidents.filter(i=>!isNaN(+i.lat)&&!isNaN(+i.lng));
   if(!v.length){ms.lat=54.5;ms.lng=-3.5;ms.zoom=6;closePopup();sched();return;}
