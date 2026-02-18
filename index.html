@@ -996,7 +996,7 @@ function renderList(){
     const ts=d&&!isNaN(d)?d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'';
     const sid=inc.id.replace(/'/g,"\\'");
     const animalTitle=inc.status==='sighted'?'Suspect Sighted':(inc.catName?`${esc(inc.catName)} (${esc(inc.animalType)})`:esc(inc.animalType));
-    const cardDesc=inc.status==='sighted'?(inc.sightedDesc?esc(inc.sightedDesc):''):(inc.animalDesc?' — '+esc(inc.animalDesc):'');
+    const cardDesc=inc.status==='sighted'?'':(inc.animalDesc?' — '+esc(inc.animalDesc):'');
     const metaTags=inc.status==='sighted'
       ?`<span class="mtag">📅 ${ds} ${ts}</span>${inc.photos&&inc.photos.length?`<span class="mtag">📷 ${inc.photos.length}</span>`:''}`
       :`<span class="mtag">📅 ${ds} ${ts}</span><span class="mtag">⚡ ${esc(inc.method)}</span><span class="mtag">☠ ${esc(inc.severity)}</span>${inc.photos&&inc.photos.length?`<span class="mtag">📷 ${inc.photos.length}</span>`:''}`;
