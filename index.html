@@ -275,9 +275,9 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
       <div class="sort-bar">
         <span>SORT</span>
         <div class="sort-opts">
-          <span class="sort-opt active" onclick="setSort('date',this)">DATE</span>
-          <span class="sort-opt" onclick="setSort('area',this)">AREA</span>
-          <span class="sort-opt" onclick="setSort('status',this)">STATUS</span>
+          <span class="sort-opt active" data-sort="date" onclick="setSort('date',this)">DATE ▼</span>
+          <span class="sort-opt" data-sort="area" onclick="setSort('area',this)">AREA</span>
+          <span class="sort-opt" data-sort="status" onclick="setSort('status',this)">STATUS</span>
         </div>
         <span id="filteredCount"></span>
       </div>
@@ -974,7 +974,15 @@ function doSave(addr,lat,lng,dt){
 // ── Filters / sort ──
 function applyFilters(){filters.status=document.getElementById('fStatus').value;filters.method=document.getElementById('fMethod').value;filters.area=document.getElementById('fArea').value;renderAll();}
 function clearFilters(){['fStatus','fMethod','fArea'].forEach(id=>document.getElementById(id).value='');filters={status:'',method:'',area:''};renderAll();}
-function setSort(f,el){if(sortField===f)sortDir*=-1;sortField=f;document.querySelectorAll('.sort-opt').forEach(e=>e.classList.remove('active'));el.classList.add('active');renderAll();}
+function setSort(f,el){
+  if(sortField===f)sortDir*=-1;else sortDir=-1;
+  sortField=f;
+  const labels={date:'DATE',area:'AREA',status:'STATUS'};
+  document.querySelectorAll('.sort-opt').forEach(e=>{e.classList.remove('active');e.textContent=labels[e.dataset.sort]||e.dataset.sort;});
+  el.classList.add('active');
+  el.textContent=(labels[f]||f)+(sortDir===-1?' ▼':' ▲');
+  renderAll();
+}
 function getFiltered(){
   let d=[...incidents];
   if(filters.status)d=d.filter(i=>i.status===filters.status);
