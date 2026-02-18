@@ -602,8 +602,7 @@ function drawPins(){
       cursor:pointer;pointer-events:all;transition:transform .12s;z-index:10;`;
     pin.addEventListener('click',e=>{
       e.stopPropagation();
-      // MARKER BEHAVIOR: Open detail modal directly (matches flyTo behavior for consistency)
-      showDetail(inc.id);
+      showPopup(inc,x,y);
     });
     pin.addEventListener('mouseenter',()=>{pin.style.transform='rotate(-45deg) scale(1.35)';});
     pin.addEventListener('mouseleave',()=>{pin.style.transform='rotate(-45deg)';});
