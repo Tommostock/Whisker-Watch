@@ -300,7 +300,6 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
       <button class="map-btn on" id="btnHeat" onclick="toggleHeat()">🌡 HEATMAP ON</button>
       <button class="map-btn on" id="btnMarkers" onclick="toggleMarkers()">📍 MARKERS ON</button>
       <button class="map-btn" onclick="fitAll()">⌖ FIT ALL</button>
-      <button class="map-btn" onclick="resetView()">⟲ RESET</button>
     </div>
     <div class="zoom-wrap">
       <button class="zoom-btn" onclick="zoomIn()">+</button>
@@ -719,15 +718,23 @@ mapC.addEventListener('click',e=>{
 
 function zoomIn(){ms.zoom=Math.min(MAX_Z,ms.zoom+1);closePopup();sched();}
 function zoomOut(){ms.zoom=Math.max(MIN_Z,ms.zoom-1);closePopup();sched();}
-function resetView(){ms.lat=51.505;ms.lng=-0.09;ms.zoom=11;closePopup();sched();}
 function fitAll(){
   const v=incidents.filter(i=>!isNaN(+i.lat)&&!isNaN(+i.lng));
-  if(!v.length){resetView();return;}
+  if(!v.length){ms.lat=54.5;ms.lng=-3.5;ms.zoom=6;closePopup();sched();return;}
   const lats=v.map(i=>+i.lat),lngs=v.map(i=>+i.lng);
-  ms.lat=(Math.min(...lats)+Math.max(...lats))/2;
-  ms.lng=(Math.min(...lngs)+Math.max(...lngs))/2;
-  const sp=Math.max(Math.max(...lats)-Math.min(...lats),Math.max(...lngs)-Math.min(...lngs));
-  ms.zoom=sp<0.02?14:sp<0.1?12:sp<0.4?11:10;
+  const minLat=Math.min(...lats),maxLat=Math.max(...lats);
+  const minLng=Math.min(...lngs),maxLng=Math.max(...lngs);
+  ms.lat=(minLat+maxLat)/2;
+  ms.lng=(minLng+maxLng)/2;
+  // Find the largest zoom where all markers fit within the canvas with 40px padding
+  const W=mapC.width||800,H=mapC.height||600;
+  let z=MAX_Z;
+  for(;z>MIN_Z;z--){
+    const x1=lng2x(minLng,z),x2=lng2x(maxLng,z);
+    const y1=lat2y(maxLat,z),y2=lat2y(minLat,z);
+    if((x2-x1)<W-80&&(y2-y1)<H-80)break;
+  }
+  ms.zoom=v.length===1?14:z;
   closePopup();sched();
 }
 function toggleHeat(){
