@@ -72,6 +72,10 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .search-item{padding:10px 12px;font-family:'Inter',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;border-bottom:1px solid var(--border);line-height:1.5;}
 .search-item:last-child{border-bottom:none;}
 .search-item:hover{background:var(--border);color:var(--text);}
+.inc-search-wrap{padding:8px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.inc-search-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:7px 10px;color:var(--text);font-family:'Inter',sans-serif;font-size:12px;outline:none;transition:border-color .15s;box-sizing:border-box;}
+.inc-search-input:focus{border-color:var(--accent);}
+.inc-search-input::placeholder{color:var(--text-dim);}
 .filter-bar{padding:7px 10px;border-bottom:1px solid var(--border);display:flex;flex-wrap:nowrap;gap:5px;flex-shrink:0;align-items:center;}
 .filter-sel{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:5px 4px;color:var(--text-muted);font-family:'Inter',sans-serif;font-size:10px;outline:none;cursor:pointer;flex:1;min-width:0;}
 .filter-sel:focus{border-color:var(--accent);}
@@ -130,6 +134,11 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .popup-sub{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);margin-bottom:2px;line-height:1.4;}
 .popup-btn{display:inline-block;margin-top:8px;padding:4px 10px;background:var(--accent);color:white;border-radius:4px;font-size:10px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:600;border:none;}
 .popup-btn:hover{background:#c1121f;}
+.drag-pin{position:absolute;width:22px;height:22px;background:var(--accent);border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 0 0 3px rgba(230,57,70,.3),0 3px 10px rgba(0,0,0,.6);cursor:grab;pointer-events:all;z-index:40;transition:box-shadow .15s;}
+.drag-pin:active{cursor:grabbing;box-shadow:0 0 0 6px rgba(230,57,70,.2),0 6px 18px rgba(0,0,0,.7);}
+.drag-pin-label{position:absolute;bottom:26px;left:50%;transform:translateX(-50%) rotate(45deg);background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:3px 7px;font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);white-space:nowrap;box-shadow:0 2px 6px rgba(0,0,0,.4);}
+.cluster{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-weight:700;color:#fff;cursor:pointer;pointer-events:all;box-shadow:0 2px 8px rgba(0,0,0,.5);transform:translate(-50%,-50%);transition:transform .12s;border:2px solid rgba(255,255,255,.8);}
+.cluster:hover{transform:translate(-50%,-50%) scale(1.15);}
 .log-prompt{position:absolute;z-index:35;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;box-shadow:0 6px 24px rgba(0,0,0,.6);pointer-events:all;white-space:nowrap;transform:translateX(-50%);}
 .log-prompt::after{content:'';position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:7px solid var(--border);}
 .log-prompt::before{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid var(--surface);}
@@ -264,6 +273,9 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
         </div>
         <div class="search-drop" id="searchDrop"></div>
       </div>
+      <div class="inc-search-wrap">
+        <input class="inc-search-input" id="incSearch" type="text" placeholder="🔍  Filter incidents by name, address, notes…" autocomplete="off" oninput="renderList()">
+      </div>
       <div class="filter-bar">
         <select class="filter-sel" id="fStatus" onchange="applyFilters()">
           <option value="">All Status</option>
@@ -303,6 +315,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     <div id="markerLayer"></div>
     <div id="mapPopup" class="map-popup"></div>
     <div id="logPrompt" class="log-prompt" style="display:none"></div>
+    <div id="dragPin" style="display:none"><div class="drag-pin" id="dragPinHead"></div><div class="drag-pin-label" id="dragPinLabel">Drag to adjust</div></div>
     <div class="map-top-left">
       <button class="map-btn" onclick="toggleSidebar()">☰ PANEL</button>
     </div>
@@ -597,27 +610,75 @@ async function render(){
   sched();
 }
 
-// ── Pins ──
+// ── Pins & Clustering ──
 function drawPins(){
   const layer=document.getElementById('markerLayer');
   layer.innerHTML='';
   if(!showPins) return;
-  incidents.forEach(inc=>{
-    const lat=+inc.lat, lng=+inc.lng;
-    if(isNaN(lat)||isNaN(lng)) return;
+  const cols={confirmed:'#e63946',suspected:'#d4a017',unconfirmed:'#2d9d6e',sighted:'#3b82f6'};
+  const CLUSTER_R=ms.zoom<10?55:ms.zoom<13?36:ms.zoom<15?0:0; // px radius to cluster within
+  const visible=incidents.filter(inc=>{
+    const lat=+inc.lat,lng=+inc.lng;
+    if(isNaN(lat)||isNaN(lng))return false;
     const {x,y}=ll2px(lat,lng);
-    if(x<-20||x>mapC.width+20||y<-20||y>mapC.height+20) return;
-    const cols={confirmed:'#e63946',suspected:'#d4a017',unconfirmed:'#2d9d6e',sighted:'#3b82f6'};
-    const c=cols[inc.status]||'#e63946';
-    const pin=document.createElement('div');
-    pin.style.cssText=`position:absolute;left:${x-9}px;top:${y-18}px;width:18px;height:18px;
-      background:${c};border:2px solid rgba(255,255,255,.85);border-radius:50% 50% 50% 0;
-      transform:rotate(-45deg);box-shadow:0 0 10px ${c}99,0 2px 6px rgba(0,0,0,.7);
-      cursor:pointer;pointer-events:all;transition:transform .12s;z-index:10;`;
-    pin.addEventListener('mouseenter',()=>{pin.style.transform='rotate(-45deg) scale(1.35)';});
-    pin.addEventListener('mouseleave',()=>{pin.style.transform='rotate(-45deg)';});
-    layer.appendChild(pin);
+    return x>-20&&x<mapC.width+20&&y>-20&&y<mapC.height+20;
   });
+  if(CLUSTER_R>0){
+    // Build clusters greedily
+    const used=new Set();
+    const clusters=[];
+    visible.forEach((inc,i)=>{
+      if(used.has(i))return;
+      const {x,y}=ll2px(+inc.lat,+inc.lng);
+      const members=[inc];used.add(i);
+      visible.forEach((inc2,j)=>{
+        if(used.has(j))return;
+        const {x:x2,y:y2}=ll2px(+inc2.lat,+inc2.lng);
+        if(Math.hypot(x-x2,y-y2)<CLUSTER_R){members.push(inc2);used.add(j);}
+      });
+      clusters.push({members,x,y});
+    });
+    clusters.forEach(({members,x,y})=>{
+      if(members.length===1){
+        renderPin(layer,members[0],x,y,cols);
+      } else {
+        // Pick most severe status colour
+        const priority=['confirmed','sighted','suspected','unconfirmed'];
+        const topStatus=priority.find(s=>members.some(m=>m.status===s))||'unconfirmed';
+        const c=cols[topStatus]||'#e63946';
+        const sz=members.length>99?48:members.length>9?42:36;
+        const cl=document.createElement('div');
+        cl.className='cluster';
+        cl.style.cssText=`left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;font-size:${sz<42?11:13}px;background:${c};z-index:15;`;
+        cl.textContent=members.length;
+        cl.title=`${members.length} incidents — click to zoom in`;
+        cl.addEventListener('click',e=>{
+          e.stopPropagation();
+          ms.zoom=Math.min(MAX_Z,ms.zoom+2);
+          ms.lat=members.reduce((s,m)=>s+ +m.lat,0)/members.length;
+          ms.lng=members.reduce((s,m)=>s+ +m.lng,0)/members.length;
+          closeLogPrompt();sched();
+        });
+        layer.appendChild(cl);
+      }
+    });
+  } else {
+    visible.forEach(inc=>{
+      const {x,y}=ll2px(+inc.lat,+inc.lng);
+      renderPin(layer,inc,x,y,cols);
+    });
+  }
+}
+function renderPin(layer,inc,x,y,cols){
+  const c=cols[inc.status]||'#e63946';
+  const pin=document.createElement('div');
+  pin.style.cssText=`position:absolute;left:${x-9}px;top:${y-18}px;width:18px;height:18px;
+    background:${c};border:2px solid rgba(255,255,255,.85);border-radius:50% 50% 50% 0;
+    transform:rotate(-45deg);box-shadow:0 0 10px ${c}99,0 2px 6px rgba(0,0,0,.7);
+    cursor:pointer;pointer-events:all;transition:transform .12s;z-index:10;`;
+  pin.addEventListener('mouseenter',()=>{pin.style.transform='rotate(-45deg) scale(1.35)';});
+  pin.addEventListener('mouseleave',()=>{pin.style.transform='rotate(-45deg)';});
+  layer.appendChild(pin);
 }
 
 // ── Heatmap ──
@@ -676,6 +737,56 @@ function showLogPrompt(lat,lng,cx,cy){
 }
 function closeLogPrompt(){document.getElementById('logPrompt').style.display='none';_logLat=null;_logLng=null;}
 function confirmLog(){closeLogPrompt();openReport(_logLat,_logLng,null);}
+
+// ── Draggable location pin (shown when report modal is open with coords) ──
+let _dpDragging=false,_dpOffX=0,_dpOffY=0;
+function showDragPin(lat,lng){
+  const dp=document.getElementById('dragPin');
+  const {x,y}=ll2px(lat,lng);
+  dp.style.cssText=`display:block;position:absolute;left:${x-11}px;top:${y-22}px;z-index:40;`;
+  dp.querySelector('#dragPinLabel').textContent=`${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+}
+function hideDragPin(){document.getElementById('dragPin').style.display='none';}
+function updateDragPin(){
+  const lat=parseFloat(document.getElementById('fLat').value);
+  const lng=parseFloat(document.getElementById('fLng').value);
+  if(!isNaN(lat)&&!isNaN(lng))showDragPin(lat,lng);else hideDragPin();
+}
+document.getElementById('dragPinHead').addEventListener('mousedown',e=>{
+  e.preventDefault();e.stopPropagation();
+  _dpDragging=true;
+  const dp=document.getElementById('dragPin');
+  const rect=mapC.getBoundingClientRect();
+  _dpOffX=e.clientX-rect.left-(dp.offsetLeft+11);
+  _dpOffY=e.clientY-rect.top-(dp.offsetTop+22);
+  dp.querySelector('#dragPinHead').style.cursor='grabbing';
+});
+window.addEventListener('mousemove',e=>{
+  if(!_dpDragging)return;
+  const rect=mapC.getBoundingClientRect();
+  const cx=e.clientX-rect.left-_dpOffX;
+  const cy=e.clientY-rect.top-_dpOffY;
+  const {lat,lng}=px2ll(cx,cy);
+  document.getElementById('dragPin').style.left=(cx-11)+'px';
+  document.getElementById('dragPin').style.top=(cy-22)+'px';
+  document.getElementById('fLat').value=lat.toFixed(5);
+  document.getElementById('fLng').value=lng.toFixed(5);
+  document.getElementById('dragPinLabel').textContent=`${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+  // Reverse geocode on release — just update label for now
+});
+window.addEventListener('mouseup',e=>{
+  if(!_dpDragging)return;
+  _dpDragging=false;
+  document.getElementById('dragPinHead').style.cursor='grab';
+  // Reverse geocode to update address field
+  const lat=parseFloat(document.getElementById('fLat').value);
+  const lng=parseFloat(document.getElementById('fLng').value);
+  if(!isNaN(lat)&&!isNaN(lng)){
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18`)
+      .then(r=>r.json()).then(d=>{if(d.display_name)document.getElementById('fAddr').value=d.display_name.split(',').slice(0,5).join(', ');})
+      .catch(()=>{});
+  }
+});
 
 // ── Interactions ──
 mapC.addEventListener('mousedown',e=>{
@@ -889,10 +1000,13 @@ function openReport(lat,lng,incidentId){
   document.getElementById('geoStatus').textContent='';
   document.getElementById('valMsg').style.display='none';
   document.getElementById('reportOverlay').classList.add('open');
+  // Show draggable pin if we have coordinates
+  setTimeout(updateDragPin,50);
 }
 function closeReport(){
   document.getElementById('reportOverlay').classList.remove('open');
   editingIncidentId=null;
+  hideDragPin();
 }
 function updateFormForStatus(status){
   const isSighted=status==='sighted';
@@ -923,6 +1037,7 @@ function geocodeAddr(){
         document.getElementById('fLat').value=(+data[0].lat).toFixed(5);
         document.getElementById('fLng').value=(+data[0].lon).toFixed(5);
         st.textContent='✓ Found';st.style.color='var(--green)';
+        updateDragPin();
       }else{st.textContent='✗ Not found';st.style.color='var(--accent)';}
     }).catch(()=>{st.textContent='✗ Error';st.style.color='var(--accent)';});
 }
@@ -1008,7 +1123,7 @@ function doSave(addr,lat,lng,dt){
 
 // ── Filters / sort ──
 function applyFilters(){filters.status=document.getElementById('fStatus').value;filters.method=document.getElementById('fMethod').value;filters.area=document.getElementById('fArea').value;renderAll();}
-function clearFilters(){['fStatus','fMethod','fArea'].forEach(id=>document.getElementById(id).value='');filters={status:'',method:'',area:''};renderAll();}
+function clearFilters(){['fStatus','fMethod','fArea'].forEach(id=>document.getElementById(id).value='');filters={status:'',method:'',area:''};const s=document.getElementById('incSearch');if(s)s.value='';renderAll();}
 function setSort(f,el){
   if(sortField===f)sortDir*=-1;else sortDir=-1;
   sortField=f;
@@ -1023,6 +1138,8 @@ function getFiltered(){
   if(filters.status)d=d.filter(i=>i.status===filters.status);
   if(filters.method)d=d.filter(i=>i.method===filters.method);
   if(filters.area)d=d.filter(i=>i.area===filters.area);
+  const q=(document.getElementById('incSearch')?.value||'').trim().toLowerCase();
+  if(q){d=d.filter(i=>[i.id,i.address,i.catName,i.animalType,i.animalDesc,i.notes,i.witnessName,i.witnessStatement,i.sightedDesc,i.method,i.severity,i.area].some(v=>v&&String(v).toLowerCase().includes(q)));}
   d.sort((a,b)=>{let av,bv;if(sortField==='date'){av=a.datetime?+new Date(a.datetime):0;bv=b.datetime?+new Date(b.datetime):0;}else{av=(a[sortField]||'').toLowerCase();bv=(b[sortField]||'').toLowerCase();}return av<bv?sortDir:av>bv?-sortDir:0;});
   return d;
 }
@@ -1271,6 +1388,18 @@ const searchIn=document.getElementById('searchIn'),searchDrop=document.getElemen
 let searchTimer;
 searchIn.addEventListener('input',function(){clearTimeout(searchTimer);const q=this.value.trim();if(q.length<2){searchDrop.style.display='none';return;}searchTimer=setTimeout(()=>runSearch(q),300);});
 searchIn.addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();if(e.key==='Escape')searchDrop.style.display='none';});
+
+// ── Global Escape key handler ──
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Escape')return;
+  // Close in priority order — innermost first
+  if(document.getElementById('lightbox').classList.contains('open')){closeLightbox();return;}
+  if(document.getElementById('confirmOverlay').classList.contains('open')){resolveConfirm(false);return;}
+  if(document.getElementById('reportOverlay').classList.contains('open')){closeReport();return;}
+  if(document.getElementById('detailOverlay').classList.contains('open')){closeDetail();return;}
+  if(document.getElementById('logPrompt').style.display!=='none'){closeLogPrompt();return;}
+  if(searchDrop.style.display!=='none'){searchDrop.style.display='none';return;}
+});
 function doSearch(){runSearch(searchIn.value.trim());}
 
 // ADDRESS AUTOCOMPLETE IN MODAL: Same search behavior as main search bar
