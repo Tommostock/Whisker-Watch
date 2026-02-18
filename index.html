@@ -1241,7 +1241,7 @@ function resolveConfirm(v){document.getElementById('confirmOverlay').classList.r
 // ── Search ──
 const searchIn=document.getElementById('searchIn'),searchDrop=document.getElementById('searchDrop');
 let searchTimer;
-searchIn.addEventListener('input',function(){clearTimeout(searchTimer);const q=this.value.trim();if(q.length<3){searchDrop.style.display='none';return;}searchTimer=setTimeout(()=>runSearch(q),400);});
+searchIn.addEventListener('input',function(){clearTimeout(searchTimer);const q=this.value.trim();if(q.length<2){searchDrop.style.display='none';return;}searchTimer=setTimeout(()=>runSearch(q),300);});
 searchIn.addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();if(e.key==='Escape')searchDrop.style.display='none';});
 function doSearch(){runSearch(searchIn.value.trim());}
 
@@ -1251,22 +1251,20 @@ let modalSearchTimer;
 modalAddrIn.addEventListener('input',function(){
   clearTimeout(modalSearchTimer);
   const q=this.value.trim();
-  if(q.length<3){modalAddrDrop.style.display='none';return;}
+  if(q.length<2){modalAddrDrop.style.display='none';return;}
   // Reuse same search function, but populate modal dropdown
-  modalSearchTimer=setTimeout(()=>runModalSearch(q),400);
+  modalSearchTimer=setTimeout(()=>runModalSearch(q),300);
 });
 modalAddrIn.addEventListener('keydown',e=>{if(e.key==='Escape')modalAddrDrop.style.display='none';});
 
 // Modal-specific search that fills coordinates and address
 function runModalSearch(q){
   if(!q)return;
-  const viewbox='-0.5,51.3,0.3,51.7';
-  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=10&countrycodes=gb&viewbox=${viewbox}&bounded=0`)
+  fetch(nominatimUrl(q))
     .then(r=>r.json()).then(data=>{
       modalAddrDrop.innerHTML=data.length?data.map(d=>{
-        const l=d.display_name.split(',').slice(0,3).join(', ');
-        // When clicked, fill address AND coordinates in modal
-        return`<div class="search-item" onclick="selectModalAddr(${+d.lat},${+d.lon},'${d.display_name.replace(/'/g,"\\'")}')">${l}</div>`;
+        const l=formatResult(d);
+        return`<div class="search-item" onclick="selectModalAddr(${+d.lat},${+d.lon},'${d.display_name.replace(/'/g,"\\'")}')">${esc(l)}</div>`;
       }).join(''):'<div class="search-item" style="color:var(--text-dim)">No results found</div>';
       modalAddrDrop.style.display='block';
     }).catch(()=>{modalAddrDrop.innerHTML='<div class="search-item" style="color:var(--text-dim)">Search unavailable</div>';modalAddrDrop.style.display='block';});
@@ -1283,16 +1281,45 @@ function selectModalAddr(lat,lng,fullAddr){
   // Pan map to show selected location
   ms.lat=lat;ms.lng=lng;ms.zoom=15;sched();
 }
-// SEARCH LOGIC: Improved geocoding reliability
-// - UK-only results (countrycodes=gb)
-// - 10 results instead of 5 for better matching
-// - London viewbox bias for more relevant results
+// Build a comprehensive UK-wide Nominatim query URL
+function nominatimUrl(q){
+  const params=new URLSearchParams({
+    format:'jsonv2',
+    q,
+    countrycodes:'gb',
+    addressdetails:'1',
+    limit:'15',
+    dedupe:'1',
+    'accept-language':'en'
+  });
+  return`https://nominatim.openstreetmap.org/search?${params}`;
+}
+// Format a Nominatim result into a readable label
+function formatResult(d){
+  const a=d.address||{};
+  const parts=[];
+  // Street-level detail
+  if(a.house_number&&a.road)parts.push(`${a.house_number} ${a.road}`);
+  else if(a.road)parts.push(a.road);
+  else if(a.amenity||a.shop||a.leisure||a.tourism)parts.push(a.amenity||a.shop||a.leisure||a.tourism);
+  else if(a.building)parts.push(a.building);
+  // Locality
+  if(a.suburb||a.quarter)parts.push(a.suburb||a.quarter);
+  if(a.town||a.city||a.village||a.hamlet)parts.push(a.town||a.city||a.village||a.hamlet);
+  // County / region
+  if(a.county||a.state_district)parts.push(a.county||a.state_district);
+  // Postcode
+  if(a.postcode)parts.push(a.postcode);
+  return parts.length?parts.join(', '):d.display_name.split(',').slice(0,4).join(', ');
+}
 function runSearch(q){
   if(!q)return;
-  const viewbox='-0.5,51.3,0.3,51.7'; // London bounding box
-  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=10&countrycodes=gb&viewbox=${viewbox}&bounded=0`)
+  fetch(nominatimUrl(q))
     .then(r=>r.json()).then(data=>{
-      searchDrop.innerHTML=data.length?data.map(d=>{const l=d.display_name.split(',').slice(0,3).join(', ');return`<div class="search-item" onclick="gotoPlace(${+d.lat},${+d.lon},'${l.replace(/'/g,"\\'")}')">${l}</div>`;}).join(''):'<div class="search-item" style="color:var(--text-dim)">No results found</div>';
+      searchDrop.innerHTML=data.length?data.map(d=>{
+        const l=formatResult(d);
+        return`<div class="search-item" onclick="gotoPlace(${+d.lat},${+d.lon},'${l.replace(/'/g,"\\'")}')">${esc(l)}</div>`;
+      }).join(''):'<div class="search-item" style="color:var(--text-dim)">No results found</div>';
       searchDrop.style.display='block';
     }).catch(()=>{searchDrop.innerHTML='<div class="search-item" style="color:var(--text-dim)">Search unavailable</div>';searchDrop.style.display='block';});
 }
