@@ -10,7 +10,7 @@
   /* Dark mode colors (default) */
   --bg:#080a0d;--surface:#0f1117;--surface2:#161a22;--border:#1c2230;
   --accent:#e63946;--accent2:#ff6b35;--text:#e8eaf0;--text-muted:#9ca3af;--text-dim:#6b7280;
-  --green:#2d9d6e;--yellow:#d4a017;--r:6px;
+  --green:#2d9d6e;--yellow:#d4a017;--blue:#3b82f6;--r:6px;
   
   /* Light mode colors */
   --bg-light:#ffffff;--surface-light:#f9fafb;--surface2-light:#f3f4f6;--border-light:#e5e7eb;
@@ -87,16 +87,18 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .inc-list::-webkit-scrollbar-thumb{background:var(--border);}
 .inc-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:10px 10px 10px 13px;margin-bottom:5px;cursor:pointer;transition:all .12s;position:relative;overflow:hidden;}
 .inc-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;}
-.inc-card.s-open::before{background:var(--green);}
-.inc-card.s-suspect::before{background:var(--yellow);}
-.inc-card.s-closed::before{background:var(--accent);}
+.inc-card.s-unconfirmed::before{background:var(--green);}
+.inc-card.s-suspected::before{background:var(--yellow);}
+.inc-card.s-confirmed::before{background:var(--accent);}
+.inc-card.s-sighted::before{background:var(--blue);}
 .inc-card:hover{border-color:var(--accent);transform:translateX(2px);}
 .card-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;gap:6px;}
 .card-id{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-dim);}
 .sbadge{font-family:'Space Mono',monospace;font-size:8px;font-weight:700;padding:2px 6px;border-radius:10px;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;}
-.b-open{background:rgba(45,157,110,.13);color:var(--green);border:1px solid rgba(45,157,110,.28);}
-.b-suspect{background:rgba(212,160,23,.13);color:var(--yellow);border:1px solid rgba(212,160,23,.28);}
-.b-closed{background:rgba(230,57,70,.13);color:var(--accent);border:1px solid rgba(230,57,70,.28);}
+.b-unconfirmed{background:rgba(45,157,110,.13);color:var(--green);border:1px solid rgba(45,157,110,.28);}
+.b-suspected{background:rgba(212,160,23,.13);color:var(--yellow);border:1px solid rgba(212,160,23,.28);}
+.b-confirmed{background:rgba(230,57,70,.13);color:var(--accent);border:1px solid rgba(230,57,70,.28);}
+.b-sighted{background:rgba(59,130,246,.13);color:var(--blue);border:1px solid rgba(59,130,246,.28);}
 .card-animal{font-size:12px;font-weight:700;margin-bottom:2px;}
 .card-loc{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);margin-bottom:5px;}
 .card-meta{display:flex;gap:4px;flex-wrap:wrap;}
@@ -230,8 +232,8 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
   </div>
   <div class="hdr-right">
     <div class="stat-pill">Total <span class="n" id="cTotal" style="color:var(--text)">0</span></div>
-    <div class="stat-pill">Open <span class="n" id="cOpen" style="color:var(--green)">0</span></div>
-    <div class="stat-pill">Closed <span class="n" id="cClosed" style="color:var(--accent)">0</span></div>
+    <div class="stat-pill">Unconfirmed <span class="n" id="cOpen" style="color:var(--green)">0</span></div>
+    <div class="stat-pill">Confirmed <span class="n" id="cClosed" style="color:var(--accent)">0</span></div>
     <!-- TODO: Implement authentication - currently non-functional -->
     <button class="btn btn-ghost btn-sm" onclick="handleLogin()" title="Login (not yet implemented)">Login</button>
     <button class="btn-icon" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode">🌙</button>
@@ -256,9 +258,10 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
       <div class="filter-bar">
         <select class="filter-sel" id="fStatus" onchange="applyFilters()">
           <option value="">All Status</option>
-          <option value="open">Open</option>
-          <option value="suspect">Suspect</option>
-          <option value="closed">Closed</option>
+          <option value="confirmed">Confirmed Case</option>
+          <option value="suspected">Suspected Case</option>
+          <option value="unconfirmed">Unconfirmed Case</option>
+          <option value="sighted">Suspect Sighted</option>
         </select>
         <select class="filter-sel" id="fMethod" onchange="applyFilters()">
           <option value="">All Methods</option>
@@ -305,9 +308,10 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     </div>
     <div class="map-legend">
       <div class="leg-title">Status</div>
-      <div class="leg-row"><div class="leg-dot" style="background:var(--green)"></div>Open</div>
-      <div class="leg-row"><div class="leg-dot" style="background:var(--yellow)"></div>Suspect ID'd</div>
-      <div class="leg-row"><div class="leg-dot" style="background:var(--accent)"></div>Closed</div>
+      <div class="leg-row"><div class="leg-dot" style="background:var(--accent)"></div>Confirmed Case</div>
+      <div class="leg-row"><div class="leg-dot" style="background:var(--yellow)"></div>Suspected Case</div>
+      <div class="leg-row"><div class="leg-dot" style="background:var(--green)"></div>Unconfirmed Case</div>
+      <div class="leg-row"><div class="leg-dot" style="background:var(--blue)"></div>Suspect Sighted</div>
     </div>
     <div class="attr">© OpenStreetMap contributors © CARTO</div>
   </div>
@@ -340,7 +344,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
         <div class="fsec-title">📋 Incident Details</div>
         <div class="frow">
           <div class="fgrp"><label>DATE & TIME *</label><input type="datetime-local" id="fDatetime" class="finput"></div>
-          <div class="fgrp"><label>CASE STATUS</label><select id="fStatus2" class="finput"><option value="open">Open</option><option value="suspect">Suspect Identified</option><option value="closed">Closed</option></select></div>
+          <div class="fgrp"><label>CASE STATUS</label><select id="fStatus2" class="finput"><option value="confirmed">Confirmed Case</option><option value="suspected">Suspected Case</option><option value="unconfirmed">Unconfirmed Case</option><option value="sighted">Suspect Sighted</option></select></div>
         </div>
         <div class="frow">
           <div class="fgrp"><label>ANIMAL TYPE</label><select id="fAnimalType" class="finput"><option>Domestic Cat</option><option>Kitten</option><option>Feral Cat</option><option>Other</option></select></div>
@@ -593,7 +597,7 @@ function drawPins(){
     if(isNaN(lat)||isNaN(lng)) return;
     const {x,y}=ll2px(lat,lng);
     if(x<-20||x>mapC.width+20||y<-20||y>mapC.height+20) return;
-    const cols={open:'#2d9d6e',suspect:'#d4a017',closed:'#e63946'};
+    const cols={confirmed:'#e63946',suspected:'#d4a017',unconfirmed:'#2d9d6e',sighted:'#3b82f6'};
     const c=cols[inc.status]||'#e63946';
     const pin=document.createElement('div');
     pin.style.cssText=`position:absolute;left:${x-9}px;top:${y-18}px;width:18px;height:18px;
@@ -787,7 +791,7 @@ function openReport(lat,lng,incidentId){
       document.getElementById('fDatetime').value=local;
     }
     
-    document.getElementById('fStatus2').value=inc.status||'open';
+    document.getElementById('fStatus2').value=inc.status||'unconfirmed';
     document.getElementById('fAnimalType').value=inc.animalType||'Domestic Cat';
     document.getElementById('fCatName').value=inc.catName||'';
     document.getElementById('fAnimalDesc').value=inc.animalDesc||'';
@@ -818,7 +822,7 @@ function openReport(lat,lng,incidentId){
     const now=new Date();
     document.getElementById('fDatetime').value=new Date(now-now.getTimezoneOffset()*60000).toISOString().slice(0,16);
     ['fAddr','fLat','fLng','fNotes','fWitName','fWitContact','fWitStatement','fAnimalDesc','fCatName'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('fStatus2').value='open';
+    document.getElementById('fStatus2').value='unconfirmed';
     document.getElementById('fAnimalType').value='Domestic Cat';
     document.getElementById('fAge').value='';
     document.getElementById('fSex').value='';
@@ -951,7 +955,7 @@ function getFiltered(){
 
 // ── Render ──
 function renderAll(){renderList();updateCounts();updateAreaFilter();renderStats();drawPins();if(showHeat)drawHeat();}
-function updateCounts(){document.getElementById('cTotal').textContent=incidents.length;document.getElementById('cOpen').textContent=incidents.filter(i=>i.status==='open').length;document.getElementById('cClosed').textContent=incidents.filter(i=>i.status==='closed').length;}
+function updateCounts(){document.getElementById('cTotal').textContent=incidents.length;document.getElementById('cOpen').textContent=incidents.filter(i=>i.status==='unconfirmed').length;document.getElementById('cClosed').textContent=incidents.filter(i=>i.status==='confirmed').length;}
 function updateAreaFilter(){
   const areas=[...new Set(incidents.map(i=>i.area).filter(a=>a&&a!=='Unknown'))].sort();
   const sel=document.getElementById('fArea');const cur=sel.value;
@@ -969,7 +973,7 @@ function renderList(){
     const sid=inc.id.replace(/'/g,"\\'");
     const animalTitle=inc.catName?`${esc(inc.catName)} (${esc(inc.animalType)})`:esc(inc.animalType);
     return `<div class="inc-card s-${inc.status}" onclick="showDetail('${sid}')">
-      <div class="card-hdr"><span class="card-id">${esc(inc.id)}</span><span class="sbadge b-${inc.status}">${inc.status==='suspect'?'SUSPECT':inc.status.toUpperCase()}</span></div>
+      <div class="card-hdr"><span class="card-id">${esc(inc.id)}</span><span class="sbadge b-${inc.status}">${inc.status==='confirmed'?'CONFIRMED':inc.status==='suspected'?'SUSPECTED':inc.status==='sighted'?'SUSPECT SIGHTED':'UNCONFIRMED'}</span></div>
       <div class="card-animal">${animalTitle}${inc.animalDesc?' — '+esc(inc.animalDesc):''}</div>
       <div class="card-loc">📍 ${esc(inc.address)}</div>
       <div class="card-meta"><span class="mtag">📅 ${ds} ${ts}</span><span class="mtag">⚡ ${esc(inc.method)}</span><span class="mtag">☠ ${esc(inc.severity)}</span>${inc.photos&&inc.photos.length?`<span class="mtag">📷 ${inc.photos.length}</span>`:''}</div>
@@ -979,10 +983,10 @@ function renderList(){
 function renderStats(){
   const el=document.getElementById('statsWrap');
   if(!incidents.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📊</div><div class="empty-txt">Log incidents to see statistics.</div></div>`;return;}
-  const total=incidents.length,open=incidents.filter(i=>i.status==='open').length,suspect=incidents.filter(i=>i.status==='suspect').length,closed=incidents.filter(i=>i.status==='closed').length;
+  const total=incidents.length,confirmed=incidents.filter(i=>i.status==='confirmed').length,suspected=incidents.filter(i=>i.status==='suspected').length,unconfirmed=incidents.filter(i=>i.status==='unconfirmed').length,sighted=incidents.filter(i=>i.status==='sighted').length;
   const mc={},ac={};incidents.forEach(i=>{mc[i.method]=(mc[i.method]||0)+1;if(i.area&&i.area!=='Unknown')ac[i.area]=(ac[i.area]||0)+1;});
   const topM=Object.entries(mc).sort((a,b)=>b[1]-a[1]);const topA=Object.entries(ac).sort((a,b)=>b[1]-a[1]);
-  el.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:18px">${[['OPEN',open,'var(--green)'],['SUSPECT',suspect,'var(--yellow)'],['CLOSED',closed,'var(--accent)']].map(([l,n,c])=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:${c};font-family:'Space Mono',monospace">${n}</div><div style="font-size:8px;color:var(--text-muted);letter-spacing:.1em;margin-top:2px">${l}</div></div>`).join('')}</div>
+  el.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:18px">${[['CONFIRMED',confirmed,'var(--accent)'],['SUSPECTED',suspected,'var(--yellow)'],['UNCONFIRMED',unconfirmed,'var(--green)'],['SUSPECT SIGHTED',sighted,'var(--blue)']].map(([l,n,c])=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:${c};font-family:'Space Mono',monospace">${n}</div><div style="font-size:8px;color:var(--text-muted);letter-spacing:.1em;margin-top:2px">${l}</div></div>`).join('')}</div>
   <div style="font-family:'Space Mono',monospace;font-size:8px;color:var(--text-muted);letter-spacing:.12em;margin-bottom:10px;text-transform:uppercase">By Method</div>
   ${topM.map(([m,n])=>`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:9px;margin-bottom:3px"><span style="color:var(--text)">${esc(m)}</span><span style="color:var(--text-muted)">${n}</span></div><div style="height:3px;background:var(--border);border-radius:2px"><div style="height:3px;background:var(--accent);border-radius:2px;width:${(n/total*100).toFixed(0)}%"></div></div></div>`).join('')}
   ${topA.length?`<div style="font-family:'Space Mono',monospace;font-size:8px;color:var(--text-muted);letter-spacing:.12em;margin:16px 0 10px;text-transform:uppercase">Hotspot Areas</div>${topA.slice(0,8).map(([a,n])=>`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:9px;margin-bottom:3px"><span style="color:var(--text)">${esc(a)}</span><span style="color:var(--text-muted)">${n}</span></div><div style="height:3px;background:var(--border);border-radius:2px"><div style="height:3px;background:var(--accent2);border-radius:2px;width:${(n/total*100).toFixed(0)}%"></div></div></div>`).join('')}`:''}`;
@@ -994,12 +998,13 @@ function showDetail(id){
   currentDetailId=id;
   const detailTitle=inc.catName?`${inc.catName} (${inc.animalType})`:`${inc.animalType}${inc.animalDesc?' — '+inc.animalDesc:''}`;
   document.getElementById('detailTitle').textContent=detailTitle;
-  document.getElementById('detailSub').textContent=`${inc.id} · ${inc.status==='suspect'?'Suspect Identified':inc.status.charAt(0).toUpperCase()+inc.status.slice(1)}`;
+  const statusLabel={confirmed:'Confirmed Case',suspected:'Suspected Case',unconfirmed:'Unconfirmed Case',sighted:'Suspect Sighted'};
+  document.getElementById('detailSub').textContent=`${inc.id} · ${statusLabel[inc.status]||inc.status}`;
   const d=inc.datetime?new Date(inc.datetime):null;
   const ds=d&&!isNaN(d)?d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' at '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'—';
   const lat=+inc.lat,lng=+inc.lng;
   const fields=[
-    ['Status',`<span class="sbadge b-${inc.status}">${inc.status==='suspect'?"SUSPECT ID'D":inc.status.toUpperCase()}</span>`],
+    ['Status',`<span class="sbadge b-${inc.status}">${statusLabel[inc.status]||inc.status}</span>`],
     ['Date & Time',esc(ds)],
     ['Location',esc(inc.address)],
     ['Area',esc(inc.area)],
@@ -1155,14 +1160,14 @@ function showToast(msg,col){
 function loadSamples(){
   if(incidents.length)return;
   incidents=[
-    {id:'INC-DEMO1',address:'Croydon, South London',area:'Croydon',lat:51.3757,lng:-0.0982,datetime:'2024-11-14T22:30:00+00:00',status:'open',animalType:'Domestic Cat',catName:'Mittens',animalDesc:'Black & white, male',age:'3',sex:'Male',method:'Blunt Trauma',severity:'Fatal',notes:'Found in rear garden. Injuries consistent with series.',witnessName:'M. Davies',witnessContact:'07700900001',witnessStatement:'Heard loud noise at ~22:30.',photos:[],createdAt:'2024-11-14T23:10:00Z'},
-    {id:'INC-DEMO2',address:'Bromley, South East London',area:'Bromley',lat:51.4069,lng:0.0161,datetime:'2024-11-20T19:00:00+00:00',status:'suspect',animalType:'Domestic Cat',catName:'Luna',animalDesc:'Tabby, female',age:'5',sex:'Spayed Female',method:'Sharp Force',severity:'Fatal',notes:'Third incident in this postcode. CCTV under review.',witnessName:'',witnessContact:'',witnessStatement:'',photos:[],createdAt:'2024-11-20T20:00:00Z'},
-    {id:'INC-DEMO3',address:'Sutton, South London',area:'Sutton',lat:51.3618,lng:-0.1945,datetime:'2024-12-01T21:00:00+00:00',status:'open',animalType:'Domestic Cat',catName:'Shadow',animalDesc:'Grey Persian',age:'8',sex:'Female',method:'Blunt Trauma',severity:'Fatal',notes:'Owner found cat on front path. No road trauma signs.',witnessName:'',witnessContact:'',witnessStatement:'',photos:[],createdAt:'2024-12-01T22:00:00Z'},
-    {id:'INC-DEMO4',address:'Merton, South West London',area:'Merton',lat:51.4098,lng:-0.1772,datetime:'2024-12-10T20:30:00+00:00',status:'closed',animalType:'Domestic Cat',catName:'Ginger',animalDesc:'Orange tabby, male',age:'2',sex:'Neutered Male',method:'Sharp Force',severity:'Fatal',notes:'Referred to Metropolitan Police. File #MPS-2024-112233.',witnessName:'S. Patel',witnessContact:'07700900002',witnessStatement:'Saw a figure near alley at 20:15.',photos:[],createdAt:'2024-12-10T21:30:00Z'},
-    {id:'INC-DEMO5',address:'Streatham, South London',area:'Streatham',lat:51.4271,lng:-0.1238,datetime:'2024-12-18T23:00:00+00:00',status:'open',animalType:'Domestic Cat',catName:'',animalDesc:'Black, sex unknown',age:'',sex:'',method:'Decapitation',severity:'Fatal',notes:'Significant mutilation. Decapitation case.',witnessName:'',witnessContact:'',witnessStatement:'',photos:[],createdAt:'2024-12-18T23:45:00Z'},
-    {id:'INC-DEMO6',address:'Thornton Heath, Croydon',area:'Croydon',lat:51.398,lng:-0.105,datetime:'2025-01-05T01:30:00+00:00',status:'open',animalType:'Kitten',catName:'Whiskers',animalDesc:'White & brown, female',age:'< 1',sex:'Female',method:'Roadkill',severity:'Fatal',notes:'Found on A23. Appears to be hit by vehicle.',witnessName:'',witnessContact:'',witnessStatement:'',photos:[],createdAt:'2025-01-05T09:00:00Z'},
-    {id:'INC-DEMO7',address:'Catford, Lewisham',area:'Lewisham',lat:51.4451,lng:-0.0194,datetime:'2025-01-12T22:00:00+00:00',status:'suspect',animalType:'Domestic Cat',catName:'Bella',animalDesc:'Tortoiseshell, female',age:'12',sex:'Spayed Female',method:'Strangulation',severity:'Fatal',notes:'Only strangulation case. Suspect description circulated locally.',witnessName:'T. Okonkwo',witnessContact:'07700900003',witnessStatement:'Man in dark clothing near bins ~22:00.',photos:[],createdAt:'2025-01-12T23:15:00Z'},
-    {id:'INC-DEMO8',address:'Peckham, Southwark',area:'Southwark',lat:51.4729,lng:-0.0694,datetime:'2025-01-22T20:45:00+00:00',status:'open',animalType:'Domestic Cat',catName:'Oscar',animalDesc:'Siamese mix',age:'6',sex:'Neutered Male',method:'Accident',severity:'Fatal',notes:'Fell from third-floor balcony.',witnessName:'',witnessContact:'',witnessStatement:'',photos:[],createdAt:'2025-01-22T21:30:00Z'},
+    {id:'INC-DEMO1',address:'Croydon, South London',area:'Croydon',lat:51.3757,lng:-0.0982,datetime:'2024-11-14T22:30:00+00:00',status:'unconfirmed',animalType:'Domestic Cat',catName:'Mittens',animalDesc:'Black & white, male',age:'3',sex:'Male',method:'Blunt Trauma',severity:'Fatal',notes:'Found in rear garden. Injuries consistent with series.',witnessName:'M. Davies',witnessContact:'07700900001',witnessStatement:'Heard loud noise at ~22:30.',photos:[],createdAt:'2024-11-14T23:10:00Z'},
+    {id:'INC-DEMO2',address:'Bromley, South East London',area:'Bromley',lat:51.4069,lng:0.0161,datetime:'2024-11-20T19:00:00+00:00',status:'suspected',animalType:'Domestic Cat',catName:'Luna',animalDesc:'Tabby, female',age:'5',sex:'Spayed Female',method:'Sharp Force',severity:'Fatal',notes:'Third incident in this postcode. CCTV under review.',witnessName:'',witnessContact:'',witnessStatement:'',photos:[],createdAt:'2024-11-20T20:00:00Z'},
+    {id:'INC-DEMO3',address:'Sutton, South London',area:'Sutton',lat:51.3618,lng:-0.1945,datetime:'2024-12-01T21:00:00+00:00',status:'unconfirmed',animalType:'Domestic Cat',catName:'Shadow',animalDesc:'Grey Persian',age:'8',sex:'Female',method:'Blunt Trauma',severity:'Fatal',notes:'Owner found cat on front path. No road trauma signs.',witnessName:'',witnessContact:'',witnessStatement:'',photos:[],createdAt:'2024-12-01T22:00:00Z'},
+    {id:'INC-DEMO4',address:'Merton, South West London',area:'Merton',lat:51.4098,lng:-0.1772,datetime:'2024-12-10T20:30:00+00:00',status:'confirmed',animalType:'Domestic Cat',catName:'Ginger',animalDesc:'Orange tabby, male',age:'2',sex:'Neutered Male',method:'Sharp Force',severity:'Fatal',notes:'Referred to Metropolitan Police. File #MPS-2024-112233.',witnessName:'S. Patel',witnessContact:'07700900002',witnessStatement:'Saw a figure near alley at 20:15.',photos:[],createdAt:'2024-12-10T21:30:00Z'},
+    {id:'INC-DEMO5',address:'Streatham, South London',area:'Streatham',lat:51.4271,lng:-0.1238,datetime:'2024-12-18T23:00:00+00:00',status:'unconfirmed',animalType:'Domestic Cat',catName:'',animalDesc:'Black, sex unknown',age:'',sex:'',method:'Decapitation',severity:'Fatal',notes:'Significant mutilation. Decapitation case.',witnessName:'',witnessContact:'',witnessStatement:'',photos:[],createdAt:'2024-12-18T23:45:00Z'},
+    {id:'INC-DEMO6',address:'Thornton Heath, Croydon',area:'Croydon',lat:51.398,lng:-0.105,datetime:'2025-01-05T01:30:00+00:00',status:'unconfirmed',animalType:'Kitten',catName:'Whiskers',animalDesc:'White & brown, female',age:'< 1',sex:'Female',method:'Roadkill',severity:'Fatal',notes:'Found on A23. Appears to be hit by vehicle.',witnessName:'',witnessContact:'',witnessStatement:'',photos:[],createdAt:'2025-01-05T09:00:00Z'},
+    {id:'INC-DEMO7',address:'Catford, Lewisham',area:'Lewisham',lat:51.4451,lng:-0.0194,datetime:'2025-01-12T22:00:00+00:00',status:'sighted',animalType:'Domestic Cat',catName:'Bella',animalDesc:'Tortoiseshell, female',age:'12',sex:'Spayed Female',method:'Strangulation',severity:'Fatal',notes:'Only strangulation case. Suspect description circulated locally.',witnessName:'T. Okonkwo',witnessContact:'07700900003',witnessStatement:'Man in dark clothing near bins ~22:00.',photos:[],createdAt:'2025-01-12T23:15:00Z'},
+    {id:'INC-DEMO8',address:'Peckham, Southwark',area:'Southwark',lat:51.4729,lng:-0.0694,datetime:'2025-01-22T20:45:00+00:00',status:'unconfirmed',animalType:'Domestic Cat',catName:'Oscar',animalDesc:'Siamese mix',age:'6',sex:'Neutered Male',method:'Accident',severity:'Fatal',notes:'Fell from third-floor balcony.',witnessName:'',witnessContact:'',witnessStatement:'',photos:[],createdAt:'2025-01-22T21:30:00Z'},
   ];
   saveData();
 }
