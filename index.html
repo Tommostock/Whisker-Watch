@@ -344,22 +344,23 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
         <div class="fsec-title">📋 Incident Details</div>
         <div class="frow">
           <div class="fgrp"><label>DATE & TIME *</label><input type="datetime-local" id="fDatetime" class="finput"></div>
-          <div class="fgrp"><label>CASE STATUS</label><select id="fStatus2" class="finput"><option value="confirmed">Confirmed Case</option><option value="suspected">Suspected Case</option><option value="unconfirmed">Unconfirmed Case</option><option value="sighted">Suspect Sighted</option></select></div>
+          <div class="fgrp"><label>CASE STATUS</label><select id="fStatus2" class="finput" onchange="updateFormForStatus(this.value)"><option value="confirmed">Confirmed Case</option><option value="suspected">Suspected Case</option><option value="unconfirmed">Unconfirmed Case</option><option value="sighted">Suspect Sighted</option></select></div>
         </div>
-        <div class="frow">
+        <div class="frow" id="rowAnimalType">
           <div class="fgrp"><label>ANIMAL TYPE</label><select id="fAnimalType" class="finput"><option>Domestic Cat</option><option>Kitten</option><option>Feral Cat</option><option>Other</option></select></div>
           <div class="fgrp"><label>CAT NAME (IF KNOWN)</label><input type="text" id="fCatName" class="finput" placeholder="e.g. Whiskers"></div>
         </div>
-        <div class="frow">
+        <div class="frow" id="rowAnimalDesc">
           <div class="fgrp"><label>DESCRIPTION</label><input type="text" id="fAnimalDesc" class="finput" placeholder="e.g. Black & white tabby"></div>
           <div class="fgrp"><label>AGE (YEARS)</label><select id="fAge" class="finput"><option value="">Unknown</option><option>< 1</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20+</option></select></div>
         </div>
-        <div class="frow">
+        <div class="frow" id="rowSex">
           <div class="fgrp"><label>SEX</label><select id="fSex" class="finput"><option value="">Unknown</option><option>Male</option><option>Female</option><option>Neutered Male</option><option>Spayed Female</option></select></div>
           <div class="fgrp"></div>
         </div>
+        <div class="fgrp" id="rowSightedDesc" style="display:none"><label>SUSPECT DESCRIPTION</label><textarea id="fSightedDesc" class="finput" placeholder="e.g. Male, White, approx. 30 years old, dark clothing…" style="min-height:72px"></textarea></div>
       </div>
-      <div class="fsec">
+      <div class="fsec" id="secInjury">
         <div class="fsec-title">⚡ Injury & Method</div>
         <div class="frow">
           <div class="fgrp"><label>METHOD</label><select id="fMethod2" class="finput"><option>Blunt Trauma</option><option>Sharp Force</option><option>Strangulation</option><option>Poisoning</option><option>Decapitation</option><option>Roadkill</option><option>Accident</option><option>Other / Unknown</option></select></div>
@@ -803,6 +804,8 @@ function openReport(lat,lng,incidentId){
     document.getElementById('fWitName').value=inc.witnessName||'';
     document.getElementById('fWitContact').value=inc.witnessContact||'';
     document.getElementById('fWitStatement').value=inc.witnessStatement||'';
+    document.getElementById('fSightedDesc').value=inc.sightedDesc||'';
+    updateFormForStatus(inc.status||'unconfirmed');
     
     // Show existing photos
     if(inc.photos&&inc.photos.length){
@@ -828,7 +831,9 @@ function openReport(lat,lng,incidentId){
     document.getElementById('fSex').value='';
     document.getElementById('fMethod2').value='Blunt Trauma';
     document.getElementById('fSeverity').value='Fatal';
+    document.getElementById('fSightedDesc').value='';
     document.getElementById('reportSub').textContent='Click the map to pin a location, or enter an address below';
+    updateFormForStatus('unconfirmed');
     
     if(lat!==null&&lat!==undefined&&!isNaN(lat)){
       document.getElementById('fLat').value=lat.toFixed(5);
@@ -846,6 +851,24 @@ function openReport(lat,lng,incidentId){
 function closeReport(){
   document.getElementById('reportOverlay').classList.remove('open');
   editingIncidentId=null;
+}
+function updateFormForStatus(status){
+  const isSighted=status==='sighted';
+  const show=el=>el&&(el.style.display='');
+  const hide=el=>el&&(el.style.display='none');
+  if(isSighted){
+    hide(document.getElementById('rowAnimalType'));
+    hide(document.getElementById('rowAnimalDesc'));
+    hide(document.getElementById('rowSex'));
+    hide(document.getElementById('secInjury'));
+    show(document.getElementById('rowSightedDesc'));
+  }else{
+    show(document.getElementById('rowAnimalType'));
+    show(document.getElementById('rowAnimalDesc'));
+    show(document.getElementById('rowSex'));
+    show(document.getElementById('secInjury'));
+    hide(document.getElementById('rowSightedDesc'));
+  }
 }
 
 function geocodeAddr(){
@@ -918,6 +941,7 @@ function doSave(addr,lat,lng,dt){
     witnessName:document.getElementById('fWitName').value.trim(),
     witnessContact:document.getElementById('fWitContact').value.trim(),
     witnessStatement:document.getElementById('fWitStatement').value.trim(),
+    sightedDesc:document.getElementById('fSightedDesc').value.trim(),
     photos:[...storedPhotos]
   };
   
@@ -996,7 +1020,7 @@ function renderStats(){
 function showDetail(id){
   const inc=incidents.find(i=>i.id===id);if(!inc)return;
   currentDetailId=id;
-  const detailTitle=inc.catName?`${inc.catName} (${inc.animalType})`:`${inc.animalType}${inc.animalDesc?' — '+inc.animalDesc:''}`;
+  const detailTitle=inc.status==='sighted'?'Suspect Sighted':(inc.catName?`${inc.catName} (${inc.animalType})`:`${inc.animalType}${inc.animalDesc?' — '+inc.animalDesc:''}`);
   document.getElementById('detailTitle').textContent=detailTitle;
   const statusLabel={confirmed:'Confirmed Case',suspected:'Suspected Case',unconfirmed:'Unconfirmed Case',sighted:'Suspect Sighted'};
   document.getElementById('detailSub').textContent=`${inc.id} · ${statusLabel[inc.status]||inc.status}`;
@@ -1009,14 +1033,20 @@ function showDetail(id){
     ['Location',esc(inc.address)],
     ['Area',esc(inc.area)],
     ['Coords',(!isNaN(lat)&&!isNaN(lng))?`${lat.toFixed(5)}, ${lng.toFixed(5)}`:'—'],
-    ['Animal',esc(inc.animalType)+(inc.animalDesc?' — '+esc(inc.animalDesc):'')],
   ];
-  if(inc.catName)fields.push(['Cat Name',esc(inc.catName)]);
+  if(inc.status==='sighted'){
+    fields.push(['Suspect Description',esc(inc.sightedDesc)||'<span style="color:var(--text-dim)">None</span>']);
+  }else{
+    fields.push(['Animal',esc(inc.animalType)+(inc.animalDesc?' — '+esc(inc.animalDesc):'')]);
+    if(inc.catName)fields.push(['Cat Name',esc(inc.catName)]);
+    fields.push(
+      ['Age',inc.age?esc(inc.age)+' years':'<span style="color:var(--text-dim)">Unknown</span>'],
+      ['Sex',inc.sex?esc(inc.sex):'<span style="color:var(--text-dim)">Unknown</span>'],
+      ['Method',esc(inc.method)],
+      ['Severity',esc(inc.severity)]
+    );
+  }
   fields.push(
-    ['Age',inc.age?esc(inc.age)+' years':'<span style="color:var(--text-dim)">Unknown</span>'],
-    ['Sex',inc.sex?esc(inc.sex):'<span style="color:var(--text-dim)">Unknown</span>'],
-    ['Method',esc(inc.method)],
-    ['Severity',esc(inc.severity)],
     ['Notes',esc(inc.notes)||'<span style="color:var(--text-dim)">None</span>'],
     ['Witness',inc.witnessName?esc(inc.witnessName)+(inc.witnessContact?' · '+esc(inc.witnessContact):''):'<span style="color:var(--text-dim)">None</span>'],
     ['Statement',esc(inc.witnessStatement)||'<span style="color:var(--text-dim)">None</span>'],
