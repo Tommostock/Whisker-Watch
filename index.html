@@ -742,7 +742,16 @@ function showLogPrompt(lat,lng,cx,cy){
   p.style.display='block';
 }
 function closeLogPrompt(){document.getElementById('logPrompt').style.display='none';_logLat=null;_logLng=null;}
-function confirmLog(){closeLogPrompt();openReport(_logLat,_logLng,null);}
+function confirmLog(){
+  const lat=_logLat,lng=_logLng;
+  closeLogPrompt();
+  openReport(lat,lng,null);
+  // Ensure coords are filled immediately and don't get cleared
+  setTimeout(()=>{
+    document.getElementById('fLat').value=lat.toFixed(5);
+    document.getElementById('fLng').value=lng.toFixed(5);
+  },50);
+}
 
 // ── Draggable location pin (shown when report modal is open with coords) ──
 let _dpDragging=false,_dpOffX=0,_dpOffY=0;
@@ -1003,6 +1012,8 @@ function openReport(lat,lng,incidentId){
       document.getElementById('fLat').value=lat.toFixed(5);
       document.getElementById('fLng').value=lng.toFixed(5);
       document.getElementById('reportSub').textContent=`📍 ${lat.toFixed(4)}, ${lng.toFixed(4)} — reverse geocoding…`;
+      // Set a placeholder address with coordinates in case geocoding fails
+      document.getElementById('fAddr').value=`Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
       // Try GetAddress reverse geocoding first (better coverage in UK)
       fetch(`https://api.getaddress.io/reverse?format=json&lat=${lat}&lng=${lng}&api-key=${GA_KEY}`)
         .then(r=>r.json()).then(d=>{
