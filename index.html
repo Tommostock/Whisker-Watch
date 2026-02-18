@@ -746,6 +746,8 @@ function closeLogPrompt(){document.getElementById('logPrompt').style.display='no
 function confirmLog(){
   const lat=_logLat,lng=_logLng;
   closeLogPrompt();
+  // Zoom in to the clicked location after confirming
+  ms.lat=lat;ms.lng=lng;ms.zoom=MAX_Z;sched();
   openReport(lat,lng,null);
   // Ensure coords are filled immediately and don't get cleared
   setTimeout(()=>{
@@ -878,7 +880,6 @@ mapC.addEventListener('click',e=>{
   const {lat,lng}=px2ll(cx,cy);
   if(!document.getElementById('reportOverlay').classList.contains('open') &&
      !document.getElementById('detailOverlay').classList.contains('open')) {
-    ms.lat=lat;ms.lng=lng;ms.zoom=MAX_Z;sched(); // Zoom in to clicked location
     showLogPrompt(lat,lng,cx,cy);
   }
 });
