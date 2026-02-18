@@ -605,10 +605,7 @@ function drawPins(){
       background:${c};border:2px solid rgba(255,255,255,.85);border-radius:50% 50% 50% 0;
       transform:rotate(-45deg);box-shadow:0 0 10px ${c}99,0 2px 6px rgba(0,0,0,.7);
       cursor:pointer;pointer-events:all;transition:transform .12s;z-index:10;`;
-    pin.addEventListener('click',e=>{
-      e.stopPropagation();
-      showDetail(inc.id);
-    });
+    pin.dataset.incId=inc.id;
     pin.addEventListener('mouseenter',()=>{pin.style.transform='rotate(-45deg) scale(1.35)';});
     pin.addEventListener('mouseleave',()=>{pin.style.transform='rotate(-45deg)';});
     layer.appendChild(pin);
@@ -704,10 +701,18 @@ mapC.addEventListener('click',e=>{
   const rect=mapC.getBoundingClientRect();
   const {lat,lng}=px2ll(e.clientX-rect.left,e.clientY-rect.top);
   // Always open report modal when clicking empty map area (not on a pin)
-  if(!document.getElementById('reportOverlay').classList.contains('open') && 
+  if(!document.getElementById('reportOverlay').classList.contains('open') &&
      !document.getElementById('detailOverlay').classList.contains('open')) {
     openReport(lat,lng,null);
   }
+});
+
+// Delegated pin click — survives continuous redraws of markerLayer
+document.getElementById('markerLayer').addEventListener('click',e=>{
+  const pin=e.target.closest('[data-inc-id]');
+  if(!pin)return;
+  e.stopPropagation();
+  showDetail(pin.dataset.incId);
 });
 
 function zoomIn(){ms.zoom=Math.min(MAX_Z,ms.zoom+1);closePopup();sched();}
