@@ -852,13 +852,13 @@ mapC.addEventListener('click',e=>{
   if(Math.abs(e.clientX-(dragStart&&dragStart.x||e.clientX))>4) return;
   const rect=mapC.getBoundingClientRect();
   const cx=e.clientX-rect.left, cy=e.clientY-rect.top;
-  // Hit-test pins first — check if click lands within 14px of any marker centre
+  // Hit-test pins first — check if click lands within 24px of any marker centre
   if(showPins){
     const hit=incidents.find(inc=>{
       const lat=+inc.lat,lng=+inc.lng;
       if(isNaN(lat)||isNaN(lng))return false;
       const {x,y}=ll2px(lat,lng);
-      return Math.hypot(cx-x,cy-y)<14;
+      return Math.hypot(cx-x,cy-y)<24;
     });
     if(hit){showDetail(hit.id);return;}
   }
