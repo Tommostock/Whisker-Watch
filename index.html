@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Whisker Watch — SLAIN Network</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  /* Dark mode colors (default) */
+  --bg:#080a0d;--surface:#0f1117;--surface2:#161a22;--border:#1c2230;
+  --accent:#e63946;--accent2:#ff6b35;--text:#e8eaf0;--text-muted:#9ca3af;--text-dim:#6b7280;
+  --green:#2d9d6e;--yellow:#d4a017;--r:6px;
+  
+  /* Light mode colors */
+  --bg-light:#ffffff;--surface-light:#f9fafb;--surface2-light:#f3f4f6;--border-light:#e5e7eb;
+  --text-light:#111827;--text-muted-light:#6b7280;--text-dim-light:#9ca3af;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{width:100%;height:100%;overflow:hidden;font-family:'Inter',sans-serif;font-weight:400;background:var(--bg);color:var(--text);display:flex;flex-direction:column;}
+
+/* Light mode - comprehensive theme switching */
+body.light-mode{
+  --bg:var(--bg-light);--surface:var(--surface-light);--surface2:var(--surface2-light);
+  --border:var(--border-light);--text:var(--text-light);
+  --text-muted:var(--text-muted-light);--text-dim:var(--text-dim-light);
+}
+body.light-mode .map-wrap{background:#e5e7eb !important;}
+/* Light mode map controls need proper contrast */
+body.light-mode .map-btn{background:#ffffff;border-color:#d1d5db;color:#374151;}
+body.light-mode .map-btn:hover{border-color:var(--accent);background:#f9fafb;}
+body.light-mode .map-btn.on{background:#fee2e2;border-color:var(--accent);color:var(--accent);}
+body.light-mode .zoom-btn{background:#ffffff;border-color:#d1d5db;color:#374151;}
+body.light-mode .map-legend{background:#ffffff;border-color:#d1d5db;}
+body.light-mode .attr{color:#6b7280 !important;}
+
+header{display:flex;align-items:center;justify-content:space-between;padding:0 20px;height:64px;min-height:64px;background:var(--surface);border-bottom:2px solid var(--accent);flex-shrink:0;z-index:100;}
+.logo{display:flex;align-items:center;gap:12px;}
+.logo-icon{width:48px;height:48px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.logo-icon svg{width:100%;height:100%;fill:var(--text);}
+.logo-text{font-family:'Inter',sans-serif;font-size:24px;font-weight:700;letter-spacing:-0.02em;color:var(--text);line-height:1.1;}
+.logo-sub{font-family:'Inter',sans-serif;font-size:11px;color:var(--text-muted);font-weight:400;margin-top:4px;line-height:1.3;}
+.logo-sub .slain{color:var(--text-muted);font-weight:500;}
+.logo-sub .divider{color:var(--text-dim);margin:0 6px;}
+.logo-sub .creator{color:var(--text-muted);}
+.logo-sub .name{color:var(--accent);font-weight:500;}
+.hdr-right{display:flex;align-items:center;gap:10px;}
+.stat-pill{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-family:'Inter',sans-serif;font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:5px;white-space:nowrap;font-weight:500;}
+.stat-pill .n{font-weight:700;}
+.btn{padding:9px 16px;border-radius:var(--r);border:none;cursor:pointer;font-family:'Inter',sans-serif;font-weight:500;font-size:13px;letter-spacing:0.01em;transition:all .15s;white-space:nowrap;}
+.btn-primary{background:var(--accent);color:#fff;}.btn-primary:hover{background:#c1121f;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-muted);}.btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
+.btn-sm{padding:6px 11px;font-size:12px;}
+.btn-danger{background:transparent;border:1px solid rgba(230,57,70,.35);color:var(--accent);}.btn-danger:hover{background:rgba(230,57,70,.1);}
+.btn-icon{width:36px;height:36px;padding:0;display:flex;align-items:center;justify-content:center;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);color:var(--text-muted);cursor:pointer;transition:all .15s;font-size:18px;}
+.btn-icon:hover{border-color:var(--accent);color:var(--accent);}
+.main{display:flex;flex:1;overflow:hidden;min-height:0;}
+.sidebar{width:330px;min-width:330px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;z-index:50;transition:width .25s,min-width .25s;}
+.sidebar.collapsed{width:0;min-width:0;}
+.sidebar-tabs{display:flex;border-bottom:1px solid var(--border);flex-shrink:0;}
+.tab{flex:1;padding:12px 10px;font-size:11px;font-weight:600;letter-spacing:0.05em;text-align:center;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;transition:all .15s;}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);background:rgba(230,57,70,.04);}
+.tab-pane{display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0;}
+.tab-pane.active{display:flex;}
+.search-wrap{padding:12px;border-bottom:1px solid var(--border);flex-shrink:0;position:relative;}
+.search-row{position:relative;}
+.search-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:10px 34px 10px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;transition:border-color .15s;}
+.search-input:focus{border-color:var(--accent);}
+.search-input::placeholder{color:var(--text-dim);}
+.search-go{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;padding:0 2px;}
+.search-drop{display:none;position:absolute;top:100%;left:12px;right:12px;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r) var(--r);z-index:999;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.3);}
+.search-item{padding:10px 12px;font-family:'Inter',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;border-bottom:1px solid var(--border);line-height:1.5;}
+.search-item:last-child{border-bottom:none;}
+.search-item:hover{background:var(--border);color:var(--text);}
+.filter-bar{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-shrink:0;}
+.filter-sel{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:6px 8px;color:var(--text-muted);font-family:'Inter',sans-serif;font-size:12px;outline:none;cursor:pointer;flex:1;min-width:70px;}
+.filter-sel:focus{border-color:var(--accent);}
+.clear-btn{background:transparent;border:1px solid rgba(230,57,70,.3);border-radius:var(--r);padding:5px 7px;color:var(--accent);font-family:'Space Mono',monospace;font-size:9px;cursor:pointer;white-space:nowrap;}
+.clear-btn:hover{background:rgba(230,57,70,.1);}
+.sort-bar{display:flex;align-items:center;gap:8px;padding:7px 10px;font-family:'Space Mono',monospace;font-size:9px;color:var(--text-dim);border-bottom:1px solid var(--border);flex-shrink:0;}
+.sort-opts{display:flex;gap:8px;}
+.sort-opt{cursor:pointer;color:var(--text-muted);border-bottom:1px solid transparent;padding:1px 0;transition:all .1s;}
+.sort-opt.active{color:var(--accent);border-bottom-color:var(--accent);}
+#filteredCount{margin-left:auto;color:var(--text-dim);}
+.inc-list{overflow-y:auto;flex:1;padding:8px;min-height:0;}
+.inc-list::-webkit-scrollbar{width:3px;}
+.inc-list::-webkit-scrollbar-thumb{background:var(--border);}
+.inc-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:10px 10px 10px 13px;margin-bottom:5px;cursor:pointer;transition:all .12s;position:relative;overflow:hidden;}
+.inc-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;}
+.inc-card.s-open::before{background:var(--green);}
+.inc-card.s-suspect::before{background:var(--yellow);}
+.inc-card.s-closed::before{background:var(--accent);}
+.inc-card:hover{border-color:var(--accent);transform:translateX(2px);}
+.card-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;gap:6px;}
+.card-id{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-dim);}
+.sbadge{font-family:'Space Mono',monospace;font-size:8px;font-weight:700;padding:2px 6px;border-radius:10px;letter-spacing:.1em;text-transform:uppercase;white-space:nowrap;}
+.b-open{background:rgba(45,157,110,.13);color:var(--green);border:1px solid rgba(45,157,110,.28);}
+.b-suspect{background:rgba(212,160,23,.13);color:var(--yellow);border:1px solid rgba(212,160,23,.28);}
+.b-closed{background:rgba(230,57,70,.13);color:var(--accent);border:1px solid rgba(230,57,70,.28);}
+.card-animal{font-size:12px;font-weight:700;margin-bottom:2px;}
+.card-loc{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);margin-bottom:5px;}
+.card-meta{display:flex;gap:4px;flex-wrap:wrap;}
+.mtag{font-family:'Space Mono',monospace;font-size:8px;color:var(--text-dim);background:var(--border);padding:2px 5px;border-radius:3px;}
+.map-wrap{flex:1;position:relative;overflow:hidden;min-width:0;background:#1a1f2a;}
+#mapCanvas{position:absolute;inset:0;width:100%;height:100%;cursor:grab;display:block;}
+#mapCanvas.grabbing{cursor:grabbing;}
+#heatCanvas{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:block;}
+#markerLayer{position:absolute;inset:0;pointer-events:none;}
+.map-top-left{position:absolute;top:12px;left:12px;z-index:20;display:flex;gap:6px;}
+.map-top-right{position:absolute;top:12px;right:12px;z-index:20;display:flex;flex-direction:column;gap:5px;}
+.map-btn{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:7px 10px;color:var(--text-muted);font-family:'Space Mono',monospace;font-size:9px;cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;transition:all .15s;box-shadow:0 2px 8px rgba(0,0,0,.5);}
+.map-btn:hover{border-color:var(--accent);color:var(--text);}
+.map-btn.on{border-color:var(--accent);color:var(--accent);background:rgba(230,57,70,.08);}
+.zoom-wrap{position:absolute;bottom:36px;right:12px;z-index:20;display:flex;flex-direction:column;gap:3px;}
+.zoom-btn{width:32px;height:32px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);color:var(--text-muted);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.5);transition:all .15s;}
+.zoom-btn:hover{border-color:var(--accent);color:var(--text);}
+.map-legend{position:absolute;bottom:36px;left:12px;z-index:20;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:9px 12px;box-shadow:0 2px 8px rgba(0,0,0,.5);}
+.leg-title{font-family:'Space Mono',monospace;font-size:8px;letter-spacing:.12em;color:var(--text-muted);margin-bottom:7px;text-transform:uppercase;}
+.leg-row{display:flex;align-items:center;gap:7px;margin-bottom:4px;font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);}
+.leg-row:last-child{margin-bottom:0;}
+.leg-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+.attr{position:absolute;bottom:10px;left:50%;transform:translateX(-50%);font-family:'Space Mono',monospace;font-size:8px;color:rgba(255,255,255,.25);white-space:nowrap;z-index:10;pointer-events:none;}
+.map-popup{position:absolute;z-index:30;background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;min-width:190px;max-width:230px;box-shadow:0 6px 24px rgba(0,0,0,.6);pointer-events:all;display:none;}
+.map-popup::after{content:'';position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;border-top:7px solid var(--border);}
+.map-popup::before{content:'';position:absolute;bottom:-6px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:6px solid var(--surface);}
+.popup-close{position:absolute;top:6px;right:8px;background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:14px;line-height:1;}
+.popup-title{font-weight:700;font-size:12px;margin-bottom:3px;margin-right:16px;color:var(--text);}
+.popup-sub{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);margin-bottom:2px;line-height:1.4;}
+.popup-btn{display:inline-block;margin-top:8px;padding:4px 10px;background:var(--accent);color:white;border-radius:4px;font-size:10px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:600;border:none;}
+.popup-btn:hover{background:#c1121f;}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(5px);z-index:200;display:none;align-items:center;justify-content:center;padding:16px;}
+.overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:100%;max-width:540px;max-height:92vh;overflow-y:auto;box-shadow:0 28px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;}
+.modal::-webkit-scrollbar{width:3px;}
+.modal::-webkit-scrollbar-thumb{background:var(--border);}
+.modal-hdr{display:flex;align-items:flex-start;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);flex-shrink:0;gap:10px;}
+.modal-title{font-size:15px;font-weight:800;}
+.modal-sub{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);margin-top:3px;line-height:1.5;}
+.modal-x{background:var(--surface2);border:1px solid var(--border);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);font-size:12px;flex-shrink:0;transition:all .15s;}
+.modal-x:hover{border-color:var(--accent);color:var(--accent);}
+.modal-body{padding:18px;flex:1;}
+.modal-ftr{padding:14px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;}
+.fsec{margin-bottom:18px;}
+.fsec-title{font-family:'Space Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.fgrp{margin-bottom:10px;}
+label{display:block;font-family:'Inter',sans-serif;font-size:12px;font-weight:500;color:var(--text-muted);margin-bottom:6px;letter-spacing:0.01em;}
+.finput{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:10px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;transition:border-color .15s;}
+.finput:focus{border-color:var(--accent);}
+.finput::placeholder{color:var(--text-dim);}
+textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
+.valmsg{display:none;font-family:'Inter',sans-serif;font-size:12px;color:var(--accent);padding:8px 10px;background:rgba(230,57,70,.08);border:1px solid rgba(230,57,70,.2);border-radius:4px;margin-top:8px;}
+.file-zone{width:100%;background:var(--surface2);border:1px dashed var(--border);border-radius:var(--r);padding:20px;text-align:center;cursor:pointer;transition:border-color .15s;display:block;}
+.file-zone:hover{border-color:var(--accent);}
+.file-zone input[type=file]{display:none;}
+.file-txt{font-family:'Inter',sans-serif;font-size:12px;color:var(--text-muted);line-height:1.7;}
+.file-prev{margin-top:12px;display:flex;gap:8px;flex-wrap:wrap;justify-content:center;}
+.file-prev img{width:64px;height:64px;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:pointer;transition:transform .15s;}
+.file-prev img:hover{transform:scale(1.05);}
+.geo-row{display:flex;gap:6px;align-items:center;margin-top:6px;}
+.geo-btn{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 11px;color:var(--text-muted);font-family:'Inter',sans-serif;font-size:12px;cursor:pointer;font-weight:500;}
+.geo-btn:hover{border-color:var(--accent);color:var(--accent);}
+#geoStatus{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);}
+.dfield{display:flex;gap:12px;padding:9px 0;border-bottom:1px solid var(--border);align-items:flex-start;}
+.dfield:last-child{border-bottom:none;}
+.dlabel{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);width:95px;flex-shrink:0;padding-top:1px;}
+.dval{font-size:12px;flex:1;line-height:1.5;word-break:break-word;}
+.dphotos{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.dphotos img{width:60px;height:60px;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:pointer;}
+.stats-wrap{flex:1;overflow-y:auto;padding:14px;min-height:0;}
+.stats-wrap::-webkit-scrollbar{width:3px;}
+.stats-wrap::-webkit-scrollbar-thumb{background:var(--border);}
+
+/* Image Lightbox */
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:9999;display:none;align-items:center;justify-content:center;padding:20px;cursor:pointer;}
+.lightbox.open{display:flex;}
+.lightbox img{max-width:90%;max-height:90%;object-fit:contain;border-radius:8px;box-shadow:0 20px 60px rgba(0,0,0,0.8);cursor:default;}
+.lightbox-close{position:absolute;top:20px;right:20px;width:44px;height:44px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:24px;color:#fff;cursor:pointer;transition:all .2s;}
+.lightbox-close:hover{background:rgba(255,255,255,0.2);transform:scale(1.1);}
+
+.toast{position:fixed;bottom:18px;right:18px;background:var(--surface);border:1px solid var(--green);border-radius:var(--r);padding:10px 16px;font-family:'Inter',sans-serif;font-size:13px;color:var(--green);z-index:999;transform:translateY(50px);opacity:0;transition:all .28s cubic-bezier(.175,.885,.32,1.275);pointer-events:none;box-shadow:0 4px 20px rgba(0,0,0,.5);}
+.toast.show{transform:translateY(0);opacity:1;}
+.empty{padding:36px 20px;text-align:center;color:var(--text-dim);}
+.empty-icon{font-size:28px;margin-bottom:10px;}
+.empty-txt{font-family:'Space Mono',monospace;font-size:10px;line-height:1.8;}
+@media(max-width:640px){
+  .sidebar{position:absolute;left:0;top:64px;bottom:0;width:90%;max-width:300px;transform:translateX(-105%);transition:transform .28s;}
+  .sidebar.mob-open{transform:translateX(0);}
+  .sidebar.collapsed{width:90%;min-width:unset;transform:translateX(-105%);}
+  .stat-pill{display:none;}
+  .frow{grid-template-columns:1fr;}
+  .logo-text{font-size:20px;} /* Whisker Watch display font */
+  .logo-sub{font-size:9px;line-height:1.4;}
+  .logo-sub .divider{display:none;} /* Hide bullet separator on mobile */
+  .logo-sub .creator{display:inline;font-size:9px;}
+  .btn-primary{padding:7px 12px;font-size:12px;}
+  .btn-icon{width:32px;height:32px;font-size:16px;}
+  header{padding:0 12px;height:auto;min-height:60px;flex-wrap:wrap;}
+  .logo{flex:1 1 100%;justify-content:center;margin:8px 0 4px;}
+  .hdr-right{flex:1 1 100%;justify-content:center;gap:6px;margin-bottom:8px;}
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <!-- Stylized double-W logo for Whisker Watch - responds to theme via currentColor -->
+    <div class="logo-icon">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <!-- Cat nose (triangle) -->
+        <path d="M 50 48 L 42 58 L 58 58 Z" fill="currentColor"/>
+        <!-- Left W shape -->
+        <path d="M 20 35 L 28 55 L 33 40 L 38 55 L 46 35" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Right W shape -->
+        <path d="M 54 35 L 62 55 L 67 40 L 72 55 L 80 35" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <!-- Mouth lines -->
+        <path d="M 50 58 Q 44 64 40 68" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M 50 58 Q 56 64 60 68" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">Whisker Watch</div>
+      <div class="logo-sub">
+        <span class="slain">SLAIN: South London Animal Investigation Network</span>
+        <span class="divider">·</span>
+        <span class="creator">Created by</span> <span class="name">Spektator</span>
+      </div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="stat-pill">Total <span class="n" id="cTotal" style="color:var(--text)">0</span></div>
+    <div class="stat-pill">Open <span class="n" id="cOpen" style="color:var(--green)">0</span></div>
+    <div class="stat-pill">Closed <span class="n" id="cClosed" style="color:var(--accent)">0</span></div>
+    <!-- TODO: Implement authentication - currently non-functional -->
+    <button class="btn btn-ghost btn-sm" onclick="handleLogin()" title="Login (not yet implemented)">Login</button>
+    <button class="btn-icon" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode">🌙</button>
+    <button class="btn btn-primary" onclick="openReport(null,null,null)">Log Incident +</button>
+  </div>
+</header>
+
+<div class="main">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-tabs">
+      <div class="tab active" onclick="switchTab('inc')">INCIDENTS</div>
+      <div class="tab" onclick="switchTab('stats')">STATS</div>
+    </div>
+    <div class="tab-pane active" id="pane-inc">
+      <div class="search-wrap">
+        <div class="search-row">
+          <input class="search-input" id="searchIn" type="text" placeholder="Search address or postcode…" autocomplete="off">
+          <button class="search-go" onclick="doSearch()">⌕</button>
+        </div>
+        <div class="search-drop" id="searchDrop"></div>
+      </div>
+      <div class="filter-bar">
+        <select class="filter-sel" id="fStatus" onchange="applyFilters()">
+          <option value="">All Status</option>
+          <option value="open">Open</option>
+          <option value="suspect">Suspect</option>
+          <option value="closed">Closed</option>
+        </select>
+        <select class="filter-sel" id="fMethod" onchange="applyFilters()">
+          <option value="">All Methods</option>
+          <option>Blunt Trauma</option><option>Sharp Force</option>
+          <option>Strangulation</option><option>Poisoning</option>
+          <option>Other / Unknown</option>
+        </select>
+        <select class="filter-sel" id="fArea" onchange="applyFilters()"></select>
+        <button class="clear-btn" onclick="clearFilters()">✕</button>
+      </div>
+      <div class="sort-bar">
+        <span>SORT</span>
+        <div class="sort-opts">
+          <span class="sort-opt active" onclick="setSort('date',this)">DATE</span>
+          <span class="sort-opt" onclick="setSort('area',this)">AREA</span>
+          <span class="sort-opt" onclick="setSort('status',this)">STATUS</span>
+        </div>
+        <span id="filteredCount"></span>
+      </div>
+      <div class="inc-list" id="incList"></div>
+    </div>
+    <div class="tab-pane" id="pane-stats">
+      <div class="stats-wrap" id="statsWrap"></div>
+    </div>
+  </div>
+
+  <div class="map-wrap" id="mapWrap">
+    <canvas id="mapCanvas"></canvas>
+    <canvas id="heatCanvas"></canvas>
+    <div id="markerLayer"></div>
+    <div id="mapPopup" class="map-popup"></div>
+    <div class="map-top-left">
+      <button class="map-btn" onclick="toggleSidebar()">☰ PANEL</button>
+    </div>
+    <div class="map-top-right">
+      <button class="map-btn on" id="btnHeat" onclick="toggleHeat()">🌡 HEATMAP ON</button>
+      <button class="map-btn on" id="btnMarkers" onclick="toggleMarkers()">📍 MARKERS ON</button>
+      <button class="map-btn" onclick="fitAll()">⌖ FIT ALL</button>
+      <button class="map-btn" onclick="resetView()">⟲ RESET</button>
+    </div>
+    <div class="zoom-wrap">
+      <button class="zoom-btn" onclick="zoomIn()">+</button>
+      <button class="zoom-btn" onclick="zoomOut()">−</button>
+    </div>
+    <div class="map-legend">
+      <div class="leg-title">Status</div>
+      <div class="leg-row"><div class="leg-dot" style="background:var(--green)"></div>Open</div>
+      <div class="leg-row"><div class="leg-dot" style="background:var(--yellow)"></div>Suspect ID'd</div>
+      <div class="leg-row"><div class="leg-dot" style="background:var(--accent)"></div>Closed</div>
+    </div>
+    <div class="attr">© OpenStreetMap contributors © CARTO</div>
+  </div>
+</div>
+
+<!-- REPORT MODAL -->
+<div class="overlay" id="reportOverlay">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div><div class="modal-title" id="reportModalTitle">Log New Incident</div><div class="modal-sub" id="reportSub">Click the map to pin a location, or enter an address below</div></div>
+      <div class="modal-x" onclick="closeReport()">✕</div>
+    </div>
+    <div class="modal-body">
+      <div class="fsec">
+        <div class="fsec-title">📍 Location</div>
+        <div class="fgrp" style="position:relative;">
+          <label>ADDRESS / AREA *</label>
+          <input type="text" id="fAddr" class="finput" placeholder="e.g. 42 Victoria Road, Croydon" autocomplete="off">
+          <!-- ADDRESS AUTOCOMPLETE: Dropdown for address suggestions in modal -->
+          <div class="search-drop" id="modalAddrDrop" style="position:absolute;top:100%;left:0;right:0;margin-top:4px;"></div>
+        </div>
+        <div class="geo-row"><button class="geo-btn" onclick="geocodeAddr()">📍 Find on Map</button><span id="geoStatus"></span></div>
+        <div class="frow" style="margin-top:10px">
+          <div class="fgrp"><label>LATITUDE</label><input type="text" id="fLat" class="finput" placeholder="51.3757" inputmode="decimal"></div>
+          <div class="fgrp"><label>LONGITUDE</label><input type="text" id="fLng" class="finput" placeholder="-0.0982" inputmode="decimal"></div>
+        </div>
+        <div style="font-family:'Space Mono',monospace;font-size:8px;color:var(--text-dim);margin-top:4px">💡 Close modal and click map to auto-fill coordinates</div>
+      </div>
+      <div class="fsec">
+        <div class="fsec-title">📋 Incident Details</div>
+        <div class="frow">
+          <div class="fgrp"><label>DATE & TIME *</label><input type="datetime-local" id="fDatetime" class="finput"></div>
+          <div class="fgrp"><label>CASE STATUS</label><select id="fStatus2" class="finput"><option value="open">Open</option><option value="suspect">Suspect Identified</option><option value="closed">Closed</option></select></div>
+        </div>
+        <div class="frow">
+          <div class="fgrp"><label>ANIMAL TYPE</label><select id="fAnimalType" class="finput"><option>Domestic Cat</option><option>Kitten</option><option>Feral Cat</option><option>Other</option></select></div>
+          <div class="fgrp"><label>CAT NAME (IF KNOWN)</label><input type="text" id="fCatName" class="finput" placeholder="e.g. Whiskers"></div>
+        </div>
+        <div class="frow">
+          <div class="fgrp"><label>DESCRIPTION</label><input type="text" id="fAnimalDesc" class="finput" placeholder="e.g. Black & white tabby"></div>
+          <div class="fgrp"><label>AGE (YEARS)</label><select id="fAge" class="finput"><option value="">Unknown</option><option>< 1</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20+</option></select></div>
+        </div>
+        <div class="frow">
+          <div class="fgrp"><label>SEX</label><select id="fSex" class="finput"><option value="">Unknown</option><option>Male</option><option>Female</option><option>Neutered Male</option><option>Spayed Female</option></select></div>
+          <div class="fgrp"></div>
+        </div>
+      </div>
+      <div class="fsec">
+        <div class="fsec-title">⚡ Injury & Method</div>
+        <div class="frow">
+          <div class="fgrp"><label>METHOD</label><select id="fMethod2" class="finput"><option>Blunt Trauma</option><option>Sharp Force</option><option>Strangulation</option><option>Poisoning</option><option>Decapitation</option><option>Roadkill</option><option>Accident</option><option>Other / Unknown</option></select></div>
+          <div class="fgrp"><label>SEVERITY</label><select id="fSeverity" class="finput"><option>Fatal</option><option>Critical</option><option>Injured — Survived</option><option>Suspected</option></select></div>
+        </div>
+        <div class="fgrp"><label>NOTES</label><textarea id="fNotes" class="finput" placeholder="Scene description, observations…"></textarea></div>
+      </div>
+      <div class="fsec">
+        <div class="fsec-title">👁 Witness</div>
+        <div class="frow">
+          <div class="fgrp"><label>NAME</label><input type="text" id="fWitName" class="finput" placeholder="Optional"></div>
+          <div class="fgrp"><label>CONTACT</label><input type="text" id="fWitContact" class="finput" placeholder="Phone or email"></div>
+        </div>
+        <div class="fgrp"><label>STATEMENT</label><textarea id="fWitStatement" class="finput" placeholder="What was seen or heard…" style="min-height:54px"></textarea></div>
+      </div>
+      <div class="fsec">
+        <div class="fsec-title">📷 Photos</div>
+        <label class="file-zone" for="fPhotos">
+          <input type="file" id="fPhotos" accept="image/*" multiple onchange="handlePhotos(this)">
+          <div class="file-txt">📷 Click to attach photos<br><span style="font-size:8px;color:var(--text-dim)">Saved with incident record</span></div>
+          <div class="file-prev" id="photoPrev"></div>
+        </label>
+      </div>
+      <div class="valmsg" id="valMsg"></div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn btn-ghost" onclick="closeReport()">Cancel</button>
+      <button class="btn btn-primary" id="reportSubmitBtn" style="padding:9px 22px;font-size:13px" onclick="submitReport()">SUBMIT INCIDENT</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="overlay" id="detailOverlay">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div><div class="modal-title" id="detailTitle"></div><div class="modal-sub" id="detailSub"></div></div>
+      <div class="modal-x" onclick="closeDetail()">✕</div>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-ftr" style="justify-content:space-between">
+      <button class="btn btn-danger btn-sm" id="deleteBtn">🗑 Delete</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" id="editBtn">✎ Edit</button>
+        <button class="btn btn-ghost" onclick="closeDetail()">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="overlay" id="confirmOverlay">
+  <div class="modal" style="max-width:340px">
+    <div class="modal-hdr"><div class="modal-title">Confirm Delete</div><div class="modal-x" onclick="resolveConfirm(false)">✕</div></div>
+    <div class="modal-body"><p style="font-size:13px;color:var(--text-muted);line-height:1.6">Delete this incident permanently?</p></div>
+    <div class="modal-ftr"><button class="btn btn-ghost" onclick="resolveConfirm(false)">Cancel</button><button class="btn btn-danger" onclick="resolveConfirm(true)">Delete</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+<!-- Image Lightbox -->
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-close" onclick="closeLightbox()">✕</div>
+  <img id="lightboxImg" src="" alt="Full size image">
+</div>
+
+<script>
+'use strict';
+
+// ═══════════════════════════════════════════
+//  THEME & AUTH MANAGEMENT
+// ═══════════════════════════════════════════
+
+// Initialize theme from localStorage (default: dark)
+function initTheme(){
+  const saved=localStorage.getItem('slainTheme')||'dark';
+  if(saved==='light'){
+    document.body.classList.add('light-mode');
+    document.getElementById('themeToggle').textContent='☀️';
+  }
+}
+
+// Toggle between light and dark mode
+function toggleTheme(){
+  const isLight=document.body.classList.toggle('light-mode');
+  localStorage.setItem('slainTheme',isLight?'light':'dark');
+  document.getElementById('themeToggle').textContent=isLight?'☀️':'🌙';
+  
+  // THEME SWITCHING: Clear tile cache to force reload with new theme tiles
+  tileCache.clear();
+  sched(); // Re-render map with new theme
+}
+
+// TODO: Authentication system
+// When auth is implemented, this will handle login flow
+function handleLogin(){
+  showToast('Authentication coming soon - stay tuned!','var(--yellow)');
+  // TODO: Show login modal
+  // TODO: Handle OAuth or email/password
+  // TODO: Store auth token
+  // TODO: Update UI based on auth state
+  // TODO: Enable/disable submit buttons based on permissions
+}
+
+// TODO: Auth state management
+// Structure for future auth implementation:
+// const authState = {
+//   isAuthenticated: false,
+//   user: null,
+//   role: 'viewer', // 'viewer' | 'contributor' | 'admin'
+// };
+// function checkAuth() { ... }
+// function requireAuth() { ... }
+
+// ═══════════════════════════════════════════
+//  IMAGE LIGHTBOX
+// ═══════════════════════════════════════════
+
+function openLightbox(imageSrc){
+  const lightbox=document.getElementById('lightbox');
+  document.getElementById('lightboxImg').src=imageSrc;
+  lightbox.classList.add('open');
+  // Close on background click
+  lightbox.onclick=e=>{if(e.target===lightbox)closeLightbox();};
+}
+
+function closeLightbox(){
+  document.getElementById('lightbox').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════
+//  SELF-CONTAINED SLIPPY MAP ENGINE
+// ═══════════════════════════════════════════
+const TILE_SZ = 256, MIN_Z = 9, MAX_Z = 17;
+
+const mapC = document.getElementById('mapCanvas');
+const heatC = document.getElementById('heatCanvas');
+const mctx = mapC.getContext('2d');
+const hctx = heatC.getContext('2d');
+
+let ms = { lat:51.505, lng:-0.09, zoom:11 };
+let dragging=false, dragStart=null;
+let tileCache = new Map();
+let showHeat=true, showPins=true;
+let renderPending=false;
+
+// Mercator math
+const lng2x = (lng,z) => ((lng+180)/360)*Math.pow(2,z)*TILE_SZ;
+const lat2y = (lat,z) => { const r=lat*Math.PI/180; return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*Math.pow(2,z)*TILE_SZ; };
+const x2lng = (x,z) => x/(Math.pow(2,z)*TILE_SZ)*360-180;
+const y2lat = (y,z) => { const n=Math.PI-2*Math.PI*y/(Math.pow(2,z)*TILE_SZ); return 180/Math.PI*Math.atan(0.5*(Math.exp(n)-Math.exp(-n))); };
+
+function ll2px(lat,lng){
+  const cx=mapC.width/2,cy=mapC.height/2;
+  return {x:lng2x(lng,ms.zoom)-lng2x(ms.lng,ms.zoom)+cx, y:lat2y(lat,ms.zoom)-lat2y(ms.lat,ms.zoom)+cy};
+}
+function px2ll(x,y){
+  const cx=mapC.width/2,cy=mapC.height/2;
+  return {lat:y2lat(lat2y(ms.lat,ms.zoom)+(y-cy),ms.zoom), lng:x2lng(lng2x(ms.lng,ms.zoom)+(x-cx),ms.zoom)};
+}
+
+function getTile(tx,ty,z){
+  const maxT=Math.pow(2,z);
+  const wx=((tx%maxT)+maxT)%maxT;
+  const wy=Math.max(0,Math.min(maxT-1,ty));
+  const s=['a','b','c','d'][(tx+ty+z)%4];
+  
+  // THEME SWITCHING: Use light tiles in light mode, dark tiles in dark mode
+  const isLightMode=document.body.classList.contains('light-mode');
+  const tileType=isLightMode?'light_all':'dark_all';
+  
+  return `https://${s}.basemaps.cartocdn.com/${tileType}/${z}/${wx}/${wy}.png`;
+}
+
+function loadTileImg(url){
+  if(tileCache.has(url)) return tileCache.get(url);
+  const p=new Promise(res=>{
+    const img=new Image(); img.crossOrigin='anonymous';
+    img.onload=()=>res(img);
+    img.onerror=()=>{
+      // OSM fallback
+      const f=new Image(); f.crossOrigin='anonymous';
+      f.onload=()=>res(f); f.onerror=()=>res(null);
+      const parts=url.match(/\/(\d+)\/(\d+)\/(\d+)\.png$/);
+      if(parts) f.src=`https://tile.openstreetmap.org/${parts[1]}/${parts[2]}/${parts[3]}.png`;
+      else res(null);
+    };
+    img.src=url;
+  });
+  tileCache.set(url,p);
+  if(tileCache.size>400){tileCache.delete(tileCache.keys().next().value);}
+  return p;
+}
+
+function sched(){if(!renderPending){renderPending=true;requestAnimationFrame(render);}}
+
+async function render(){
+  renderPending=false;
+  const W=mapC.width,H=mapC.height;
+  if(W===0||H===0){sched();return;}
+  mctx.fillStyle='#1a1f2a'; mctx.fillRect(0,0,W,H);
+
+  const z=ms.zoom, cx=W/2, cy=H/2;
+  const ox=lng2x(ms.lng,z), oy=lat2y(ms.lat,z);
+  const stx=Math.floor((ox-cx)/TILE_SZ)-1, sty=Math.floor((oy-cy)/TILE_SZ)-1;
+  const etx=Math.ceil((ox+cx)/TILE_SZ)+1, ety=Math.ceil((oy+cy)/TILE_SZ)+1;
+
+  const jobs=[];
+  for(let ty=sty;ty<=ety;ty++){
+    for(let tx=stx;tx<=etx;tx++){
+      const url=getTile(tx,ty,z);
+      const px=tx*TILE_SZ-ox+cx, py=ty*TILE_SZ-oy+cy;
+      jobs.push(loadTileImg(url).then(img=>({img,px,py})));
+    }
+  }
+  const tiles=await Promise.all(jobs);
+  tiles.forEach(({img,px,py})=>{
+    if(img){try{mctx.drawImage(img,Math.round(px),Math.round(py),TILE_SZ,TILE_SZ);}catch(e){}}
+    else{mctx.fillStyle='#1a1f2a';mctx.fillRect(px,py,TILE_SZ,TILE_SZ);}
+  });
+  drawPins();
+  if(showHeat)drawHeat();
+  // Keep rendering so tiles that load late appear
+  sched();
+}
+
+// ── Pins ──
+function drawPins(){
+  const layer=document.getElementById('markerLayer');
+  layer.innerHTML='';
+  if(!showPins) return;
+  incidents.forEach(inc=>{
+    const lat=+inc.lat, lng=+inc.lng;
+    if(isNaN(lat)||isNaN(lng)) return;
+    const {x,y}=ll2px(lat,lng);
+    if(x<-20||x>mapC.width+20||y<-20||y>mapC.height+20) return;
+    const cols={open:'#2d9d6e',suspect:'#d4a017',closed:'#e63946'};
+    const c=cols[inc.status]||'#e63946';
+    const pin=document.createElement('div');
+    pin.style.cssText=`position:absolute;left:${x-9}px;top:${y-18}px;width:18px;height:18px;
+      background:${c};border:2px solid rgba(255,255,255,.85);border-radius:50% 50% 50% 0;
+      transform:rotate(-45deg);box-shadow:0 0 10px ${c}99,0 2px 6px rgba(0,0,0,.7);
+      cursor:pointer;pointer-events:all;transition:transform .12s;z-index:10;`;
+    pin.addEventListener('click',e=>{
+      e.stopPropagation();
+      // MARKER BEHAVIOR: Open detail modal directly (matches flyTo behavior for consistency)
+      showDetail(inc.id);
+    });
+    pin.addEventListener('mouseenter',()=>{pin.style.transform='rotate(-45deg) scale(1.35)';});
+    pin.addEventListener('mouseleave',()=>{pin.style.transform='rotate(-45deg)';});
+    layer.appendChild(pin);
+  });
+}
+
+// ── Heatmap ──
+function drawHeat(){
+  const W=heatC.width,H=heatC.height;
+  hctx.clearRect(0,0,W,H);
+  if(!incidents.length) return;
+  const r=Math.max(24,Math.min(70,ms.zoom*4.5));
+  incidents.forEach(inc=>{
+    const lat=+inc.lat,lng=+inc.lng;
+    if(isNaN(lat)||isNaN(lng)) return;
+    const {x,y}=ll2px(lat,lng);
+    if(x<-r||x>W+r||y<-r||y>H+r) return;
+    const g=hctx.createRadialGradient(x,y,0,x,y,r);
+    g.addColorStop(0,'rgba(230,57,70,0.6)');
+    g.addColorStop(0.4,'rgba(255,107,53,0.3)');
+    g.addColorStop(1,'rgba(230,57,70,0)');
+    hctx.beginPath();hctx.arc(x,y,r,0,Math.PI*2);
+    hctx.fillStyle=g;hctx.fill();
+  });
+}
+
+// ── Popup ──
+function showPopup(inc,x,y){
+  const pop=document.getElementById('mapPopup');
+  const d=inc.datetime?new Date(inc.datetime):null;
+  const ds=d&&!isNaN(d)?d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—';
+  pop.innerHTML=`<button class="popup-close" onclick="closePopup()">✕</button>
+    <div class="popup-title">${esc(inc.animalType)}${inc.animalDesc?' — '+esc(inc.animalDesc):''}</div>
+    <div class="popup-sub">📍 ${esc(inc.address)}</div>
+    <div class="popup-sub">📅 ${ds} · ☠ ${esc(inc.severity)}</div>
+    <div class="popup-sub">⚡ ${esc(inc.method)}</div>
+    <button class="popup-btn" onclick="showDetail('${inc.id.replace(/'/g,"\\'")}')">Full Detail →</button>`;
+  const pW=220, mW=mapC.width, mH=mapC.height;
+  let left=x-pW/2;
+  left=Math.max(8,Math.min(mW-pW-8,left));
+  const top=Math.max(8,y-175);
+  pop.style.left=left+'px';pop.style.top=top+'px';pop.style.display='block';
+}
+function closePopup(){document.getElementById('mapPopup').style.display='none';}
+
+// ── Interactions ──
+mapC.addEventListener('mousedown',e=>{
+  if(e.button!==0)return;
+  dragging=true;
+  dragStart={x:e.clientX,y:e.clientY,lat:ms.lat,lng:ms.lng};
+  mapC.classList.add('grabbing');
+});
+window.addEventListener('mousemove',e=>{
+  if(!dragging)return;
+  const dx=e.clientX-dragStart.x, dy=e.clientY-dragStart.y;
+  ms.lat=y2lat(lat2y(dragStart.lat,ms.zoom)-dy,ms.zoom);
+  ms.lng=x2lng(lng2x(dragStart.lng,ms.zoom)-dx,ms.zoom);
+  closePopup(); sched();
+});
+window.addEventListener('mouseup',()=>{dragging=false;mapC.classList.remove('grabbing');});
+
+let t0=null;
+mapC.addEventListener('touchstart',e=>{
+  if(e.touches.length!==1)return;
+  t0={x:e.touches[0].clientX,y:e.touches[0].clientY,lat:ms.lat,lng:ms.lng};
+},{passive:true});
+mapC.addEventListener('touchmove',e=>{
+  if(!t0||e.touches.length!==1)return;
+  e.preventDefault();
+  const dx=e.touches[0].clientX-t0.x, dy=e.touches[0].clientY-t0.y;
+  ms.lat=y2lat(lat2y(t0.lat,ms.zoom)-dy,ms.zoom);
+  ms.lng=x2lng(lng2x(t0.lng,ms.zoom)-dx,ms.zoom);
+  closePopup(); sched();
+},{passive:false});
+mapC.addEventListener('touchend',()=>{t0=null;});
+
+mapC.addEventListener('wheel',e=>{
+  e.preventDefault();
+  const rect=mapC.getBoundingClientRect();
+  const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+  const {lat:cLat,lng:cLng}=px2ll(mx,my);
+  const nz=Math.max(MIN_Z,Math.min(MAX_Z,ms.zoom+(e.deltaY<0?1:-1)));
+  if(nz===ms.zoom)return;
+  ms.zoom=nz;
+  const {x:nx,y:ny}=ll2px(cLat,cLng);
+  ms.lat=y2lat(lat2y(ms.lat,nz)+(ny-my),nz);
+  ms.lng=x2lng(lng2x(ms.lng,nz)+(nx-mx),nz);
+  closePopup(); sched();
+},{passive:false});
+
+mapC.addEventListener('click',e=>{
+  if(Math.abs(e.clientX-(dragStart&&dragStart.x||e.clientX))>4) return;
+  const rect=mapC.getBoundingClientRect();
+  const {lat,lng}=px2ll(e.clientX-rect.left,e.clientY-rect.top);
+  // Always open report modal when clicking empty map area (not on a pin)
+  if(!document.getElementById('reportOverlay').classList.contains('open') && 
+     !document.getElementById('detailOverlay').classList.contains('open')) {
+    openReport(lat,lng,null);
+  }
+});
+
+function zoomIn(){ms.zoom=Math.min(MAX_Z,ms.zoom+1);closePopup();sched();}
+function zoomOut(){ms.zoom=Math.max(MIN_Z,ms.zoom-1);closePopup();sched();}
+function resetView(){ms.lat=51.505;ms.lng=-0.09;ms.zoom=11;closePopup();sched();}
+function fitAll(){
+  const v=incidents.filter(i=>!isNaN(+i.lat)&&!isNaN(+i.lng));
+  if(!v.length){resetView();return;}
+  const lats=v.map(i=>+i.lat),lngs=v.map(i=>+i.lng);
+  ms.lat=(Math.min(...lats)+Math.max(...lats))/2;
+  ms.lng=(Math.min(...lngs)+Math.max(...lngs))/2;
+  const sp=Math.max(Math.max(...lats)-Math.min(...lats),Math.max(...lngs)-Math.min(...lngs));
+  ms.zoom=sp<0.02?14:sp<0.1?12:sp<0.4?11:10;
+  closePopup();sched();
+}
+function toggleHeat(){
+  showHeat=!showHeat;
+  const b=document.getElementById('btnHeat');
+  b.classList.toggle('on',showHeat);b.textContent=`🌡 HEATMAP ${showHeat?'ON':'OFF'}`;
+  if(!showHeat)hctx.clearRect(0,0,heatC.width,heatC.height);else sched();
+}
+function toggleMarkers(){
+  showPins=!showPins;
+  const b=document.getElementById('btnMarkers');
+  b.classList.toggle('on',showPins);b.textContent=`📍 MARKERS ${showPins?'ON':'OFF'}`;
+  drawPins();
+}
+let sbOpen=true;
+function toggleSidebar(){
+  const sb=document.getElementById('sidebar');
+  const mob=window.innerWidth<=640;
+  sbOpen=!sbOpen;
+  if(mob){sb.classList.toggle('mob-open',sbOpen);sb.classList.remove('collapsed');}
+  else{sb.classList.toggle('collapsed',!sbOpen);sb.classList.remove('mob-open');}
+  setTimeout(resizeCvs,300);
+}
+function resizeCvs(){
+  const wrap=document.getElementById('mapWrap');
+  const W=wrap.clientWidth,H=wrap.clientHeight;
+  mapC.width=W;mapC.height=H;heatC.width=W;heatC.height=H;
+  sched();
+}
+window.addEventListener('resize',resizeCvs);
+new ResizeObserver(resizeCvs).observe(document.getElementById('mapWrap'));
+
+// ═══════════════════════════════════════════
+//  DATA
+// ═══════════════════════════════════════════
+let incidents=[];
+let sortField='date',sortDir=-1;
+let filters={status:'',method:'',area:''};
+let storedPhotos=[],currentDetailId=null,confirmResolve=null;
+let editingIncidentId=null; // Track which incident we're editing
+
+const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+function saveData(){try{localStorage.setItem('lckData',JSON.stringify(incidents));}catch(e){}}
+function loadData(){try{return JSON.parse(localStorage.getItem('lckData')||'[]');}catch(e){return[];}}
+
+// ── Report modal ──
+function openReport(lat,lng,incidentId){
+  editingIncidentId=incidentId||null;
+  storedPhotos=[];
+  document.getElementById('photoPrev').innerHTML='';
+  
+  // Set modal title and button based on mode
+  if(editingIncidentId){
+    const inc=incidents.find(i=>i.id===editingIncidentId);
+    if(!inc)return;
+    document.getElementById('reportModalTitle').textContent='Edit Incident';
+    document.getElementById('reportSubmitBtn').textContent='SAVE CHANGES';
+    document.getElementById('reportSub').textContent='Editing incident '+inc.id;
+    
+    // Pre-fill all fields with existing data
+    document.getElementById('fAddr').value=inc.address||'';
+    document.getElementById('fLat').value=inc.lat||'';
+    document.getElementById('fLng').value=inc.lng||'';
+    
+    // Convert datetime back to local format for datetime-local input
+    if(inc.datetime){
+      const d=new Date(inc.datetime);
+      const local=new Date(d.getTime()-d.getTimezoneOffset()*60000).toISOString().slice(0,16);
+      document.getElementById('fDatetime').value=local;
+    }
+    
+    document.getElementById('fStatus2').value=inc.status||'open';
+    document.getElementById('fAnimalType').value=inc.animalType||'Domestic Cat';
+    document.getElementById('fCatName').value=inc.catName||'';
+    document.getElementById('fAnimalDesc').value=inc.animalDesc||'';
+    document.getElementById('fAge').value=inc.age||'';
+    document.getElementById('fSex').value=inc.sex||'';
+    document.getElementById('fMethod2').value=inc.method||'Blunt Trauma';
+    document.getElementById('fSeverity').value=inc.severity||'Fatal';
+    document.getElementById('fNotes').value=inc.notes||'';
+    document.getElementById('fWitName').value=inc.witnessName||'';
+    document.getElementById('fWitContact').value=inc.witnessContact||'';
+    document.getElementById('fWitStatement').value=inc.witnessStatement||'';
+    
+    // Show existing photos
+    if(inc.photos&&inc.photos.length){
+      storedPhotos=[...inc.photos];
+      const prev=document.getElementById('photoPrev');
+      inc.photos.forEach(p=>{
+        const img=document.createElement('img');
+        img.src=p.data;
+        prev.appendChild(img);
+      });
+    }
+  }else{
+    // New incident mode
+    document.getElementById('reportModalTitle').textContent='Log New Incident';
+    document.getElementById('reportSubmitBtn').textContent='SUBMIT INCIDENT';
+    
+    const now=new Date();
+    document.getElementById('fDatetime').value=new Date(now-now.getTimezoneOffset()*60000).toISOString().slice(0,16);
+    ['fAddr','fLat','fLng','fNotes','fWitName','fWitContact','fWitStatement','fAnimalDesc','fCatName'].forEach(id=>document.getElementById(id).value='');
+    document.getElementById('fStatus2').value='open';
+    document.getElementById('fAnimalType').value='Domestic Cat';
+    document.getElementById('fAge').value='';
+    document.getElementById('fSex').value='';
+    document.getElementById('fMethod2').value='Blunt Trauma';
+    document.getElementById('fSeverity').value='Fatal';
+    document.getElementById('reportSub').textContent='Click the map to pin a location, or enter an address below';
+    
+    if(lat!==null&&lat!==undefined&&!isNaN(lat)){
+      document.getElementById('fLat').value=lat.toFixed(5);
+      document.getElementById('fLng').value=lng.toFixed(5);
+      document.getElementById('reportSub').textContent=`📍 ${lat.toFixed(4)}, ${lng.toFixed(4)} — reverse geocoding…`;
+      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16`)
+        .then(r=>r.json()).then(d=>{if(d.display_name)document.getElementById('fAddr').value=d.display_name.split(',').slice(0,4).join(', ');}).catch(()=>{});
+    }
+  }
+  
+  document.getElementById('geoStatus').textContent='';
+  document.getElementById('valMsg').style.display='none';
+  document.getElementById('reportOverlay').classList.add('open');
+}
+function closeReport(){
+  document.getElementById('reportOverlay').classList.remove('open');
+  editingIncidentId=null;
+}
+
+function geocodeAddr(){
+  const addr=document.getElementById('fAddr').value.trim();if(!addr)return;
+  const st=document.getElementById('geoStatus');
+  st.textContent='Searching…';st.style.color='var(--text-muted)';
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr+' London UK')}&limit=1&countrycodes=gb`)
+    .then(r=>r.json()).then(data=>{
+      if(data.length){
+        document.getElementById('fLat').value=(+data[0].lat).toFixed(5);
+        document.getElementById('fLng').value=(+data[0].lon).toFixed(5);
+        st.textContent='✓ Found';st.style.color='var(--green)';
+      }else{st.textContent='✗ Not found';st.style.color='var(--accent)';}
+    }).catch(()=>{st.textContent='✗ Error';st.style.color='var(--accent)';});
+}
+
+function handlePhotos(input){
+  storedPhotos=[];document.getElementById('photoPrev').innerHTML='';
+  Array.from(input.files).forEach(f=>{
+    const r=new FileReader();
+    r.onload=e=>{storedPhotos.push({name:f.name,data:e.target.result});const img=document.createElement('img');img.src=e.target.result;document.getElementById('photoPrev').appendChild(img);};
+    r.readAsDataURL(f);
+  });
+}
+
+const BOROUGHS=['Croydon','Bromley','Sutton','Merton','Wandsworth','Lambeth','Southwark','Lewisham','Greenwich','Bexley','Havering','Barking','Redbridge','Newham','Tower Hamlets','Hackney','Haringey','Enfield','Barnet','Harrow','Brent','Ealing','Hounslow','Richmond','Kingston','Streatham','Brixton','Balham','Tooting','Wimbledon','Clapham','Peckham','Deptford','Woolwich','Eltham','Catford','Mitcham','Morden','Thornton Heath','Norwood','Dulwich','Lewisham','Putney','Battersea','Camberwell'];
+function extractArea(addr){
+  if(!addr)return'Unknown';
+  const parts=addr.split(',').map(p=>p.trim());
+  const hit=parts.find(p=>BOROUGHS.some(b=>p.toLowerCase().includes(b.toLowerCase())));
+  if(hit)return hit.replace(/\b[A-Z]{1,2}\d[\dA-Z]?\s?\d[A-Z]{2}\b/gi,'').trim()||hit;
+  return parts[0]||'Unknown';
+}
+
+function submitReport(){
+  const addr=document.getElementById('fAddr').value.trim();
+  const latV=document.getElementById('fLat').value.trim();
+  const lngV=document.getElementById('fLng').value.trim();
+  const dt=document.getElementById('fDatetime').value;
+  const vm=document.getElementById('valMsg');vm.style.display='none';
+  if(!dt){vm.textContent='⚠ Please enter the date and time.';vm.style.display='block';return;}
+  if(!addr&&!latV){vm.textContent='⚠ Please enter an address or click the map.';vm.style.display='block';return;}
+  const lat=parseFloat(latV),lng=parseFloat(lngV);
+  const hasCoords=!isNaN(lat)&&!isNaN(lng);
+  if(!hasCoords&&addr){
+    vm.textContent='🔄 Geocoding address…';vm.style.display='block';
+    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr+' London UK')}&limit=1&countrycodes=gb`)
+      .then(r=>r.json()).then(d=>{doSave(addr,d.length?+d[0].lat:51.505,d.length?+d[0].lon:-0.09,dt);})
+      .catch(()=>doSave(addr,51.505,-0.09,dt));
+    return;
+  }
+  doSave(addr||`${lat.toFixed(4)},${lng.toFixed(4)}`,lat||51.505,lng||-0.09,dt);
+}
+
+function doSave(addr,lat,lng,dt){
+  const off=-new Date(dt).getTimezoneOffset();
+  const tzStr=(off>=0?'+':'-')+String(Math.floor(Math.abs(off)/60)).padStart(2,'0')+':'+String(Math.abs(off)%60).padStart(2,'0');
+  
+  const incidentData={
+    address:addr,area:extractArea(addr),lat,lng,
+    datetime:dt+':00'+tzStr,status:document.getElementById('fStatus2').value,
+    animalType:document.getElementById('fAnimalType').value,
+    catName:document.getElementById('fCatName').value.trim(),
+    animalDesc:document.getElementById('fAnimalDesc').value.trim(),
+    age:document.getElementById('fAge').value,
+    sex:document.getElementById('fSex').value,
+    method:document.getElementById('fMethod2').value,
+    severity:document.getElementById('fSeverity').value,
+    notes:document.getElementById('fNotes').value.trim(),
+    witnessName:document.getElementById('fWitName').value.trim(),
+    witnessContact:document.getElementById('fWitContact').value.trim(),
+    witnessStatement:document.getElementById('fWitStatement').value.trim(),
+    photos:[...storedPhotos]
+  };
+  
+  if(editingIncidentId){
+    // Edit existing incident
+    const idx=incidents.findIndex(i=>i.id===editingIncidentId);
+    if(idx!==-1){
+      incidents[idx]={...incidents[idx],...incidentData,updatedAt:new Date().toISOString()};
+      saveData();closeReport();renderAll();
+      showToast('Incident '+editingIncidentId+' updated');
+      ms.lat=lat;ms.lng=lng;ms.zoom=Math.max(ms.zoom,13);sched();
+    }
+  }else{
+    // Create new incident
+    const id='INC-'+Date.now().toString(36).toUpperCase().slice(-6);
+    incidents.push({id,...incidentData,createdAt:new Date().toISOString()});
+    saveData();closeReport();renderAll();
+    showToast('Incident '+id+' logged');
+    ms.lat=lat;ms.lng=lng;ms.zoom=Math.max(ms.zoom,13);sched();
+  }
+}
+
+// ── Filters / sort ──
+function applyFilters(){filters.status=document.getElementById('fStatus').value;filters.method=document.getElementById('fMethod').value;filters.area=document.getElementById('fArea').value;renderAll();}
+function clearFilters(){['fStatus','fMethod','fArea'].forEach(id=>document.getElementById(id).value='');filters={status:'',method:'',area:''};renderAll();}
+function setSort(f,el){if(sortField===f)sortDir*=-1;sortField=f;document.querySelectorAll('.sort-opt').forEach(e=>e.classList.remove('active'));el.classList.add('active');renderAll();}
+function getFiltered(){
+  let d=[...incidents];
+  if(filters.status)d=d.filter(i=>i.status===filters.status);
+  if(filters.method)d=d.filter(i=>i.method===filters.method);
+  if(filters.area)d=d.filter(i=>i.area===filters.area);
+  d.sort((a,b)=>{let av,bv;if(sortField==='date'){av=a.datetime?+new Date(a.datetime):0;bv=b.datetime?+new Date(b.datetime):0;}else{av=(a[sortField]||'').toLowerCase();bv=(b[sortField]||'').toLowerCase();}return av<bv?sortDir:av>bv?-sortDir:0;});
+  return d;
+}
+
+// ── Render ──
+function renderAll(){renderList();updateCounts();updateAreaFilter();renderStats();drawPins();if(showHeat)drawHeat();}
+function updateCounts(){document.getElementById('cTotal').textContent=incidents.length;document.getElementById('cOpen').textContent=incidents.filter(i=>i.status==='open').length;document.getElementById('cClosed').textContent=incidents.filter(i=>i.status==='closed').length;}
+function updateAreaFilter(){
+  const areas=[...new Set(incidents.map(i=>i.area).filter(a=>a&&a!=='Unknown'))].sort();
+  const sel=document.getElementById('fArea');const cur=sel.value;
+  sel.innerHTML='<option value="">All Areas</option>'+areas.map(a=>`<option value="${esc(a)}">${esc(a)}</option>`).join('');
+  if(cur&&areas.includes(cur))sel.value=cur;
+}
+function renderList(){
+  const filtered=getFiltered();const list=document.getElementById('incList');
+  document.getElementById('filteredCount').textContent=`${filtered.length}/${incidents.length}`;
+  if(!filtered.length){list.innerHTML=`<div class="empty"><div class="empty-icon">${incidents.length?'🔍':'📍'}</div><div class="empty-txt">${incidents.length?'No incidents match filters.<br>Click ✕ Clear to reset.':'No incidents logged yet.<br>Click <strong style="color:var(--accent)">+ Log Incident</strong><br>or tap the map.'}</div></div>`;return;}
+  list.innerHTML=filtered.map(inc=>{
+    const d=inc.datetime?new Date(inc.datetime):null;
+    const ds=d&&!isNaN(d)?d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—';
+    const ts=d&&!isNaN(d)?d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'';
+    const sid=inc.id.replace(/'/g,"\\'");
+    const animalTitle=inc.catName?`${esc(inc.catName)} (${esc(inc.animalType)})`:esc(inc.animalType);
+    return `<div class="inc-card s-${inc.status}" onclick="showDetail('${sid}')">
+      <div class="card-hdr"><span class="card-id">${esc(inc.id)}</span><span class="sbadge b-${inc.status}">${inc.status==='suspect'?'SUSPECT':inc.status.toUpperCase()}</span></div>
+      <div class="card-animal">${animalTitle}${inc.animalDesc?' — '+esc(inc.animalDesc):''}</div>
+      <div class="card-loc">📍 ${esc(inc.address)}</div>
+      <div class="card-meta"><span class="mtag">📅 ${ds} ${ts}</span><span class="mtag">⚡ ${esc(inc.method)}</span><span class="mtag">☠ ${esc(inc.severity)}</span>${inc.photos&&inc.photos.length?`<span class="mtag">📷 ${inc.photos.length}</span>`:''}</div>
+    </div>`;
+  }).join('');
+}
+function renderStats(){
+  const el=document.getElementById('statsWrap');
+  if(!incidents.length){el.innerHTML=`<div class="empty"><div class="empty-icon">📊</div><div class="empty-txt">Log incidents to see statistics.</div></div>`;return;}
+  const total=incidents.length,open=incidents.filter(i=>i.status==='open').length,suspect=incidents.filter(i=>i.status==='suspect').length,closed=incidents.filter(i=>i.status==='closed').length;
+  const mc={},ac={};incidents.forEach(i=>{mc[i.method]=(mc[i.method]||0)+1;if(i.area&&i.area!=='Unknown')ac[i.area]=(ac[i.area]||0)+1;});
+  const topM=Object.entries(mc).sort((a,b)=>b[1]-a[1]);const topA=Object.entries(ac).sort((a,b)=>b[1]-a[1]);
+  el.innerHTML=`<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:18px">${[['OPEN',open,'var(--green)'],['SUSPECT',suspect,'var(--yellow)'],['CLOSED',closed,'var(--accent)']].map(([l,n,c])=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:800;color:${c};font-family:'Space Mono',monospace">${n}</div><div style="font-size:8px;color:var(--text-muted);letter-spacing:.1em;margin-top:2px">${l}</div></div>`).join('')}</div>
+  <div style="font-family:'Space Mono',monospace;font-size:8px;color:var(--text-muted);letter-spacing:.12em;margin-bottom:10px;text-transform:uppercase">By Method</div>
+  ${topM.map(([m,n])=>`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:9px;margin-bottom:3px"><span style="color:var(--text)">${esc(m)}</span><span style="color:var(--text-muted)">${n}</span></div><div style="height:3px;background:var(--border);border-radius:2px"><div style="height:3px;background:var(--accent);border-radius:2px;width:${(n/total*100).toFixed(0)}%"></div></div></div>`).join('')}
+  ${topA.length?`<div style="font-family:'Space Mono',monospace;font-size:8px;color:var(--text-muted);letter-spacing:.12em;margin:16px 0 10px;text-transform:uppercase">Hotspot Areas</div>${topA.slice(0,8).map(([a,n])=>`<div style="margin-bottom:8px"><div style="display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:9px;margin-bottom:3px"><span style="color:var(--text)">${esc(a)}</span><span style="color:var(--text-muted)">${n}</span></div><div style="height:3px;background:var(--border);border-radius:2px"><div style="height:3px;background:var(--accent2);border-radius:2px;width:${(n/total*100).toFixed(0)}%"></div></div></div>`).join('')}`:''}`;
+}
+
+// ── Detail ──
+function showDetail(id){
+  const inc=incidents.find(i=>i.id===id);if(!inc)return;
+  currentDetailId=id;
+  const detailTitle=inc.catName?`${inc.catName} (${inc.animalType})`:`${inc.animalType}${inc.animalDesc?' — '+inc.animalDesc:''}`;
+  document.getElementById('detailTitle').textContent=detailTitle;
+  document.getElementById('detailSub').textContent=`${inc.id} · ${inc.status==='suspect'?'Suspect Identified':inc.status.charAt(0).toUpperCase()+inc.status.slice(1)}`;
+  const d=inc.datetime?new Date(inc.datetime):null;
+  const ds=d&&!isNaN(d)?d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' at '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'—';
+  const lat=+inc.lat,lng=+inc.lng;
+  const fields=[
+    ['Status',`<span class="sbadge b-${inc.status}">${inc.status==='suspect'?"SUSPECT ID'D":inc.status.toUpperCase()}</span>`],
+    ['Date & Time',esc(ds)],
+    ['Location',esc(inc.address)],
+    ['Area',esc(inc.area)],
+    ['Coords',(!isNaN(lat)&&!isNaN(lng))?`${lat.toFixed(5)}, ${lng.toFixed(5)}`:'—'],
+    ['Animal',esc(inc.animalType)+(inc.animalDesc?' — '+esc(inc.animalDesc):'')],
+  ];
+  if(inc.catName)fields.push(['Cat Name',esc(inc.catName)]);
+  fields.push(
+    ['Age',inc.age?esc(inc.age)+' years':'<span style="color:var(--text-dim)">Unknown</span>'],
+    ['Sex',inc.sex?esc(inc.sex):'<span style="color:var(--text-dim)">Unknown</span>'],
+    ['Method',esc(inc.method)],
+    ['Severity',esc(inc.severity)],
+    ['Notes',esc(inc.notes)||'<span style="color:var(--text-dim)">None</span>'],
+    ['Witness',inc.witnessName?esc(inc.witnessName)+(inc.witnessContact?' · '+esc(inc.witnessContact):''):'<span style="color:var(--text-dim)">None</span>'],
+    ['Statement',esc(inc.witnessStatement)||'<span style="color:var(--text-dim)">None</span>'],
+    ['Logged',esc(new Date(inc.createdAt).toLocaleString('en-GB'))]
+  );
+  if(inc.updatedAt)fields.push(['Last Edited',esc(new Date(inc.updatedAt).toLocaleString('en-GB'))]);
+  
+  // Update photo display to open lightbox instead of new window
+  const photos=inc.photos&&inc.photos.length?`<div class="dfield"><div class="dlabel">Photos</div><div class="dval"><div class="dphotos">${inc.photos.map(p=>`<img src="${p.data}" title="${esc(p.name)}" onclick="openLightbox('${p.data.replace(/'/g,"\\'")}');event.stopPropagation();">`).join('')}</div></div></div>`:'';
+  const flyBtn=(!isNaN(lat)&&!isNaN(lng))?`<button class="btn btn-ghost btn-sm" onclick="flyTo('${id.replace(/'/g,"\\'")}')" style="margin-top:12px">📍 Show on Map</button>`:'';
+  document.getElementById('detailBody').innerHTML=fields.map(([l,v])=>`<div class="dfield"><div class="dlabel">${l}</div><div class="dval">${v}</div></div>`).join('')+photos+`<div style="text-align:center">${flyBtn}</div>`;
+  
+  // Add Edit button handler
+  document.getElementById('editBtn').onclick=()=>{
+    closeDetail();
+    openReport(null,null,id);
+  };
+  
+  document.getElementById('detailOverlay').classList.add('open');
+}
+function closeDetail(){document.getElementById('detailOverlay').classList.remove('open');currentDetailId=null;}
+// MARKER BEHAVIOR: "Show on Map" button handler
+// Closes current dialog, pans to location, shows informational popup with "View Incident" button
+// This prevents the modal-reopening loop bug
+function flyTo(id){
+  const inc=incidents.find(i=>i.id===id);if(!inc)return;
+  const lat=+inc.lat,lng=+inc.lng;if(isNaN(lat)||isNaN(lng))return;
+  
+  // Close detail dialog first
+  closeDetail();
+  
+  // Pan map to location
+  ms.lat=lat;ms.lng=lng;ms.zoom=15;
+  sched();
+  
+  // Show popup above marker after map animation (not full detail modal)
+  setTimeout(()=>showPopup(inc,...Object.values(ll2px(lat,lng))),400);
+}
+document.getElementById('deleteBtn').addEventListener('click',async()=>{
+  if(!currentDetailId)return;
+  if(!await new Promise(r=>{confirmResolve=r;document.getElementById('confirmOverlay').classList.add('open');}))return;
+  incidents=incidents.filter(i=>i.id!==currentDetailId);
+  saveData();closeDetail();renderAll();showToast('Incident deleted','var(--yellow)');
+});
+function resolveConfirm(v){document.getElementById('confirmOverlay').classList.remove('open');if(confirmResolve){confirmResolve(v);confirmResolve=null;}}
+
+// ── Search ──
+const searchIn=document.getElementById('searchIn'),searchDrop=document.getElementById('searchDrop');
+let searchTimer;
+searchIn.addEventListener('input',function(){clearTimeout(searchTimer);const q=this.value.trim();if(q.length<3){searchDrop.style.display='none';return;}searchTimer=setTimeout(()=>runSearch(q),400);});
+searchIn.addEventListener('keydown',e=>{if(e.key==='Enter')doSearch();if(e.key==='Escape')searchDrop.style.display='none';});
+function doSearch(){runSearch(searchIn.value.trim());}
+
+// ADDRESS AUTOCOMPLETE IN MODAL: Same search behavior as main search bar
+const modalAddrIn=document.getElementById('fAddr'),modalAddrDrop=document.getElementById('modalAddrDrop');
+let modalSearchTimer;
+modalAddrIn.addEventListener('input',function(){
+  clearTimeout(modalSearchTimer);
+  const q=this.value.trim();
+  if(q.length<3){modalAddrDrop.style.display='none';return;}
+  // Reuse same search function, but populate modal dropdown
+  modalSearchTimer=setTimeout(()=>runModalSearch(q),400);
+});
+modalAddrIn.addEventListener('keydown',e=>{if(e.key==='Escape')modalAddrDrop.style.display='none';});
+
+// Modal-specific search that fills coordinates and address
+function runModalSearch(q){
+  if(!q)return;
+  const viewbox='-0.5,51.3,0.3,51.7';
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=10&countrycodes=gb&viewbox=${viewbox}&bounded=0`)
+    .then(r=>r.json()).then(data=>{
+      modalAddrDrop.innerHTML=data.length?data.map(d=>{
+        const l=d.display_name.split(',').slice(0,3).join(', ');
+        // When clicked, fill address AND coordinates in modal
+        return`<div class="search-item" onclick="selectModalAddr(${+d.lat},${+d.lon},'${d.display_name.replace(/'/g,"\\'")}')">${l}</div>`;
+      }).join(''):'<div class="search-item" style="color:var(--text-dim)">No results found</div>';
+      modalAddrDrop.style.display='block';
+    }).catch(()=>{modalAddrDrop.innerHTML='<div class="search-item" style="color:var(--text-dim)">Search unavailable</div>';modalAddrDrop.style.display='block';});
+}
+
+// ADDRESS AUTOCOMPLETE: When address selected in modal, fill coords + address
+function selectModalAddr(lat,lng,fullAddr){
+  document.getElementById('fAddr').value=fullAddr;
+  document.getElementById('fLat').value=lat.toFixed(5);
+  document.getElementById('fLng').value=lng.toFixed(5);
+  document.getElementById('geoStatus').textContent='✓ Location set';
+  document.getElementById('geoStatus').style.color='var(--green)';
+  modalAddrDrop.style.display='none';
+  // Pan map to show selected location
+  ms.lat=lat;ms.lng=lng;ms.zoom=15;sched();
+}
+// SEARCH LOGIC: Improved geocoding reliability
+// - UK-only results (countrycodes=gb)
+// - 10 results instead of 5 for better matching
+// - London viewbox bias for more relevant results
+function runSearch(q){
+  if(!q)return;
+  const viewbox='-0.5,51.3,0.3,51.7'; // London bounding box
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=10&countrycodes=gb&viewbox=${viewbox}&bounded=0`)
+    .then(r=>r.json()).then(data=>{
+      searchDrop.innerHTML=data.length?data.map(d=>{const l=d.display_name.split(',').slice(0,3).join(', ');return`<div class="search-item" onclick="gotoPlace(${+d.lat},${+d.lon},'${l.replace(/'/g,"\\'")}')">${l}</div>`;}).join(''):'<div class="search-item" style="color:var(--text-dim)">No results found</div>';
+      searchDrop.style.display='block';
+    }).catch(()=>{searchDrop.innerHTML='<div class="search-item" style="color:var(--text-dim)">Search unavailable</div>';searchDrop.style.display='block';});
+}
+// SEARCH → MAP FLOW: When address selected from search
+// 1. Pan and zoom to location
+// 2. Drop temporary marker (via openReport which sets coords)
+// 3. Open incident entry dialog with address pre-filled
+function gotoPlace(lat,lng,label){
+  ms.lat=lat;ms.lng=lng;ms.zoom=15; // Zoom closer when selecting from search
+  sched();
+  searchDrop.style.display='none';
+  searchIn.value=''; // Clear search box
+  
+  // Open incident modal with coordinates - this creates the marker effect
+  openReport(lat,lng,null);
+}
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.search-wrap'))searchDrop.style.display='none';
+  // Also close modal address dropdown when clicking outside
+  if(!e.target.closest('#fAddr')&&!e.target.closest('#modalAddrDrop'))modalAddrDrop.style.display='none';
+});
+
+// ── Tabs ──
+function switchTab(name){
+  const ns=['inc','stats'];
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',ns[i]===name));
+  document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById('pane-'+name).classList.add('active');
+}
+
+// ── Toast ──
+function showToast(msg,col){
+  const t=document.getElementById('toast');
+  t.style.borderColor=col||'var(--green)';t.style.color=col||'var(--green)';
+  document.getElementById('toastMsg').textContent=msg;
+  t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);
+}
+
+// ── Sample data ──
+function loadSamples(){
+  if(incidents.length)return;
+  incidents=[
+    {id:'INC-DEMO1',address:'Croydon, South London',area:'Croydon',lat:51.3757,lng:-0.0982,datetime:'2024-11-14T22:30:00+00:00',status:'open',animalType:'Domestic Cat',catName:'Mittens',animalDesc:'Black & white, male',age:'3',sex:'Male',method:'Blunt Trauma',severity:'Fatal',notes:'Found in rear garden. Injuries consistent with series.',witnessName:'M. Davies',witnessContact:'07700900001',witnessStatement:'Heard loud noise at ~22:30.',photos:[],createdAt:'2024-11-14T23:10:00Z'},
+    {id:'INC-DEMO2',address:'Bromley, South East London',area:'Bromley',lat:51.4069,lng:0.0161,datetime:'2024-11-20T19:00:00+00:00',status:'suspect',animalType:'Domestic Cat',catName:'Luna',animalDesc:'Tabby, female',age:'5',sex:'Spayed Female',method:'Sharp Force',severity:'Fatal',notes:'Third incident in this postcode. CCTV under review.',witnessName:'',witnessContact:'',witnessStatement:'',photos:[],createdAt:'2024-11-20T20:00:00Z'},
+    {id:'INC-DEMO3',address:'Sutton, South London',area:'Sutton',lat:51.3618,lng:-0.1945,datetime:'2024-12-01T21:00:00+00:00',status:'open',animalType:'Domestic Cat',catName:'Shadow',animalDesc:'Grey Persian',age:'8',sex:'Female',method:'Blunt Trauma',severity:'Fatal',notes:'Owner found cat on front path. No road trauma signs.',witnessName:'',witnessContact:'',witnessStatement:'',photos:[],createdAt:'2024-12-01T22:00:00Z'},
+    {id:'INC-DEMO4',address:'Merton, South West London',area:'Merton',lat:51.4098,lng:-0.1772,datetime:'2024-12-10T20:30:00+00:00',status:'closed',animalType:'Domestic Cat',catName:'Ginger',animalDesc:'Orange tabby, male',age:'2',sex:'Neutered Male',method:'Sharp Force',severity:'Fatal',notes:'Referred to Metropolitan Police. File #MPS-2024-112233.',witnessName:'S. Patel',witnessContact:'07700900002',witnessStatement:'Saw a figure near alley at 20:15.',photos:[],createdAt:'2024-12-10T21:30:00Z'},
+    {id:'INC-DEMO5',address:'Streatham, South London',area:'Streatham',lat:51.4271,lng:-0.1238,datetime:'2024-12-18T23:00:00+00:00',status:'open',animalType:'Domestic Cat',catName:'',animalDesc:'Black, sex unknown',age:'',sex:'',method:'Decapitation',severity:'Fatal',notes:'Significant mutilation. Decapitation case.',witnessName:'',witnessContact:'',witnessStatement:'',photos:[],createdAt:'2024-12-18T23:45:00Z'},
+    {id:'INC-DEMO6',address:'Thornton Heath, Croydon',area:'Croydon',lat:51.398,lng:-0.105,datetime:'2025-01-05T01:30:00+00:00',status:'open',animalType:'Kitten',catName:'Whiskers',animalDesc:'White & brown, female',age:'< 1',sex:'Female',method:'Roadkill',severity:'Fatal',notes:'Found on A23. Appears to be hit by vehicle.',witnessName:'',witnessContact:'',witnessStatement:'',photos:[],createdAt:'2025-01-05T09:00:00Z'},
+    {id:'INC-DEMO7',address:'Catford, Lewisham',area:'Lewisham',lat:51.4451,lng:-0.0194,datetime:'2025-01-12T22:00:00+00:00',status:'suspect',animalType:'Domestic Cat',catName:'Bella',animalDesc:'Tortoiseshell, female',age:'12',sex:'Spayed Female',method:'Strangulation',severity:'Fatal',notes:'Only strangulation case. Suspect description circulated locally.',witnessName:'T. Okonkwo',witnessContact:'07700900003',witnessStatement:'Man in dark clothing near bins ~22:00.',photos:[],createdAt:'2025-01-12T23:15:00Z'},
+    {id:'INC-DEMO8',address:'Peckham, Southwark',area:'Southwark',lat:51.4729,lng:-0.0694,datetime:'2025-01-22T20:45:00+00:00',status:'open',animalType:'Domestic Cat',catName:'Oscar',animalDesc:'Siamese mix',age:'6',sex:'Neutered Male',method:'Accident',severity:'Fatal',notes:'Fell from third-floor balcony.',witnessName:'',witnessContact:'',witnessStatement:'',photos:[],createdAt:'2025-01-22T21:30:00Z'},
+  ];
+  saveData();
+}
+
+// ── Init ──
+initTheme(); // Initialize theme from localStorage
+incidents=loadData();
+loadSamples();
+renderAll();
+resizeCvs();
+sched();
+</script>
+</body>
+</html>
