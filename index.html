@@ -980,10 +980,15 @@ function openReport(lat,lng,incidentId){
     // New incident mode
     document.getElementById('reportModalTitle').textContent='Log New Incident';
     document.getElementById('reportSubmitBtn').textContent='SUBMIT INCIDENT';
-    
+
     const now=new Date();
     document.getElementById('fDatetime').value=new Date(now-now.getTimezoneOffset()*60000).toISOString().slice(0,16);
-    ['fAddr','fLat','fLng','fNotes','fWitName','fWitContact','fWitStatement','fAnimalDesc','fCatName'].forEach(id=>document.getElementById(id).value='');
+    ['fAddr','fNotes','fWitName','fWitContact','fWitStatement','fAnimalDesc','fCatName'].forEach(id=>document.getElementById(id).value='');
+    // Clear lat/lng only if we don't have coordinates to fill
+    if(lat===null||lat===undefined||isNaN(lat)){
+      document.getElementById('fLat').value='';
+      document.getElementById('fLng').value='';
+    }
     document.getElementById('fStatus2').value='unconfirmed';
     document.getElementById('fAnimalType').value='Domestic Cat';
     document.getElementById('fAge').value='';
@@ -993,7 +998,7 @@ function openReport(lat,lng,incidentId){
     document.getElementById('fSightedDesc').value='';
     document.getElementById('reportSub').textContent='Click the map to pin a location, or enter an address below';
     updateFormForStatus('unconfirmed');
-    
+
     if(lat!==null&&lat!==undefined&&!isNaN(lat)){
       document.getElementById('fLat').value=lat.toFixed(5);
       document.getElementById('fLng').value=lng.toFixed(5);
