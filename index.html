@@ -678,13 +678,14 @@ function drawPins(){
 function renderPin(layer,inc,x,y,cols){
   const c=cols[inc.status]||'#e63946';
   const pin=document.createElement('div');
+  pin.className='pin';
+  pin.dataset.incId=inc.id;
   pin.style.cssText=`position:absolute;left:${x-9}px;top:${y-18}px;width:18px;height:18px;
     background:${c};border:2px solid rgba(255,255,255,.85);border-radius:50% 50% 50% 0;
     transform:rotate(-45deg);box-shadow:0 0 10px ${c}99,0 2px 6px rgba(0,0,0,.7);
     cursor:pointer;pointer-events:all;transition:transform .12s;z-index:10;`;
   pin.addEventListener('mouseenter',()=>{pin.style.transform='rotate(-45deg) scale(1.35)';});
   pin.addEventListener('mouseleave',()=>{pin.style.transform='rotate(-45deg)';});
-  pin.addEventListener('click',e=>{e.stopPropagation();showDetail(inc.id);});
   layer.appendChild(pin);
 }
 
@@ -1450,6 +1451,17 @@ document.addEventListener('keydown',e=>{
   if(document.getElementById('logPrompt').style.display!=='none'){closeLogPrompt();return;}
   if(searchDrop.style.display!=='none'){searchDrop.style.display='none';return;}
 });
+
+// ── Pin click delegation handler ──
+// Because drawPins() clears layer.innerHTML every frame, we use event delegation on the parent
+document.getElementById('markerLayer').addEventListener('click',e=>{
+  if(e.target.classList.contains('pin')){
+    e.stopPropagation();
+    const incId=e.target.dataset.incId;
+    if(incId)showDetail(incId);
+  }
+});
+
 function doSearch(){runSearch(searchIn.value.trim());}
 
 // ADDRESS AUTOCOMPLETE IN MODAL: Same search behavior as main search bar
