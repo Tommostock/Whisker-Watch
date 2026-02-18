@@ -134,6 +134,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .popup-sub{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);margin-bottom:2px;line-height:1.4;}
 .popup-btn{display:inline-block;margin-top:8px;padding:4px 10px;background:var(--accent);color:white;border-radius:4px;font-size:10px;cursor:pointer;font-family:'Syne',sans-serif;font-weight:600;border:none;}
 .popup-btn:hover{background:#c1121f;}
+.drag-pin{position:absolute;width:22px;height:22px;background:var(--accent);border:3px solid #fff;border-radius:50% 50% 50% 0;transform:rotate(-45deg);box-shadow:0 0 0 3px rgba(230,57,70,.3),0 3px 10px rgba(0,0,0,.6);cursor:grab;pointer-events:all;z-index:40;transition:box-shadow .15s;}
+.drag-pin:active{cursor:grabbing;box-shadow:0 0 0 6px rgba(230,57,70,.2),0 6px 18px rgba(0,0,0,.7);}
 .cluster{position:absolute;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-weight:700;color:#fff;cursor:pointer;pointer-events:all;box-shadow:0 2px 8px rgba(0,0,0,.5);transform:translate(-50%,-50%);transition:transform .12s;border:2px solid rgba(255,255,255,.8);}
 .cluster:hover{transform:translate(-50%,-50%) scale(1.15);}
 .log-prompt{position:absolute;z-index:35;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 14px;box-shadow:0 6px 24px rgba(0,0,0,.6);pointer-events:all;white-space:nowrap;transform:translateX(-50%);}
@@ -319,6 +321,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     <div id="markerLayer"></div>
     <div id="mapPopup" class="map-popup"></div>
     <div id="logPrompt" class="log-prompt" style="display:none"></div>
+    <div id="dragPin" style="display:none"><div class="drag-pin" id="dragPinHead"></div></div>
     <div class="map-top-left">
       <button class="map-btn" onclick="toggleSidebar()">☰ PANEL</button>
     </div>
@@ -751,6 +754,52 @@ function confirmLog(){
   },50);
 }
 
+// ── Draggable location pin (shown when report modal is open with coords) ──
+let _dpDragging=false,_dpOffX=0,_dpOffY=0;
+function showDragPin(lat,lng){
+  const dp=document.getElementById('dragPin');
+  const {x,y}=ll2px(lat,lng);
+  dp.style.cssText=`display:block;position:absolute;left:${x-11}px;top:${y-22}px;z-index:40;`;
+}
+function hideDragPin(){document.getElementById('dragPin').style.display='none';}
+function updateDragPin(){
+  const lat=parseFloat(document.getElementById('fLat').value);
+  const lng=parseFloat(document.getElementById('fLng').value);
+  if(!isNaN(lat)&&!isNaN(lng))showDragPin(lat,lng);else hideDragPin();
+}
+document.getElementById('dragPinHead').addEventListener('mousedown',e=>{
+  e.preventDefault();e.stopPropagation();
+  _dpDragging=true;
+  const dp=document.getElementById('dragPin');
+  const rect=mapC.getBoundingClientRect();
+  _dpOffX=e.clientX-rect.left-(dp.offsetLeft+11);
+  _dpOffY=e.clientY-rect.top-(dp.offsetTop+22);
+  dp.querySelector('#dragPinHead').style.cursor='grabbing';
+});
+window.addEventListener('mousemove',e=>{
+  if(!_dpDragging)return;
+  const rect=mapC.getBoundingClientRect();
+  const cx=e.clientX-rect.left-_dpOffX;
+  const cy=e.clientY-rect.top-_dpOffY;
+  const {lat,lng}=px2ll(cx,cy);
+  document.getElementById('dragPin').style.left=(cx-11)+'px';
+  document.getElementById('dragPin').style.top=(cy-22)+'px';
+  document.getElementById('fLat').value=lat.toFixed(5);
+  document.getElementById('fLng').value=lng.toFixed(5);
+});
+window.addEventListener('mouseup',e=>{
+  if(!_dpDragging)return;
+  _dpDragging=false;
+  document.getElementById('dragPinHead').style.cursor='grab';
+  // Reverse geocode to update address field
+  const lat=parseFloat(document.getElementById('fLat').value);
+  const lng=parseFloat(document.getElementById('fLng').value);
+  if(!isNaN(lat)&&!isNaN(lng)){
+    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18`)
+      .then(r=>r.json()).then(d=>{if(d.display_name)document.getElementById('fAddr').value=d.display_name.split(',').slice(0,5).join(', ');})
+      .catch(()=>{});
+  }
+});
 
 // ── Interactions ──
 mapC.addEventListener('mousedown',e=>{
@@ -998,10 +1047,13 @@ function openReport(lat,lng,incidentId){
   document.getElementById('geoStatus').textContent='';
   document.getElementById('valMsg').style.display='none';
   document.getElementById('reportOverlay').classList.add('open');
+  // Show draggable pin if we have coordinates
+  setTimeout(updateDragPin,50);
 }
 function closeReport(){
   document.getElementById('reportOverlay').classList.remove('open');
   editingIncidentId=null;
+  hideDragPin();
 }
 function updateFormForStatus(status){
   const isSighted=status==='sighted';
@@ -1032,6 +1084,7 @@ function geocodeAddr(){
         document.getElementById('fLat').value=(+data[0].lat).toFixed(5);
         document.getElementById('fLng').value=(+data[0].lon).toFixed(5);
         st.textContent='✓ Found';st.style.color='var(--green)';
+        updateDragPin();
       }else{st.textContent='✗ Not found';st.style.color='var(--accent)';}
     }).catch(()=>{st.textContent='✗ Error';st.style.color='var(--accent)';});
 }
