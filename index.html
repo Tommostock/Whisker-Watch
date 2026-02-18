@@ -998,14 +998,35 @@ function openReport(lat,lng,incidentId){
       document.getElementById('fLat').value=lat.toFixed(5);
       document.getElementById('fLng').value=lng.toFixed(5);
       document.getElementById('reportSub').textContent=`📍 ${lat.toFixed(4)}, ${lng.toFixed(4)} — reverse geocoding…`;
-      fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`)
+      // Try GetAddress reverse geocoding first (better coverage in UK)
+      fetch(`https://api.getaddress.io/reverse?format=json&lat=${lat}&lng=${lng}&api-key=${GA_KEY}`)
         .then(r=>r.json()).then(d=>{
-          if(d.display_name){
-            const addr=d.display_name.split(',').slice(0,4).join(', ');
+          if(d.address){
+            const addr=d.address;
             document.getElementById('fAddr').value=addr;
             document.getElementById('reportSub').textContent=`📍 Location: ${addr}`;
+          }else{
+            // Fallback to Nominatim
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`)
+              .then(r=>r.json()).then(d2=>{
+                if(d2.display_name){
+                  const addr=d2.display_name.split(',').slice(0,4).join(', ');
+                  document.getElementById('fAddr').value=addr;
+                  document.getElementById('reportSub').textContent=`📍 Location: ${addr}`;
+                }
+              }).catch(()=>{});
           }
-        }).catch(()=>{});
+        }).catch(()=>{
+          // Fallback to Nominatim if GetAddress fails
+          fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`)
+            .then(r=>r.json()).then(d=>{
+              if(d.display_name){
+                const addr=d.display_name.split(',').slice(0,4).join(', ');
+                document.getElementById('fAddr').value=addr;
+                document.getElementById('reportSub').textContent=`📍 Location: ${addr}`;
+              }
+            }).catch(()=>{});
+        });
     }
   }
   
