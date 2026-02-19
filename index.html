@@ -305,6 +305,60 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
   /* ── MODAL OPTIMIZATION ── */
   .modal{max-height:90vh;padding:20px 12px;}
   .modal-body{padding:16px;}
+
+  /* ── HEADER LAYOUT OPTIMIZATION FOR MOBILE ── */
+  /* Left align logo, align buttons to right */
+  header{justify-content:flex-start;}
+  .logo{flex:1 1 auto;margin:0;}
+  .hdr-right{flex:1 1 auto;justify-content:flex-end;margin:0;gap:8px;}
+  .stat-pill{display:none !important;}
+
+  /* ── MOBILE BUTTON TEXT HIDING ── */
+  /* Hide "Log Incident" text, show only + button */
+  .hdr-right .btn-primary{
+    width:44px;
+    height:44px;
+    padding:0;
+    min-width:44px;
+    min-height:44px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:24px;
+    overflow:hidden;
+    text-indent:-9999px;
+  }
+  .hdr-right .btn-primary::before{
+    content:'+';
+    text-indent:0;
+    position:absolute;
+  }
+
+  /* ── ALIGN HEADER BUTTONS ── */
+  /* Make Login, Light mode, and + buttons same height and aligned right */
+  .hdr-right .btn-ghost,.hdr-right .btn-icon,.hdr-right .btn-primary{
+    height:44px;
+    width:44px;
+    min-height:44px;
+    min-width:44px;
+    padding:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:14px;
+    flex-shrink:0;
+  }
+
+  /* ── SWIPE-ENABLED PANELS ── */
+  /* Add swipe gesture handlers with visual feedback */
+  .report-panel{
+    transition:transform .25s cubic-bezier(.4,0,.2,1);
+    touch-action:pan-y;
+  }
+  .sidebar{
+    transition:transform .25s cubic-bezier(.4,0,.2,1);
+    touch-action:pan-y;
+  }
 }
 
 /* Extra small devices (< 480px) - additional optimizations */
@@ -1073,6 +1127,33 @@ if(isTouch()){
       setTimeout(()=>{el.scrollIntoView({behavior:'smooth',block:'center'});},300);
     });
   });
+
+  // Swipe gestures to close report panel and sidebar on mobile
+  let swipeStart={x:0,y:0};
+  const reportPanel=document.getElementById('reportOverlay');
+  const sidebar=document.getElementById('sidebar');
+
+  // Track swipe start
+  document.addEventListener('touchstart',e=>{
+    swipeStart={x:e.touches[0].clientX,y:e.touches[0].clientY};
+  },{passive:true});
+
+  // Handle swipe to close
+  document.addEventListener('touchend',e=>{
+    const swipeEnd={x:e.changedTouches[0].clientX,y:e.changedTouches[0].clientY};
+    const diffX=swipeStart.x-swipeEnd.x;
+    const diffY=Math.abs(swipeStart.y-swipeEnd.y);
+
+    // Horizontal swipe with minimal vertical movement (swipe right to close report panel)
+    if(diffX<-60&&diffY<30&&reportPanel.classList.contains('open')){
+      closeReport();
+    }
+
+    // Horizontal swipe with minimal vertical movement (swipe left to close sidebar)
+    if(diffX>60&&diffY<30&&sidebar.classList.contains('mob-open')){
+      sidebar.classList.remove('mob-open');
+    }
+  },{passive:true});
 }
 let lastTouchTime=0;
 
