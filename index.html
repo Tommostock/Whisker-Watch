@@ -2,7 +2,10 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#080a0d">
 <title>Whisker Watch — SLAIN Network</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -231,7 +234,8 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
 .empty{padding:36px 20px;text-align:center;color:var(--text-dim);}
 .empty-icon{font-size:28px;margin-bottom:10px;}
 .empty-txt{font-family:'Space Mono',monospace;font-size:10px;line-height:1.8;}
-@media(max-width:640px){
+@media(max-width:768px){
+  /* ── MOBILE LAYOUT OPTIMIZATION ── */
   .sidebar{position:absolute;left:0;top:64px;bottom:0;width:90%;max-width:300px;transform:translateX(-105%);transition:transform .28s;}
   .sidebar.mob-open{transform:translateX(0);}
   .sidebar.collapsed{width:90%;min-width:unset;transform:translateX(-105%);}
@@ -241,11 +245,76 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
   .logo-sub{font-size:9px;line-height:1.4;}
   .logo-sub .divider{display:none;} /* Hide bullet separator on mobile */
   .logo-sub .creator{display:inline;font-size:9px;}
-  .btn-primary{padding:7px 12px;font-size:12px;}
-  .btn-icon{width:32px;height:32px;font-size:16px;}
   header{padding:0 12px;height:auto;min-height:60px;flex-wrap:wrap;}
   .logo{flex:1 1 100%;justify-content:center;margin:8px 0 4px;}
   .hdr-right{flex:1 1 100%;justify-content:center;gap:6px;margin-bottom:8px;}
+
+  /* ── TOUCH-OPTIMIZED BUTTON SIZING ── */
+  /* Increase button sizes for better mobile touch targets (44px minimum) */
+  .btn-primary{padding:10px 14px;font-size:14px;min-height:44px;}
+  .btn-icon{width:44px;height:44px;font-size:18px;}
+  .map-btn{width:44px;height:44px;font-size:18px;min-height:44px;}
+  .zoom-btn{width:44px;height:44px;font-size:18px;min-height:44px;}
+
+  /* ── FORM INPUT OPTIMIZATION ── */
+  /* Larger form fields with better spacing for mobile typing */
+  input[type="text"],input[type="number"],input[type="datetime-local"],input[type="tel"],input[type="email"],select,textarea{
+    font-size:16px !important; /* Prevents auto-zoom on iOS */
+    padding:12px 10px !important;
+    min-height:44px !important;
+  }
+  .finput{
+    font-size:14px !important;
+    padding:10px !important;
+    min-height:40px !important;
+  }
+  .search-input{
+    font-size:14px !important;
+    padding:12px 34px 12px 12px !important;
+    min-height:40px !important;
+  }
+
+  /* ── MOBILE FONT SIZING ── */
+  /* Larger, more readable fonts on small screens */
+  .inc-card{padding:12px 12px 12px 14px;font-size:14px;}
+  .inc-card .inc-title{font-size:14px;font-weight:600;}
+  .inc-card .inc-sub{font-size:12px;}
+  .modal-title{font-size:16px;font-weight:800;}
+  .tab{font-size:12px;padding:14px 10px;}
+  .filter-sel{font-size:11px;min-height:36px;}
+
+  /* ── MOBILE SPACING OPTIMIZATION ── */
+  /* Better vertical spacing for touch interaction */
+  .search-item{padding:12px 14px;font-size:14px;min-height:44px;display:flex;align-items:center;}
+  .sort-bar{padding:10px 12px;gap:10px;}
+  .filter-bar{padding:10px 12px;gap:6px;}
+
+  /* ── TOUCH FEEDBACK ── */
+  /* Visual feedback for touch interactions */
+  button,input[type="button"],.btn-primary,.btn-icon,.search-item,.inc-card,.sort-opt,.tab{
+    -webkit-user-select:none;user-select:none;
+    -webkit-tap-highlight-color:transparent;tap-highlight-color:transparent;
+  }
+  .inc-card:active{transform:scale(0.98);opacity:0.9;}
+  .btn-primary:active,.btn-icon:active,.tab:active{opacity:0.85;}
+
+  /* ── REPORT PANEL MOBILE ── */
+  .report-panel{width:100vw;}
+  .report-panel .modal-body{padding:16px;}
+
+  /* ── MODAL OPTIMIZATION ── */
+  .modal{max-height:90vh;padding:20px 12px;}
+  .modal-body{padding:16px;}
+}
+
+/* Extra small devices (< 480px) - additional optimizations */
+@media(max-width:480px){
+  .logo-text{font-size:18px;}
+  .logo-sub{font-size:8px;}
+  .btn-primary{padding:8px 10px;font-size:12px;}
+  .inc-card{padding:10px 10px 10px 12px;font-size:13px;}
+  .modal-title{font-size:15px;}
+  .tab{font-size:11px;padding:12px 8px;}
 }
 </style>
 </head>
@@ -441,7 +510,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
         <div class="fsec-title">👁 Witness</div>
         <div class="frow">
           <div class="fgrp"><label>NAME</label><input type="text" id="fWitName" class="finput" placeholder="Optional"></div>
-          <div class="fgrp"><label>CONTACT</label><input type="text" id="fWitContact" class="finput" placeholder="Phone or email"></div>
+          <div class="fgrp"><label>CONTACT</label><input type="text" id="fWitContact" class="finput" placeholder="Phone or email" inputmode="tel"></div>
         </div>
         <div class="fgrp"><label>STATEMENT</label><textarea id="fWitStatement" class="finput" placeholder="What was seen or heard…" style="min-height:54px"></textarea></div>
       </div>
@@ -584,6 +653,11 @@ let activeRenderInterval=16; // Render ~60fps (16ms) when user interacting
 let isUserInteracting=false;
 let interactionTimeout=null;
 
+// Mobile detection & optimization
+const isMobile=()=>window.innerWidth<=768||'ontouchstart'in window;
+const isTouch=()=>'ontouchstart'in window;
+let mobileRenderInterval=1000; // 1 second on mobile when idle (save even more battery)
+
 // Mercator math
 const lng2x = (lng,z) => ((lng+180)/360)*Math.pow(2,z)*TILE_SZ;
 const lat2y = (lat,z) => { const r=lat*Math.PI/180; return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*Math.pow(2,z)*TILE_SZ; };
@@ -645,13 +719,22 @@ function markUserInteraction(){
   interactionTimeout=setTimeout(()=>{isUserInteracting=false;},500);
 }
 
-// Throttled scheduler: respects idle vs active render intervals
+// Throttled scheduler: respects idle vs active render intervals (mobile-aware)
 function sched(){
   if(renderPending)return; // Already scheduled
 
   const now=Date.now();
   const timeSinceLastRender=now-lastRenderTime;
-  const targetInterval=isUserInteracting?activeRenderInterval:idleRenderInterval;
+
+  // Mobile devices get more aggressive throttling when idle to save battery
+  let targetInterval;
+  if(isUserInteracting){
+    targetInterval=activeRenderInterval; // 16ms active (same for mobile & desktop)
+  } else if(isMobile()){
+    targetInterval=mobileRenderInterval; // 1000ms idle on mobile (save battery)
+  } else {
+    targetInterval=idleRenderInterval; // 500ms idle on desktop
+  }
 
   if(timeSinceLastRender>=targetInterval){
     // Enough time has passed, render immediately
@@ -934,6 +1017,64 @@ mapC.addEventListener('touchmove',e=>{
   closePopup();closeLogPrompt(); sched();
 },{passive:false});
 mapC.addEventListener('touchend',()=>{t0=null;});
+
+// Mobile pinch-to-zoom gesture support
+let pinchDistance=0;
+mapC.addEventListener('touchmove',e=>{
+  if(e.touches.length===2){
+    markUserInteraction();
+    const dx=e.touches[0].clientX-e.touches[1].clientX;
+    const dy=e.touches[0].clientY-e.touches[1].clientY;
+    const newDistance=Math.hypot(dx,dy);
+    if(pinchDistance>0){
+      const scale=newDistance/pinchDistance;
+      const zoomDelta=scale>1.05?1:scale<0.95?-1:0;
+      if(zoomDelta!==0){
+        const centerX=(e.touches[0].clientX+e.touches[1].clientX)/2;
+        const centerY=(e.touches[0].clientY+e.touches[1].clientY)/2;
+        const rect=mapC.getBoundingClientRect();
+        const mx=centerX-rect.left,my=centerY-rect.top;
+        const {lat:cLat,lng:cLng}=px2ll(mx,my);
+        const nz=Math.max(MIN_Z,Math.min(MAX_Z,ms.zoom+zoomDelta));
+        if(nz!==ms.zoom){
+          ms.zoom=nz;
+          const {x:nx,y:ny}=ll2px(cLat,cLng);
+          ms.lat=y2lat(lat2y(ms.lat,nz)+(ny-my),nz);
+          ms.lng=x2lng(lng2x(ms.lng,nz)+(nx-mx),nz);
+          pinchDistance=newDistance;
+          closePopup();closeLogPrompt();sched();
+        }
+      }
+    } else {
+      pinchDistance=newDistance;
+    }
+  }
+},{passive:false});
+mapC.addEventListener('touchend',()=>{pinchDistance=0;});
+
+// Mobile gesture optimization - prevent double-tap zoom and optimize interactions
+if(isTouch()){
+  // Prevent iOS double-tap zoom on the map canvas
+  mapC.addEventListener('touchend',e=>{
+    if(e.touches.length===0){
+      // Touch ended, check for double tap
+      const now=Date.now();
+      const isDoubleTap=lastTouchTime&&now-lastTouchTime<300;
+      if(isDoubleTap){
+        e.preventDefault();
+      }
+      lastTouchTime=now;
+    }
+  });
+
+  // Optimize form field focus behavior on mobile
+  document.querySelectorAll('input[type="text"],input[type="number"],input[type="datetime-local"],textarea,select').forEach(el=>{
+    el.addEventListener('focus',()=>{
+      setTimeout(()=>{el.scrollIntoView({behavior:'smooth',block:'center'});},300);
+    });
+  });
+}
+let lastTouchTime=0;
 
 mapC.addEventListener('wheel',e=>{
   e.preventDefault();
