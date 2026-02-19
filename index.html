@@ -329,6 +329,25 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
   /* ── REPORT PANEL MOBILE ── */
   .report-panel{width:100vw;}
   .report-panel .modal-body{padding:16px;}
+  .report-panel .modal-ftr{
+    display:flex;
+    gap:8px;
+    padding:12px 16px;
+    border-top:1px solid var(--border);
+    flex-shrink:0;
+  }
+  .report-panel .modal-ftr .btn{
+    flex:1;
+    padding:10px 12px;
+    font-size:12px;
+    min-height:40px;
+  }
+  .report-panel .modal-ftr .btn-ghost{
+    background:var(--surface2);
+  }
+  .report-panel .modal-ftr .btn-primary{
+    display:block;
+  }
 
   /* ── MODAL OPTIMIZATION ── */
   .modal{max-height:90vh;padding:20px 12px;}
@@ -339,7 +358,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
   header{
     flex-direction:column;
     align-items:center;
-    padding:8px 0;
+    padding:4px 0;
     gap:0;
     min-height:auto;
     height:auto;
@@ -356,7 +375,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
   .logo-icon{
     width:48px;
     height:48px;
-    margin-bottom:2px;
+    margin-bottom:1px;
   }
   .logo-text{
     font-size:14px;
@@ -371,10 +390,12 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
   .hdr-right{
     display:flex !important;
     position:absolute;
-    top:8px;
-    width:100%;
-    justify-content:space-between;
-    padding:0 12px;
+    top:4px;
+    right:12px;
+    left:auto;
+    width:auto;
+    justify-content:flex-end;
+    padding:0;
     gap:8px;
   }
   .hdr-right .btn-ghost,
@@ -385,17 +406,19 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:16px;
+    font-size:0;
     flex-shrink:0;
   }
+  .hdr-right .btn-ghost::before{font-size:18px;content:'🔓';}
+  .hdr-right .btn-icon::before{font-size:18px;content:'🌙';}
   .hdr-right .btn-primary{display:none;}
   .stat-pill{display:none !important;}
 
   /* ── MAP CONTROLS MOBILE REORGANIZATION ── */
   /* Move header buttons to map controls area */
   .map-top-left{display:flex;flex-direction:column;gap:3px;}
-  .map-top-left .map-btn{font-size:0;width:44px;height:44px;padding:0;display:flex;align-items:center;justify-content:center;}
-  .map-top-left .map-btn::before{font-size:20px;content:'☰';}
+  .map-top-left .map-btn{width:44px;height:44px;padding:0;display:flex;align-items:center;justify-content:center;font-size:18px !important;}
+  .map-top-left .map-btn::before{content:none;}
 
   .map-top-right{display:flex;flex-direction:column;gap:3px;align-items:flex-end;}
 
@@ -1396,7 +1419,7 @@ function toggleSatellite(){
   tileCache.clear();
   sched();
 }
-let sbOpen=true;
+let sbOpen=window.innerWidth>640; // Open on desktop, closed on mobile
 function toggleSidebar(){
   const sb=document.getElementById('sidebar');
   const mob=window.innerWidth<=640;
