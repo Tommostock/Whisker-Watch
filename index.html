@@ -422,18 +422,18 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     font-size:0;
     flex-shrink:0;
   }
-  .hdr-right .btn-ghost::before{font-size:18px;content:'🔓';}
-  .hdr-right .btn-icon::before{font-size:18px;content:'🌙';}
-  .hdr-right .btn-primary{
-    display:flex;
-    width:40px;
-    height:40px;
-    padding:0;
-    align-items:center;
-    justify-content:center;
+  .hdr-right .btn-ghost::before{
     font-size:18px;
-    flex-shrink:0;
-    margin:0;
+    content:'🔓';
+    display:block;
+  }
+  .hdr-right .btn-icon::before{
+    font-size:18px;
+    content:'🌙';
+    display:block;
+  }
+  .hdr-right .btn-primary{
+    display:none;
   }
   .stat-pill{display:none !important;}
 
@@ -544,7 +544,12 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     width:32px;
     height:32px;
     font-size:14px;
+    display:flex !important;
+    align-items:center;
+    justify-content:center;
+    padding:0;
   }
+  .stat-pill{display:none !important;}
 
   /* Show full button text in landscape for map controls */
   .map-top-right .map-btn{
