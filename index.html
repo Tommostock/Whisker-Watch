@@ -577,6 +577,13 @@ let tileCache = new Map();
 let showHeat=true, showPins=true, showSatellite=false;
 let renderPending=false;
 
+// Render loop throttling for performance optimization
+let lastRenderTime=0;
+let idleRenderInterval=500; // Render every 500ms when idle (saves CPU/battery)
+let activeRenderInterval=16; // Render ~60fps (16ms) when user interacting
+let isUserInteracting=false;
+let interactionTimeout=null;
+
 // Mercator math
 const lng2x = (lng,z) => ((lng+180)/360)*Math.pow(2,z)*TILE_SZ;
 const lat2y = (lat,z) => { const r=lat*Math.PI/180; return (1-Math.log(Math.tan(r)+1/Math.cos(r))/Math.PI)/2*Math.pow(2,z)*TILE_SZ; };
@@ -630,10 +637,39 @@ function loadTileImg(url){
   return p;
 }
 
-function sched(){if(!renderPending){renderPending=true;requestAnimationFrame(render);}}
+// Track user interaction to adjust render frequency
+function markUserInteraction(){
+  isUserInteracting=true;
+  clearTimeout(interactionTimeout);
+  // Stop considering user "interacting" after 500ms of inactivity
+  interactionTimeout=setTimeout(()=>{isUserInteracting=false;},500);
+}
+
+// Throttled scheduler: respects idle vs active render intervals
+function sched(){
+  if(renderPending)return; // Already scheduled
+
+  const now=Date.now();
+  const timeSinceLastRender=now-lastRenderTime;
+  const targetInterval=isUserInteracting?activeRenderInterval:idleRenderInterval;
+
+  if(timeSinceLastRender>=targetInterval){
+    // Enough time has passed, render immediately
+    renderPending=true;
+    requestAnimationFrame(render);
+  } else {
+    // Not enough time, schedule for later
+    renderPending=true;
+    setTimeout(()=>{
+      renderPending=false;
+      sched(); // Try again after timeout
+    }, targetInterval-timeSinceLastRender);
+  }
+}
 
 async function render(){
   renderPending=false;
+  lastRenderTime=Date.now(); // Track when this render happened
   const W=mapC.width,H=mapC.height;
   if(W===0||H===0){sched();return;}
   mctx.fillStyle='#1a1f2a'; mctx.fillRect(0,0,W,H);
@@ -875,6 +911,7 @@ mapC.addEventListener('mousedown',e=>{
 });
 window.addEventListener('mousemove',e=>{
   if(!dragging)return;
+  markUserInteraction(); // User is dragging, keep rendering at 60fps
   const dx=e.clientX-dragStart.x, dy=e.clientY-dragStart.y;
   ms.lat=y2lat(lat2y(dragStart.lat,ms.zoom)-dy,ms.zoom);
   ms.lng=x2lng(lng2x(dragStart.lng,ms.zoom)-dx,ms.zoom);
@@ -890,6 +927,7 @@ mapC.addEventListener('touchstart',e=>{
 mapC.addEventListener('touchmove',e=>{
   if(!t0||e.touches.length!==1)return;
   e.preventDefault();
+  markUserInteraction(); // User is touching/dragging, keep rendering at 60fps
   const dx=e.touches[0].clientX-t0.x, dy=e.touches[0].clientY-t0.y;
   ms.lat=y2lat(lat2y(t0.lat,ms.zoom)-dy,ms.zoom);
   ms.lng=x2lng(lng2x(t0.lng,ms.zoom)-dx,ms.zoom);
@@ -899,6 +937,7 @@ mapC.addEventListener('touchend',()=>{t0=null;});
 
 mapC.addEventListener('wheel',e=>{
   e.preventDefault();
+  markUserInteraction(); // User is zooming, keep rendering smooth
   const rect=mapC.getBoundingClientRect();
   const mx=e.clientX-rect.left, my=e.clientY-rect.top;
   const {lat:cLat,lng:cLng}=px2ll(mx,my);
@@ -925,6 +964,7 @@ function isPinUnderCursor(cx,cy){
 // Mouse click handler
 mapC.addEventListener('click',e=>{
   if(Math.abs(e.clientX-(dragStart&&dragStart.x||e.clientX))>4) return;
+  markUserInteraction();
   const rect=mapC.getBoundingClientRect();
   const cx=e.clientX-rect.left, cy=e.clientY-rect.top;
   // Hit-test pins first — check if click lands within 24px of any marker centre
@@ -978,18 +1018,21 @@ function fitAll(){
   closePopup();sched();
 }
 function toggleHeat(){
+  markUserInteraction();
   showHeat=!showHeat;
   const b=document.getElementById('btnHeat');
   b.classList.toggle('on',showHeat);b.textContent=`🌡 HEATMAP ${showHeat?'ON':'OFF'}`;
   if(!showHeat)hctx.clearRect(0,0,heatC.width,heatC.height);else sched();
 }
 function toggleMarkers(){
+  markUserInteraction();
   showPins=!showPins;
   const b=document.getElementById('btnMarkers');
   b.classList.toggle('on',showPins);b.textContent=`📍 MARKERS ${showPins?'ON':'OFF'}`;
   drawPins();
 }
 function toggleSatellite(){
+  markUserInteraction();
   showSatellite=!showSatellite;
   const b=document.getElementById('btnSatellite');
   b.classList.toggle('on',showSatellite);b.textContent=`🛰 SATELLITE ${showSatellite?'ON':'OFF'}`;
