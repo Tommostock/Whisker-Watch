@@ -903,6 +903,18 @@ mapC.addEventListener('wheel',e=>{
   closePopup();closeLogPrompt(); sched();
 },{passive:false});
 
+// Helper function to check if cursor is over a pin
+function isPinUnderCursor(cx,cy){
+  if(!showPins)return false;
+  return incidents.some(inc=>{
+    const lat=+inc.lat,lng=+inc.lng;
+    if(isNaN(lat)||isNaN(lng))return false;
+    const {x,y}=ll2px(lat,lng);
+    return Math.hypot(cx-x,cy-y)<24;
+  });
+}
+
+// Mouse click handler
 mapC.addEventListener('click',e=>{
   if(Math.abs(e.clientX-(dragStart&&dragStart.x||e.clientX))>4) return;
   const rect=mapC.getBoundingClientRect();
@@ -922,6 +934,17 @@ mapC.addEventListener('click',e=>{
   if(!document.getElementById('reportOverlay').classList.contains('open') &&
      !document.getElementById('detailOverlay').classList.contains('open')) {
     showLogPrompt(lat,lng,cx,cy);
+  }
+});
+
+// Mouse move handler to change cursor over pins
+mapC.addEventListener('mousemove',e=>{
+  const rect=mapC.getBoundingClientRect();
+  const cx=e.clientX-rect.left, cy=e.clientY-rect.top;
+  if(isPinUnderCursor(cx,cy)){
+    mapC.style.cursor='pointer';
+  } else {
+    mapC.style.cursor='grab';
   }
 });
 
