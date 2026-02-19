@@ -1186,16 +1186,125 @@ function extractArea(addr){
   return parts[0]||'Unknown';
 }
 
-function submitReport(){
+function validateIncidentForm(){
+  const vm=document.getElementById('valMsg');
+  vm.style.display='none';
+
+  // Get all field values
   const addr=document.getElementById('fAddr').value.trim();
   const latV=document.getElementById('fLat').value.trim();
   const lngV=document.getElementById('fLng').value.trim();
   const dt=document.getElementById('fDatetime').value;
-  const vm=document.getElementById('valMsg');vm.style.display='none';
-  if(!dt){vm.textContent='⚠ Please enter the date and time.';vm.style.display='block';return;}
-  if(!addr&&!latV){vm.textContent='⚠ Please enter an address or click the map.';vm.style.display='block';return;}
+  const status=document.getElementById('fStatus2').value;
+  const animalType=document.getElementById('fAnimalType').value;
+  const method=document.getElementById('fMethod2').value;
+  const severity=document.getElementById('fSeverity').value;
+
+  // 1. Date/Time validation
+  if(!dt){
+    vm.textContent='⚠ Date and time are required.';
+    vm.style.display='block';
+    document.getElementById('fDatetime').focus();
+    return false;
+  }
+  const dateObj=new Date(dt);
+  if(isNaN(dateObj.getTime())){
+    vm.textContent='⚠ Please enter a valid date and time.';
+    vm.style.display='block';
+    document.getElementById('fDatetime').focus();
+    return false;
+  }
+  // Check that date is not in the future
+  if(dateObj>new Date()){
+    vm.textContent='⚠ Date and time cannot be in the future.';
+    vm.style.display='block';
+    document.getElementById('fDatetime').focus();
+    return false;
+  }
+
+  // 2. Location validation (address or coordinates)
+  if(!addr&&!latV){
+    vm.textContent='⚠ Please enter an address or click the map to set location.';
+    vm.style.display='block';
+    document.getElementById('fAddr').focus();
+    return false;
+  }
+
+  // 3. Coordinates validation (if provided)
+  const lat=parseFloat(latV),lng=parseFloat(lngV);
+  if(latV||lngV){
+    if(isNaN(lat)||isNaN(lng)){
+      vm.textContent='⚠ Coordinates must be valid numbers.';
+      vm.style.display='block';
+      document.getElementById('fLat').focus();
+      return false;
+    }
+    // Check UK boundaries (lat: 50-59, lng: -8 to 2)
+    if(lat<50||lat>59){
+      vm.textContent='⚠ Latitude must be between 50-59 (UK range).';
+      vm.style.display='block';
+      document.getElementById('fLat').focus();
+      return false;
+    }
+    if(lng<-8||lng>2){
+      vm.textContent='⚠ Longitude must be between -8 to 2 (UK range).';
+      vm.style.display='block';
+      document.getElementById('fLng').focus();
+      return false;
+    }
+  }
+
+  // 4. Status validation
+  if(!status||status===''){
+    vm.textContent='⚠ Please select a case status.';
+    vm.style.display='block';
+    document.getElementById('fStatus2').focus();
+    return false;
+  }
+
+  // 5. Animal Type validation
+  if(!animalType||animalType===''){
+    vm.textContent='⚠ Please select an animal type.';
+    vm.style.display='block';
+    document.getElementById('fAnimalType').focus();
+    return false;
+  }
+
+  // 6. Method validation
+  if(!method||method===''){
+    vm.textContent='⚠ Please select an incident method.';
+    vm.style.display='block';
+    document.getElementById('fMethod2').focus();
+    return false;
+  }
+
+  // 7. Severity validation
+  if(!severity||severity===''){
+    vm.textContent='⚠ Please select a severity level.';
+    vm.style.display='block';
+    document.getElementById('fSeverity').focus();
+    return false;
+  }
+
+  // All validations passed
+  return true;
+}
+
+function submitReport(){
+  // Run all validations first
+  if(!validateIncidentForm()){
+    return; // Validation failed, error message already displayed
+  }
+
+  const addr=document.getElementById('fAddr').value.trim();
+  const latV=document.getElementById('fLat').value.trim();
+  const lngV=document.getElementById('fLng').value.trim();
+  const dt=document.getElementById('fDatetime').value;
+  const vm=document.getElementById('valMsg');
+
   const lat=parseFloat(latV),lng=parseFloat(lngV);
   const hasCoords=!isNaN(lat)&&!isNaN(lng);
+
   if(!hasCoords&&addr){
     vm.textContent='🔄 Geocoding address…';vm.style.display='block';
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr+' London UK')}&limit=1&countrycodes=gb`;
