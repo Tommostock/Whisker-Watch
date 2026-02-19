@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#080a0d">
 <title>Whisker Watch — SLAIN Network</title>
+<link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 @font-face {
@@ -2461,33 +2462,25 @@ sched();
 // ── ORIENTATION LOCK FOR MOBILE ──
 // Lock mobile devices to portrait orientation only
 if(window.innerWidth<=768){
-  // Request orientation lock via Screen Orientation API
-  if(screen.orientation&&screen.orientation.lock){
+  // Attempt Screen Orientation API lock (Android Chrome)
+  if(screen.orientation&&typeof screen.orientation.lock==='function'){
     screen.orientation.lock('portrait-primary').catch(err=>{
-      // Silently handle if API not supported
-      console.log('Orientation lock not available on this device');
+      // Silently fail - API may not be available
     });
   }
 
-  // Prevent landscape orientation on iOS using CSS/HTML approach
-  const meta=document.createElement('meta');
-  meta.name='apple-mobile-web-app-capable';
-  meta.content='yes';
+  // Listen for orientation changes and prevent landscape
+  window.addEventListener('orientationchange',()=>{
+    // Force scroll to top when orientation changes
+    window.scrollTo(0,0);
 
-  // Add style to prevent landscape rotation
-  const style=document.createElement('style');
-  style.textContent=`
-    @supports (orientation: portrait-primary) {
-      html {
-        orientation: portrait-primary !important;
+    // If landscape orientation detected, try to lock again
+    if(Math.abs(window.orientation||0)===90){
+      if(screen.orientation&&typeof screen.orientation.lock==='function'){
+        screen.orientation.lock('portrait-primary').catch(()=>{});
       }
     }
-    body {
-      max-width: 100vw;
-      overflow-x: hidden;
-    }
-  `;
-  document.head.appendChild(style);
+  });
 }
 </script>
 </body>
