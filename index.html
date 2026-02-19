@@ -289,6 +289,34 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
   .sort-bar{padding:10px 12px;gap:10px;}
   .filter-bar{padding:10px 12px;gap:6px;}
 
+  /* ── CONDENSED DROPDOWN TEXT ── */
+  /* Fit filter dropdown text inside the containers */
+  .filter-sel{
+    font-size:10px;
+    padding:4px 3px;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+  /* ── IMPROVED MAP RESPONSIVENESS ── */
+  /* Smoother zoom and swipe interactions */
+  .map-wrap{
+    touch-action:manipulation;
+  }
+  mapC{
+    touch-action:none;
+  }
+
+  /* ── SIDEBAR PANEL FIX ── */
+  /* Ensure sidebar opens on first click */
+  .sidebar{
+    will-change:transform;
+  }
+  .sidebar.mob-open{
+    will-change:auto;
+  }
+
   /* ── TOUCH FEEDBACK ── */
   /* Visual feedback for touch interactions */
   button,input[type="button"],.btn-primary,.btn-icon,.search-item,.inc-card,.sort-opt,.tab{
@@ -323,24 +351,44 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     align-items:center;
     gap:0;
     margin:0;
+    position:relative;
   }
   .logo-icon{
-    width:36px;
-    height:36px;
-    margin-bottom:4px;
+    width:48px;
+    height:48px;
+    margin-bottom:2px;
   }
   .logo-text{
-    font-size:16px;
+    font-size:14px;
     text-align:center;
+    line-height:1;
   }
   .logo-sub{
     font-size:8px;
     text-align:center;
-    margin-top:2px;
+    margin-top:1px;
   }
   .hdr-right{
-    display:none !important;
+    display:flex !important;
+    position:absolute;
+    top:8px;
+    width:100%;
+    justify-content:space-between;
+    padding:0 12px;
+    gap:8px;
   }
+  .hdr-right .btn-ghost,
+  .hdr-right .btn-icon {
+    width:40px;
+    height:40px;
+    padding:0;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:16px;
+    flex-shrink:0;
+  }
+  .hdr-right .btn-primary{display:none;}
   .stat-pill{display:none !important;}
 
   /* ── MAP CONTROLS MOBILE REORGANIZATION ── */
@@ -351,16 +399,21 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
 
   .map-top-right{display:flex;flex-direction:column;gap:3px;align-items:flex-end;}
 
+  /* Move + button to top of map controls */
+  .map-top-right{order:-1;}
+
   /* Add mobile-specific button styling for header buttons in controls */
-  .mobile-header-controls{display:flex;flex-direction:column;gap:3px;}
-  .mobile-login-btn,.mobile-new-entry-btn,.mobile-theme-btn{
+  .mobile-header-controls{
+    display:none;
+  }
+  .mobile-new-entry-btn{
     width:44px;
     height:44px;
     padding:0;
     display:flex;
     align-items:center;
     justify-content:center;
-    font-size:18px;
+    font-size:24px;
     border:1px solid var(--border);
     background:var(--surface2);
     border-radius:var(--r);
@@ -368,10 +421,25 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     color:var(--text-muted);
     transition:all .15s;
     flex-shrink:0;
+    order:-2;
+    margin-bottom:0;
   }
-  .mobile-login-btn:hover,.mobile-new-entry-btn:hover,.mobile-theme-btn:hover{
+  .mobile-new-entry-btn:hover{
     border-color:var(--accent);
     color:var(--accent);
+  }
+
+  /* Add + button to map controls on mobile */
+  .map-top-right::before{
+    content:'';
+    display:block;
+    width:44px;
+    height:44px;
+    background:var(--surface2);
+    border:1px solid var(--border);
+    border-radius:var(--r);
+    cursor:pointer;
+    color:var(--text-muted);
   }
 
   /* ── SWIPE-ENABLED PANELS ── */
@@ -1186,23 +1254,30 @@ if(isTouch()){
     }
   },{passive:true});
 
-  // Show mobile header controls (Login, New Entry, Theme) in map controls area
-  const mobileControls=document.getElementById('mobileHeaderControls');
-  if(mobileControls){
-    mobileControls.style.display='flex';
+  // Move + button to top of map controls (above heatmap)
+  const mapTopRight=document.querySelector('.map-top-right');
+  if(mapTopRight){
+    const newEntryBtn=document.createElement('button');
+    newEntryBtn.className='map-btn';
+    newEntryBtn.innerHTML='➕';
+    newEntryBtn.style.fontSize='24px';
+    newEntryBtn.onclick=()=>openReport(null,null,null);
+    newEntryBtn.title='New Entry';
+    mapTopRight.insertBefore(newEntryBtn,mapTopRight.firstChild);
   }
 
   // Hide header buttons on mobile and adjust sidebar button text
   const hdrRight=document.querySelector('.hdr-right');
   if(hdrRight){
-    hdrRight.style.display='none';
+    // Keep display:flex but position absolutely
+    hdrRight.style.position='absolute';
   }
 
   // Update sidebar button to show only hamburger on mobile
   const toggleBtn=document.getElementById('btnToggleSidebar');
   if(toggleBtn){
     toggleBtn.textContent='☰';
-    toggleBtn.style.font='0';
+    toggleBtn.style.fontSize='20px';
   }
 
   // Improve pinch zoom to prevent browser zoom on map container
@@ -1950,10 +2025,19 @@ function closeDetail(){document.getElementById('detailOverlay').classList.remove
 function flyTo(id){
   const inc=incidents.find(i=>i.id===id);if(!inc)return;
   const lat=+inc.lat,lng=+inc.lng;if(isNaN(lat)||isNaN(lng))return;
-  
+
   // Close detail dialog first
   closeDetail();
-  
+
+  // Close sidebar on mobile when showing on map
+  if(isMobile()){
+    const sidebar=document.getElementById('sidebar');
+    if(sidebar&&sidebar.classList.contains('mob-open')){
+      sidebar.classList.remove('mob-open');
+      sbOpen=false;
+    }
+  }
+
   // Pan map to location
   ms.lat=lat;ms.lng=lng;ms.zoom=MAX_Z;
   sched();
