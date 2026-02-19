@@ -723,7 +723,7 @@ function renderPin(layer,inc,x,y,cols){
   pin.style.cssText=`position:absolute;left:${x-9}px;top:${y-18}px;width:18px;height:18px;
     background:${c};border:2px solid rgba(255,255,255,.85);border-radius:50% 50% 50% 0;
     transform:rotate(-45deg);box-shadow:0 0 10px ${c}99,0 2px 6px rgba(0,0,0,.7);
-    cursor:pointer;pointer-events:all;transition:transform .12s;z-index:10;`;
+    cursor:pointer;pointer-events:none;transition:transform .12s;z-index:10;`;
   pin.addEventListener('mouseenter',()=>{pin.style.transform='rotate(-45deg) scale(1.35)';});
   pin.addEventListener('mouseleave',()=>{pin.style.transform='rotate(-45deg)';});
   layer.appendChild(pin);
@@ -1531,7 +1531,10 @@ document.addEventListener('keydown',e=>{
 });
 
 // ── Pin click delegation handler ──
-// Because drawPins() clears layer.innerHTML every frame, we use event delegation on the parent
+// NOTE: Pins now have pointer-events:none so clicks pass through to canvas underneath
+// The canvas click handler (mapC.addEventListener) handles all pin hit detection
+// This handler is kept for reference but not used since pointer-events:none prevents it from firing
+/*
 document.getElementById('markerLayer').addEventListener('click',e=>{
   if(e.target.classList.contains('pin')){
     e.stopPropagation();
@@ -1539,6 +1542,7 @@ document.getElementById('markerLayer').addEventListener('click',e=>{
     if(incId)showDetail(incId);
   }
 });
+*/
 
 function doSearch(){runSearch(searchIn.value.trim());}
 
