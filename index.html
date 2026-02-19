@@ -7,7 +7,6 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#080a0d">
 <title>Whisker Watch — SLAIN Network</title>
-<link rel="manifest" href="manifest.json">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 @font-face {
@@ -236,12 +235,6 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
 .empty-icon{font-size:28px;margin-bottom:10px;}
 .empty-txt{font-family:'Space Mono',monospace;font-size:10px;line-height:1.8;}
 @media(max-width:768px){
-  /* ── ORIENTATION LOCK ── */
-  /* Lock app to portrait orientation only */
-  html{
-    --orient-lock:portrait-primary;
-  }
-
   /* ── MOBILE LAYOUT OPTIMIZATION ── */
   .sidebar{position:absolute;left:0;top:64px;bottom:0;width:90%;max-width:300px;transform:translateX(-105%);transition:transform .28s;}
   .sidebar.mob-open{transform:translateX(0);}
@@ -2458,30 +2451,6 @@ loadSamples();
 renderAll();
 resizeCvs();
 sched();
-
-// ── ORIENTATION LOCK FOR MOBILE ──
-// Lock mobile devices to portrait orientation only
-if(window.innerWidth<=768){
-  // Attempt Screen Orientation API lock (Android Chrome)
-  if(screen.orientation&&typeof screen.orientation.lock==='function'){
-    screen.orientation.lock('portrait-primary').catch(err=>{
-      // Silently fail - API may not be available
-    });
-  }
-
-  // Listen for orientation changes and prevent landscape
-  window.addEventListener('orientationchange',()=>{
-    // Force scroll to top when orientation changes
-    window.scrollTo(0,0);
-
-    // If landscape orientation detected, try to lock again
-    if(Math.abs(window.orientation||0)===90){
-      if(screen.orientation&&typeof screen.orientation.lock==='function'){
-        screen.orientation.lock('portrait-primary').catch(()=>{});
-      }
-    }
-  });
-}
 </script>
 </body>
 </html>
