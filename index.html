@@ -369,6 +369,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     <div class="map-top-right">
       <button class="map-btn on" id="btnHeat" onclick="toggleHeat()">🌡 HEATMAP ON</button>
       <button class="map-btn on" id="btnMarkers" onclick="toggleMarkers()">📍 MARKERS ON</button>
+      <button class="map-btn" id="btnSatellite" onclick="toggleSatellite()">🛰 SATELLITE OFF</button>
       <button class="map-btn" onclick="fitAll()">⌖ FIT ALL</button>
     </div>
     <div class="zoom-wrap">
@@ -573,7 +574,7 @@ const hctx = heatC.getContext('2d');
 let ms = { lat:51.505, lng:-0.09, zoom:11 };
 let dragging=false, dragStart=null;
 let tileCache = new Map();
-let showHeat=true, showPins=true;
+let showHeat=true, showPins=true, showSatellite=false;
 let renderPending=false;
 
 // Mercator math
@@ -596,11 +597,16 @@ function getTile(tx,ty,z){
   const wx=((tx%maxT)+maxT)%maxT;
   const wy=Math.max(0,Math.min(maxT-1,ty));
   const s=['a','b','c','d'][(tx+ty+z)%4];
-  
+
+  // SATELLITE VIEW: Use satellite tiles if enabled, otherwise use regular map tiles
+  if(showSatellite){
+    return `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/${z}/${wy}/${wx}`;
+  }
+
   // THEME SWITCHING: Use light tiles in light mode, dark tiles in dark mode
   const isLightMode=document.body.classList.contains('light-mode');
   const tileType=isLightMode?'light_all':'dark_all';
-  
+
   return `https://${s}.basemaps.cartocdn.com/${tileType}/${z}/${wx}/${wy}.png`;
 }
 
@@ -980,6 +986,13 @@ function toggleMarkers(){
   const b=document.getElementById('btnMarkers');
   b.classList.toggle('on',showPins);b.textContent=`📍 MARKERS ${showPins?'ON':'OFF'}`;
   drawPins();
+}
+function toggleSatellite(){
+  showSatellite=!showSatellite;
+  const b=document.getElementById('btnSatellite');
+  b.classList.toggle('on',showSatellite);b.textContent=`🛰 SATELLITE ${showSatellite?'ON':'OFF'}`;
+  tileCache.clear();
+  sched();
 }
 let sbOpen=true;
 function toggleSidebar(){
