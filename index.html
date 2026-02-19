@@ -327,20 +327,33 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
   .btn-primary:active,.btn-icon:active,.tab:active{opacity:0.85;}
 
   /* ── REPORT PANEL MOBILE ── */
-  .report-panel{width:100vw;}
-  .report-panel .modal-body{padding:16px;}
+  .report-panel{
+    width:100vw;
+    height:auto;
+    max-height:100vh;
+    top:auto;
+    bottom:0;
+  }
+  .report-panel .modal-body{
+    padding:16px;
+    max-height:calc(100vh - 140px);
+    overflow-y:auto;
+  }
   .report-panel .modal-ftr{
     display:flex;
     gap:8px;
     padding:12px 16px;
     border-top:1px solid var(--border);
     flex-shrink:0;
+    background:var(--surface);
+    position:relative;
+    z-index:10;
   }
   .report-panel .modal-ftr .btn{
     flex:1;
     padding:10px 12px;
     font-size:12px;
-    min-height:40px;
+    min-height:44px;
   }
   .report-panel .modal-ftr .btn-ghost{
     background:var(--surface2);
@@ -411,7 +424,17 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
   }
   .hdr-right .btn-ghost::before{font-size:18px;content:'🔓';}
   .hdr-right .btn-icon::before{font-size:18px;content:'🌙';}
-  .hdr-right .btn-primary{display:none;}
+  .hdr-right .btn-primary{
+    display:flex;
+    width:40px;
+    height:40px;
+    padding:0;
+    align-items:center;
+    justify-content:center;
+    font-size:18px;
+    flex-shrink:0;
+    margin:0;
+  }
   .stat-pill{display:none !important;}
 
   /* ── MAP CONTROLS MOBILE REORGANIZATION ── */
@@ -421,6 +444,12 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
   .map-top-left .map-btn::before{content:none;}
 
   .map-top-right{display:flex;flex-direction:column;gap:3px;align-items:flex-end;}
+  .map-top-right .map-btn{font-size:0;width:44px;height:44px;padding:0;display:flex;align-items:center;justify-content:center;}
+  .map-top-right .map-btn::before{font-size:18px;}
+  #btnHeat::before{content:'🌡';}
+  #btnMarkers::before{content:'📍';}
+  #btnSatellite::before{content:'🛰';}
+  .map-top-right .map-btn:last-of-type::before{content:'⌖';}
 
   /* Move + button to top of map controls */
   .map-top-right{order:-1;}
@@ -452,17 +481,9 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     color:var(--accent);
   }
 
-  /* Add + button to map controls on mobile */
+  /* Remove blank square pseudo-element - use actual button instead */
   .map-top-right::before{
-    content:'';
-    display:block;
-    width:44px;
-    height:44px;
-    background:var(--surface2);
-    border:1px solid var(--border);
-    border-radius:var(--r);
-    cursor:pointer;
-    color:var(--text-muted);
+    display:none !important;
   }
 
   /* ── SWIPE-ENABLED PANELS ── */
@@ -485,6 +506,106 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
   .inc-card{padding:10px 10px 10px 12px;font-size:13px;}
   .modal-title{font-size:15px;}
   .tab{font-size:11px;padding:12px 8px;}
+}
+
+/* Landscape orientation optimizations for mobile devices */
+@media(max-width:768px) and (orientation:landscape){
+  /* Fix header bunching - reduce logo size and spacing */
+  header{
+    padding:2px 0;
+    min-height:auto;
+    height:auto;
+  }
+  .logo{
+    margin:0;
+    gap:0;
+  }
+  .logo-icon{
+    width:32px;
+    height:32px;
+    margin-bottom:0;
+  }
+  .logo-text{
+    font-size:11px;
+    line-height:1;
+  }
+  .logo-sub{
+    font-size:6px;
+    margin-top:0;
+  }
+  .hdr-right{
+    top:2px;
+    right:8px;
+    gap:6px;
+  }
+  .hdr-right .btn-ghost,
+  .hdr-right .btn-icon,
+  .hdr-right .btn-primary{
+    width:32px;
+    height:32px;
+    font-size:14px;
+  }
+
+  /* Show full button text in landscape for map controls */
+  .map-top-right .map-btn{
+    font-size:9px !important;
+    width:auto;
+    padding:6px 8px;
+    height:auto;
+  }
+  .map-top-right .map-btn::before{
+    display:none;
+  }
+
+  /* Increase sidebar scroll area by condensing filters */
+  .search-wrap{
+    padding:8px;
+  }
+  .search-input{
+    padding:8px 30px 8px 8px !important;
+    min-height:32px !important;
+    font-size:11px !important;
+  }
+  .inc-search-wrap{
+    padding:4px 8px;
+  }
+  .inc-search-input{
+    padding:6px 8px !important;
+    min-height:32px !important;
+    font-size:10px !important;
+  }
+  .filter-bar{
+    padding:4px 8px;
+    gap:3px;
+  }
+  .filter-sel{
+    font-size:9px;
+    min-height:32px;
+    padding:4px 2px;
+  }
+  .clear-btn{
+    padding:4px 6px;
+    font-size:8px;
+  }
+  .sort-bar{
+    padding:4px 8px;
+    font-size:8px;
+    gap:5px;
+  }
+  .sort-opts{
+    gap:4px;
+  }
+  .tab{
+    font-size:10px;
+    padding:10px 6px;
+  }
+  .inc-list{
+    padding:0;
+  }
+  .inc-card{
+    padding:8px 8px 8px 10px;
+    font-size:12px;
+  }
 }
 </style>
 </head>
