@@ -820,7 +820,8 @@ function reverseGeocodePin(lat,lng){
   // Debounced reverse geocoding while dragging
   clearTimeout(_dpGeoTimer);
   _dpGeoTimer=setTimeout(()=>{
-    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+    fetchWithTimeout(url, 5000)
       .then(r=>r.json()).then(d=>{
         if(d.display_name){
           document.getElementById('fAddr').value=d.display_name.split(',').slice(0,5).join(', ');
@@ -858,7 +859,8 @@ window.addEventListener('mouseup',e=>{
   const lat=parseFloat(document.getElementById('fLat').value);
   const lng=parseFloat(document.getElementById('fLng').value);
   if(!isNaN(lat)&&!isNaN(lng)){
-    fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`)
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+    fetchWithTimeout(url, 5000)
       .then(r=>r.json()).then(d=>{if(d.display_name)document.getElementById('fAddr').value=d.display_name.split(',').slice(0,5).join(', ');})
       .catch(()=>{});
   }
@@ -1105,34 +1107,17 @@ function openReport(lat,lng,incidentId){
       document.getElementById('reportSub').textContent=`📍 ${lat.toFixed(4)}, ${lng.toFixed(4)} — reverse geocoding…`;
       // Set a placeholder address with coordinates in case geocoding fails
       document.getElementById('fAddr').value=`Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-      // Try GetAddress reverse geocoding first (better coverage in UK)
-      fetch(`https://api.getaddress.io/reverse?format=json&lat=${lat}&lng=${lng}&api-key=${GA_KEY}`)
+      // Reverse geocode using Nominatim (free, no API key required)
+      const nominatimReverseUrl = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`;
+      fetchWithTimeout(nominatimReverseUrl, 5000)
         .then(r=>r.json()).then(d=>{
-          if(d.address){
-            const addr=d.address;
+          if(d.display_name){
+            const addr=d.display_name.split(',').slice(0,4).join(', ');
             document.getElementById('fAddr').value=addr;
             document.getElementById('reportSub').textContent=`📍 Location: ${addr}`;
-          }else{
-            // Fallback to Nominatim
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`)
-              .then(r=>r.json()).then(d2=>{
-                if(d2.display_name){
-                  const addr=d2.display_name.split(',').slice(0,4).join(', ');
-                  document.getElementById('fAddr').value=addr;
-                  document.getElementById('reportSub').textContent=`📍 Location: ${addr}`;
-                }
-              }).catch(()=>{});
           }
         }).catch(()=>{
-          // Fallback to Nominatim if GetAddress fails
-          fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=16&addressdetails=1`)
-            .then(r=>r.json()).then(d=>{
-              if(d.display_name){
-                const addr=d.display_name.split(',').slice(0,4).join(', ');
-                document.getElementById('fAddr').value=addr;
-                document.getElementById('reportSub').textContent=`📍 Location: ${addr}`;
-              }
-            }).catch(()=>{});
+          // If reverse geocoding fails, keep the coordinates placeholder
         });
     }
   }
@@ -1171,7 +1156,8 @@ function geocodeAddr(){
   const addr=document.getElementById('fAddr').value.trim();if(!addr)return;
   const st=document.getElementById('geoStatus');
   st.textContent='Searching…';st.style.color='var(--text-muted)';
-  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr+' London UK')}&limit=1&countrycodes=gb`)
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr+' London UK')}&limit=1&countrycodes=gb`;
+  fetchWithTimeout(url, 5000)
     .then(r=>r.json()).then(data=>{
       if(data.length){
         document.getElementById('fLat').value=(+data[0].lat).toFixed(5);
@@ -1212,7 +1198,8 @@ function submitReport(){
   const hasCoords=!isNaN(lat)&&!isNaN(lng);
   if(!hasCoords&&addr){
     vm.textContent='🔄 Geocoding address…';vm.style.display='block';
-    fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr+' London UK')}&limit=1&countrycodes=gb`)
+    const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr+' London UK')}&limit=1&countrycodes=gb`;
+    fetchWithTimeout(url, 5000)
       .then(r=>r.json()).then(d=>{doSave(addr,d.length?+d[0].lat:51.505,d.length?+d[0].lon:-0.09,dt);})
       .catch(()=>doSave(addr,51.505,-0.09,dt));
     return;
@@ -1594,38 +1581,27 @@ modalAddrIn.addEventListener('input',function(){
 });
 modalAddrIn.addEventListener('keydown',e=>{if(e.key==='Escape')modalAddrDrop.style.display='none';});
 
-// Modal-specific search that fills coordinates and address
-function runModalSearch(q){
-  if(!q)return;
-  fetch(`https://api.getaddress.io/autocomplete/${encodeURIComponent(q)}?api-key=${GA_KEY}&all=true`)
-    .then(r=>r.json()).then(data=>{
-      const suggestions=(data.suggestions||[]).slice(0,12);
-      if(suggestions.length){
-        modalAddrDrop.innerHTML=suggestions.map(s=>`<div class="search-item" data-ga-url="${s.url}" data-label="${esc(s.address)}" onclick="selectModalAddrGA(this)">${esc(s.address)}</div>`).join('');
-        modalAddrDrop.style.display='block';
+// Modal-specific search that fills coordinates and address (using free Nominatim)
+function runModalSearch(q) {
+  if (!q) return;
+  const url = nominatimUrl(q);
+  fetchWithTimeout(url, 5000)
+    .then(r => r.json())
+    .then(nd => {
+      if (nd.length) {
+        modalAddrDrop.innerHTML = nd.map(d => {
+          const l = formatNomResult(d);
+          return `<div class="search-item" onclick="selectModalAddr(${+d.lat},${+d.lon},'${l.replace(/'/g, "\\'")}')">${esc(l)}</div>`;
+        }).join('');
       } else {
-        fetch(nominatimUrl(q)).then(r=>r.json()).then(nd=>{
-          modalAddrDrop.innerHTML=nd.length?nd.map(d=>{const l=formatNomResult(d);return`<div class="search-item" onclick="selectModalAddr(${+d.lat},${+d.lon},'${l.replace(/'/g,"\\'")}')">${esc(l)}</div>`;}).join(''):'<div class="search-item" style="color:var(--text-dim)">No results found</div>';
-          modalAddrDrop.style.display='block';
-        }).catch(()=>{});
+        modalAddrDrop.innerHTML = '<div class="search-item" style="color:var(--text-dim)">No results found</div>';
       }
-    }).catch(()=>{
-      fetch(nominatimUrl(q)).then(r=>r.json()).then(nd=>{
-        modalAddrDrop.innerHTML=nd.length?nd.map(d=>{const l=formatNomResult(d);return`<div class="search-item" onclick="selectModalAddr(${+d.lat},${+d.lon},'${l.replace(/'/g,"\\'")}')">${esc(l)}</div>`;}).join(''):'<div class="search-item" style="color:var(--text-dim)">No results found</div>';
-        modalAddrDrop.style.display='block';
-      }).catch(()=>{});
+      modalAddrDrop.style.display = 'block';
+    })
+    .catch(() => {
+      modalAddrDrop.innerHTML = '<div class="search-item" style="color:var(--text-dim)">Search unavailable</div>';
+      modalAddrDrop.style.display = 'block';
     });
-}
-function selectModalAddrGA(el){
-  const url=el.dataset.gaUrl,label=el.dataset.label;
-  modalAddrDrop.style.display='none';
-  document.getElementById('fAddr').value=label;
-  fetch(`https://api.getaddress.io${url}?api-key=${GA_KEY}`)
-    .then(r=>r.json()).then(d=>{
-      const lat=+d.latitude,lng=+d.longitude;
-      if(!isNaN(lat)&&lat!==0){selectModalAddr(lat,lng,label);}
-      else nominatimResolve(label,(lat,lng)=>selectModalAddr(lat,lng,label));
-    }).catch(()=>nominatimResolve(label,(lat,lng)=>selectModalAddr(lat,lng,label)));
 }
 
 // ADDRESS AUTOCOMPLETE: When address selected in modal, fill coords + address
@@ -1639,25 +1615,26 @@ function selectModalAddr(lat,lng,fullAddr){
   // Pan map to show selected location
   ms.lat=lat;ms.lng=lng;ms.zoom=MAX_Z;sched();
 }
-// ── Search: GetAddress.io (primary) + Nominatim (fallback) ──
-const GA_KEY='EFCcxxrcpEuyW5C36Pvt-A50503';
+// ── Geocoding: Nominatim (primary, free, no API key required) ──
+// NOTE: GetAddress.io integration removed due to API key security concerns.
+// For production deployment with GetAddress, use a backend proxy to hide the API key.
+// Example backend: Node.js/Express endpoint that calls GetAddress API server-side.
 
-// Resolve a GetAddress suggestion to lat/lng via their /find endpoint
-function gaResolve(suggestion,callback){
-  const pc=suggestion.url.split('/').pop(); // url = "/get/RM8 3ER/..."
-  const path=suggestion.url; // e.g. /get/RM8%203ER/0
-  fetch(`https://api.getaddress.io${path}?api-key=${GA_KEY}`)
-    .then(r=>r.json()).then(d=>{
-      if(d.latitude&&d.longitude){callback(+d.latitude,+d.longitude);}
-      else{nominatimResolve(suggestion.address,callback);}
-    }).catch(()=>nominatimResolve(suggestion.address,callback));
+// Helper: Protected fetch with timeout (5 seconds default)
+function fetchWithTimeout(url, timeout = 5000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  return fetch(url, { signal: controller.signal })
+    .finally(() => clearTimeout(timeoutId));
 }
 
-// Fallback: resolve a plain address string via Nominatim
-function nominatimResolve(addr,callback){
-  fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(addr+', UK')}&countrycodes=gb&limit=1`)
-    .then(r=>r.json()).then(d=>{if(d.length)callback(+d[0].lat,+d[0].lon);})
-    .catch(()=>{});
+// Resolve a plain address string via Nominatim (no API key required)
+function nominatimResolve(addr, callback) {
+  const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(addr + ', UK')}&countrycodes=gb&limit=1`;
+  fetchWithTimeout(url, 5000)
+    .then(r => r.json())
+    .then(d => { if (d.length) callback(+d[0].lat, +d[0].lon); })
+    .catch(() => { }); // Silently fail if Nominatim unavailable
 }
 
 // Nominatim fallback search for place names & landmarks
@@ -1678,39 +1655,28 @@ function formatNomResult(d){
   return parts.length?parts.join(', '):d.display_name.split(',').slice(0,4).join(', ');
 }
 
-// Primary: GetAddress.io autocomplete → merge with Nominatim fallback
-function runSearch(q){
-  if(!q)return;
-  fetch(`https://api.getaddress.io/autocomplete/${encodeURIComponent(q)}?api-key=${GA_KEY}&all=true`)
-    .then(r=>r.json()).then(data=>{
-      const suggestions=(data.suggestions||[]).slice(0,12);
-      if(suggestions.length){
-        searchDrop.innerHTML=suggestions.map(s=>`<div class="search-item" data-ga-url="${s.url}" data-label="${esc(s.address)}" onclick="gotoPlaceGA(this)">${esc(s.address)}</div>`).join('');
-        searchDrop.style.display='block';
+// Primary: Nominatim search (free, no API key required)
+// Uses free geocoding service for address/place name search across UK
+function runSearch(q) {
+  if (!q) return;
+  const url = nominatimUrl(q);
+  fetchWithTimeout(url, 5000)
+    .then(r => r.json())
+    .then(nd => {
+      if (nd.length) {
+        searchDrop.innerHTML = nd.map(d => {
+          const l = formatNomResult(d);
+          return `<div class="search-item" onclick="gotoPlace(${+d.lat},${+d.lon},'${l.replace(/'/g, "\\'")}')">${esc(l)}</div>`;
+        }).join('');
       } else {
-        // Fallback to Nominatim for place names / landmarks
-        fetch(nominatimUrl(q)).then(r=>r.json()).then(nd=>{
-          searchDrop.innerHTML=nd.length?nd.map(d=>{const l=formatNomResult(d);return`<div class="search-item" onclick="gotoPlace(${+d.lat},${+d.lon},'${l.replace(/'/g,"\\'")}')">${esc(l)}</div>`;}).join(''):'<div class="search-item" style="color:var(--text-dim)">No results found</div>';
-          searchDrop.style.display='block';
-        }).catch(()=>{searchDrop.innerHTML='<div class="search-item" style="color:var(--text-dim)">Search unavailable</div>';searchDrop.style.display='block';});
+        searchDrop.innerHTML = '<div class="search-item" style="color:var(--text-dim)">No results found</div>';
       }
-    }).catch(()=>{
-      fetch(nominatimUrl(q)).then(r=>r.json()).then(nd=>{
-        searchDrop.innerHTML=nd.length?nd.map(d=>{const l=formatNomResult(d);return`<div class="search-item" onclick="gotoPlace(${+d.lat},${+d.lon},'${l.replace(/'/g,"\\'")}')">${esc(l)}</div>`;}).join(''):'<div class="search-item" style="color:var(--text-dim)">No results found</div>';
-        searchDrop.style.display='block';
-      }).catch(()=>{});
+      searchDrop.style.display = 'block';
+    })
+    .catch(() => {
+      searchDrop.innerHTML = '<div class="search-item" style="color:var(--text-dim)">Search unavailable</div>';
+      searchDrop.style.display = 'block';
     });
-}
-function gotoPlaceGA(el){
-  const url=el.dataset.gaUrl,label=el.dataset.label;
-  searchDrop.style.display='none';searchIn.value='';
-  fetch(`https://api.getaddress.io${url}?api-key=${GA_KEY}`)
-    .then(r=>r.json()).then(d=>{
-      const lat=+d.latitude,lng=+d.longitude;
-      if(!isNaN(lat)&&lat!==0){ms.lat=lat;ms.lng=lng;ms.zoom=MAX_Z;sched();openReport(lat,lng,null);
-        setTimeout(()=>{document.getElementById('fAddr').value=label;},50);
-      } else nominatimResolve(label,(lat,lng)=>{ms.lat=lat;ms.lng=lng;ms.zoom=MAX_Z;sched();openReport(lat,lng,null);setTimeout(()=>{document.getElementById('fAddr').value=label;},50);});
-    }).catch(()=>nominatimResolve(label,(lat,lng)=>{ms.lat=lat;ms.lng=lng;ms.zoom=MAX_Z;sched();openReport(lat,lng,null);setTimeout(()=>{document.getElementById('fAddr').value=label;},50);}));
 }
 // SEARCH → MAP FLOW: When address selected from search
 // 1. Pan and zoom to location
