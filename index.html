@@ -6,6 +6,13 @@
 <title>Whisker Watch — SLAIN Network</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
+@font-face {
+  font-family: 'True Lies';
+  src: url('true-lies.ttf') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
+
 :root{
   /* Dark mode colors (default) */
   --bg:#080a0d;--surface:#0f1117;--surface2:#161a22;--border:#1c2230;
@@ -43,7 +50,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .logo-sub .slain{color:var(--text-muted);font-weight:500;}
 .logo-sub .divider{color:var(--text-dim);margin:0 6px;}
 .logo-sub .creator{color:var(--text-muted);}
-.logo-sub .name{color:var(--accent);font-weight:500;}
+.logo-sub .name{color:var(--accent);font-weight:500;font-family:'True Lies',sans-serif;font-size:13px;}
 .hdr-right{display:flex;align-items:center;gap:10px;}
 .stat-pill{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-family:'Inter',sans-serif;font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:5px;white-space:nowrap;font-weight:500;}
 .stat-pill .n{font-weight:700;}
