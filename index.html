@@ -670,6 +670,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
       <div class="search-wrap">
         <div class="search-row">
           <input class="search-input" id="searchIn" type="text" placeholder="Search address or postcode…" autocomplete="off">
+          <button class="search-go" onclick="geoLocateSearch()" title="Find my location">📍</button>
           <button class="search-go" onclick="doSearch()">⌕</button>
         </div>
         <div class="search-drop" id="searchDrop"></div>
@@ -1790,6 +1791,54 @@ function geoLocateModal(){
     (error)=>{
       st.textContent='✗ '+error.message;
       st.style.color='var(--accent)';
+      console.error('Geolocation error:',error);
+    }
+  );
+}
+
+function geoLocateSearch(){
+  if(!navigator.geolocation){
+    showToast('Geolocation not supported on this browser','var(--accent)');
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (position)=>{
+      const lat=position.coords.latitude;
+      const lng=position.coords.longitude;
+
+      // Center map on device location
+      ms.lat=lat;
+      ms.lng=lng;
+      ms.zoom=MAX_Z;
+      sched();
+
+      // Reverse geocode to get address for search
+      const url=`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+      fetchWithTimeout(url,5000)
+        .then(r=>r.json())
+        .then(data=>{
+          if(data.address){
+            const addr=[data.address.house_number,data.address.road,data.address.suburb,data.address.town||data.address.city,data.address.county,data.address.postcode].filter(Boolean).join(', ');
+            document.getElementById('searchIn').value=addr;
+            runSearch(addr);
+            showToast('📍 Location found','var(--green)');
+          }else{
+            // Fallback: show coordinates if reverse geocode fails
+            document.getElementById('searchIn').value=`${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+            runSearch(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+            showToast('📍 Location found','var(--green)');
+          }
+        })
+        .catch(()=>{
+          // Fallback: use coordinates if geocoding fails
+          document.getElementById('searchIn').value=`${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+          runSearch(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+          showToast('📍 Location found (coordinates)','var(--green)');
+        });
+    },
+    (error)=>{
+      showToast('✗ '+error.message,'var(--accent)');
       console.error('Geolocation error:',error);
     }
   );
