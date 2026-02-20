@@ -1144,6 +1144,7 @@ let tileCache = new Map();
 let showHeat=true, showPins=true, showSatellite=false;
 let renderPending=false;
 let showProfileRings=false; // Flag to keep jeopardy rings visible while profile panel is open
+let profileData=null; // Store centroid and ring data for map updates
 
 // Render loop throttling for performance optimization
 let lastRenderTime=0;
@@ -1276,6 +1277,8 @@ async function render(){
   });
   drawPins();
   if(showHeat)drawHeat();
+  // Update jeopardy ring positions if profile panel is open (keeps them fixed to geographic location)
+  if(showProfileRings) updateProfileRingsPosition();
   // Keep rendering so tiles that load late appear
   sched();
 }
@@ -2870,12 +2873,32 @@ function haversineKm(lat1,lng1,lat2,lng2){
   return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
 }
 
+function updateProfileRingsPosition(){
+  if(!profileData) return;
+  const {cLat, cLng, zones} = profileData;
+  const {x, y} = ll2px(cLat, cLng);
+
+  // Update centroid position
+  const dot = document.querySelector('.centroid-marker');
+  if(dot) dot.style.cssText = `left:${x}px;top:${y}px;`;
+
+  // Update ring positions
+  const rings = document.querySelectorAll('.radius-ring');
+  rings.forEach((ring, idx) => {
+    if(zones[idx]) {
+      const sz = zones[idx].pxSize;
+      ring.style.cssText = `left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;margin-left:${-sz/2}px;margin-top:${-sz/2}px;border-color:${zones[idx].color};`;
+    }
+  });
+}
+
 function renderProfile(){
   const body  = document.getElementById('profileBody');
   const cases = incidents.filter(i=>i.status!=='sighted' && !isNaN(+i.lat) && !isNaN(+i.lng));
 
   if(cases.length < 3){
     body.innerHTML = `<div class="empty"><div class="empty-icon">🎯</div><div class="empty-txt">Need at least 3 case incidents<br>to generate a geographic profile.</div></div>`;
+    profileData = null;
     return;
   }
 
@@ -2917,16 +2940,22 @@ function renderProfile(){
   dot.title='Incident centroid';
   layer.appendChild(dot);
 
+  // Store zone data for dynamic repositioning
+  const zones = [];
   [[bufferZone,'rgba(59,130,246,.5)'],[huntZone,'rgba(212,160,23,.5)'],[searchRadius,'rgba(230,57,70,.45)']].forEach(([km,col])=>{
     const pxPerDeg = Math.abs(ll2px(cLat+0.01,cLng).y - ll2px(cLat,cLng).y)/0.01;
     const pxKm     = pxPerDeg*(1/110.574);
     const sz       = pxKm*km*2;
     if(sz<8||sz>5000) return;
+    zones.push({km, color: col, pxSize: sz});
     const ring = document.createElement('div');
     ring.className='radius-ring';
     ring.style.cssText=`left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;margin-left:${-sz/2}px;margin-top:${-sz/2}px;border-color:${col};`;
     layer.appendChild(ring);
   });
+
+  // Store geographic data for repositioning during map pans/zooms
+  profileData = {cLat, cLng, zones};
 
   // ── Day grid ──
   const dowGrid = days.map((d,i)=>{
