@@ -1143,6 +1143,7 @@ let dragging=false, dragStart=null;
 let tileCache = new Map();
 let showHeat=true, showPins=true, showSatellite=false;
 let renderPending=false;
+let showProfileRings=false; // Flag to keep jeopardy rings visible while profile panel is open
 
 // Render loop throttling for performance optimization
 let lastRenderTime=0;
@@ -1282,7 +1283,11 @@ async function render(){
 // ── Pins & Clustering ──
 function drawPins(){
   const layer=document.getElementById('markerLayer');
+  // Preserve jeopardy rings if profile panel is open
+  const savedRings = showProfileRings ? Array.from(document.querySelectorAll('.centroid-marker,.radius-ring')) : [];
   layer.innerHTML='';
+  // Restore rings after clearing
+  savedRings.forEach(ring => layer.appendChild(ring));
   if(!showPins) return;
   const cols={confirmed:'#e63946',suspected:'#d4a017',unconfirmed:'#2d9d6e',sighted:'#3b82f6'};
   const CLUSTER_R=ms.zoom<10?55:ms.zoom<13?36:ms.zoom<15?0:0; // px radius to cluster within
@@ -2848,11 +2853,13 @@ function showLinkDetail(idA, idB){
 // ═══════════════════════════════════════════
 
 function openProfile(){
+  showProfileRings=true; // Keep rings visible
   renderProfile();
   document.getElementById('profilePanel').classList.add('open');
 }
 function closeProfile(){
   document.getElementById('profilePanel').classList.remove('open');
+  showProfileRings=false; // Allow rings to be removed
   document.querySelectorAll('.centroid-marker,.radius-ring').forEach(el=>el.remove());
 }
 
