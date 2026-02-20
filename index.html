@@ -614,6 +614,125 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     font-size:12px;
   }
 }
+
+/* ═══════════════════════════════════════════
+   CRIME LINKAGE MATRIX
+═══════════════════════════════════════════ */
+.matrix-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(8px);z-index:300;display:none;flex-direction:column;}
+.matrix-overlay.open{display:flex;}
+.matrix-hdr{display:flex;align-items:flex-start;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface);}
+.matrix-title{font-size:15px;font-weight:800;}
+.matrix-sub{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);margin-top:3px;max-width:600px;line-height:1.5;}
+.matrix-body{flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:14px;}
+.matrix-controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;flex-shrink:0;}
+.matrix-controls select{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:6px 10px;font-size:12px;color:var(--text);outline:none;cursor:pointer;}
+.matrix-controls select:focus{border-color:var(--accent);}
+.matrix-controls label{font-size:11px;color:var(--text-muted);font-weight:600;}
+.matrix-legend{display:flex;gap:14px;flex-wrap:wrap;align-items:center;font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);}
+.matrix-legend-dot{width:10px;height:10px;border-radius:2px;display:inline-block;vertical-align:middle;margin-right:3px;}
+.matrix-table-wrap{overflow:auto;flex:1;}
+table.linkage{border-collapse:collapse;font-size:11px;}
+table.linkage th{background:var(--surface2);color:var(--text-muted);font-family:'Space Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.06em;padding:8px 6px;text-align:center;border:1px solid var(--border);white-space:nowrap;position:sticky;top:0;z-index:2;}
+table.linkage th.row-hdr{position:sticky;left:0;z-index:3;background:var(--surface2);text-align:left;padding-left:10px;min-width:150px;}
+table.linkage td{padding:6px 5px;text-align:center;border:1px solid var(--border);font-family:'Space Mono',monospace;font-size:9px;font-weight:700;transition:opacity .1s;}
+table.linkage td.row-lbl{background:var(--surface2);color:var(--text-muted);font-size:8px;text-align:left;padding-left:10px;cursor:default;position:sticky;left:0;z-index:1;min-width:150px;line-height:1.5;}
+table.linkage td.self{background:var(--border);cursor:default;color:var(--text-dim);}
+table.linkage td.clickable{cursor:pointer;}
+table.linkage td.clickable:hover{opacity:.75;outline:2px solid var(--accent);outline-offset:-2px;}
+.score-high{background:rgba(230,57,70,.75);color:#fff;}
+.score-med{background:rgba(212,160,23,.6);color:#fff;}
+.score-low{background:rgba(45,157,110,.4);color:var(--text);}
+.score-none{background:var(--surface2);color:var(--text-dim);}
+.link-detail{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;display:none;flex-shrink:0;}
+.link-detail.open{display:block;}
+.link-detail-hdr{margin-bottom:12px;}
+.link-factor{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+.link-factor:last-child{border-bottom:none;}
+.link-factor-score{width:38px;height:38px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:10px;font-weight:700;flex-shrink:0;}
+.link-factor-label{font-size:12px;color:var(--text);font-weight:600;}
+.link-factor-detail{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-dim);margin-top:2px;}
+.link-factor-bar{margin-left:auto;width:80px;height:6px;background:var(--border);border-radius:3px;overflow:hidden;flex-shrink:0;}
+.link-factor-bar-inner{height:100%;border-radius:3px;}
+
+/* ═══════════════════════════════════════════
+   GEOGRAPHIC PROFILING — JEOPARDY SURFACE
+═══════════════════════════════════════════ */
+.profile-panel{position:fixed;top:0;right:0;width:360px;max-width:100vw;height:100vh;background:var(--surface);border-left:1px solid var(--border);box-shadow:-8px 0 32px rgba(0,0,0,.5);z-index:160;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);}
+.profile-panel.open{transform:translateX(0);}
+.profile-panel .modal-body{flex:1;overflow-y:auto;padding:16px;}
+.profile-panel .modal-body::-webkit-scrollbar{width:3px;}
+.profile-panel .modal-body::-webkit-scrollbar-thumb{background:var(--border);}
+.jp-zone{background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;}
+.jp-zone-title{font-family:'Space Mono',monospace;font-size:8px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px;}
+.jp-stat{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.jp-stat:last-child{border-bottom:none;}
+.jp-stat-label{color:var(--text-muted);font-size:11px;}
+.jp-stat-val{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;color:var(--text);}
+.jp-highlight{color:var(--accent);}
+.jp-kpi-row{display:flex;gap:8px;margin-bottom:8px;}
+.jp-kpi{flex:1;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center;}
+.jp-kpi-val{font-family:'Space Mono',monospace;font-size:20px;font-weight:800;color:var(--accent);}
+.jp-kpi-lbl{font-size:9px;color:var(--text-muted);margin-top:3px;line-height:1.3;}
+.day-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px;margin-top:6px;}
+.day-cell{aspect-ratio:1;border-radius:3px;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:7px;background:var(--surface);border:1px solid var(--border);color:var(--text-dim);}
+.day-cell.active{color:#fff;font-weight:700;}
+.hour-bars{display:flex;gap:2px;align-items:flex-end;height:44px;margin-top:6px;}
+.hour-bar{flex:1;background:var(--border);border-radius:1px 1px 0 0;min-height:2px;}
+.hour-bar.peak{background:var(--accent);}
+.hour-bar.high{background:var(--yellow);}
+.hour-bar.med{background:var(--green);}
+.centroid-marker{width:14px;height:14px;border-radius:50%;background:rgba(230,57,70,.95);border:3px solid #fff;box-shadow:0 0 0 3px rgba(230,57,70,.5),0 2px 8px rgba(0,0,0,.6);position:absolute;transform:translate(-50%,-50%);z-index:25;pointer-events:none;}
+.radius-ring{position:absolute;border-radius:50%;border:2px dashed;transform:translate(-50%,-50%);pointer-events:none;z-index:24;}
+@media(max-width:600px){.profile-panel{width:100vw;}}
+
+/* ═══════════════════════════════════════════
+   TIMELINE ANALYSIS VIEW
+═══════════════════════════════════════════ */
+.tanalysis-overlay{position:fixed;inset:0;background:rgba(0,0,0,.9);backdrop-filter:blur(8px);z-index:300;display:none;flex-direction:column;}
+.tanalysis-overlay.open{display:flex;}
+.tanalysis-hdr{display:flex;align-items:flex-start;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--surface);}
+.tanalysis-body{flex:1;overflow:auto;padding:20px;display:flex;flex-direction:column;gap:16px;}
+.ta-section{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px;flex-shrink:0;}
+.ta-section-title{font-family:'Space Mono',monospace;font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.ta-freq-chart{display:flex;gap:3px;align-items:flex-end;height:80px;}
+.ta-freq-bar{flex:1;border-radius:2px 2px 0 0;min-height:2px;cursor:pointer;transition:opacity .15s;position:relative;}
+.ta-freq-bar:hover{opacity:.75;}
+.ta-freq-label{display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:8px;color:var(--text-dim);margin-top:4px;}
+.ta-cal-grid{display:grid;gap:3px;}
+.ta-cal-week{display:flex;gap:3px;}
+.ta-cal-day{width:14px;height:14px;border-radius:2px;background:var(--surface2);border:1px solid var(--border);cursor:pointer;transition:opacity .15s;}
+.ta-cal-day:hover{opacity:.75;outline:1px solid var(--accent);}
+.ta-cal-day.has-inc{border-color:transparent;}
+.ta-cal-months{display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:8px;color:var(--text-dim);margin-bottom:4px;}
+.ta-gap-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.ta-gap-row:last-child{border-bottom:none;}
+.ta-gap-pill{font-family:'Space Mono',monospace;font-size:10px;font-weight:700;padding:3px 8px;border-radius:10px;flex-shrink:0;min-width:54px;text-align:center;}
+.ta-gap-desc{color:var(--text-muted);font-size:11px;flex:1;}
+.ta-alert{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border-radius:6px;font-size:12px;margin-bottom:6px;}
+.ta-alert:last-child{margin-bottom:0;}
+.ta-alert-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+.ta-alert-text{flex:1;line-height:1.5;}
+.ta-alert-title{font-weight:700;margin-bottom:2px;}
+.ta-alert.critical{background:rgba(230,57,70,.1);border:1px solid rgba(230,57,70,.3);}
+.ta-alert.critical .ta-alert-title{color:var(--accent);}
+.ta-alert.warning{background:rgba(212,160,23,.1);border:1px solid rgba(212,160,23,.3);}
+.ta-alert.warning .ta-alert-title{color:var(--yellow);}
+.ta-alert.info{background:rgba(59,130,246,.1);border:1px solid rgba(59,130,246,.3);}
+.ta-alert.info .ta-alert-title{color:var(--blue);}
+.ta-dot-line{display:flex;flex-direction:column;gap:0;position:relative;padding-left:20px;}
+.ta-dot-line::before{content:'';position:absolute;left:5px;top:8px;bottom:8px;width:2px;background:var(--border);}
+.ta-tl-item{position:relative;padding:8px 0 8px 14px;cursor:pointer;}
+.ta-tl-item::before{content:'';position:absolute;left:-9px;top:14px;width:10px;height:10px;border-radius:50%;border:2px solid var(--border);background:var(--surface);}
+.ta-tl-item.s-confirmed::before{background:var(--accent);border-color:var(--accent);}
+.ta-tl-item.s-suspected::before{background:var(--yellow);border-color:var(--yellow);}
+.ta-tl-item.s-unconfirmed::before{background:var(--green);border-color:var(--green);}
+.ta-tl-item.s-sighted::before{background:var(--blue);border-color:var(--blue);}
+.ta-tl-date{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);}
+.ta-tl-title{font-size:12px;font-weight:700;color:var(--text);}
+.ta-tl-gap{font-family:'Space Mono',monospace;font-size:9px;padding:2px 6px;border-radius:4px;margin-left:6px;vertical-align:middle;}
+.ta-tl-gap.short{background:rgba(230,57,70,.2);color:var(--accent);}
+.ta-tl-gap.medium{background:rgba(212,160,23,.2);color:var(--yellow);}
+.ta-tl-gap.long{background:rgba(45,157,110,.2);color:var(--green);}
 </style>
 </head>
 <body>
@@ -650,6 +769,9 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     <div class="stat-pill">Confirmed <span class="n" id="cClosed" style="color:var(--accent)">0</span></div>
     <!-- TODO: Implement authentication - currently non-functional -->
     <button class="btn btn-ghost btn-sm" onclick="handleLogin()" title="Login (not yet implemented)">Login</button>
+    <button class="btn btn-ghost btn-sm" onclick="openTimeline()" title="Timeline Analysis View" style="border-color:rgba(59,130,246,.4);color:var(--blue)">📈 Timeline</button>
+    <button class="btn btn-ghost btn-sm" onclick="openProfile()" title="Geographic Profiling — Jeopardy Surface" style="border-color:rgba(230,57,70,.4);color:var(--accent)">🎯 Profile</button>
+    <button class="btn btn-ghost btn-sm" onclick="openMatrix()" title="Crime Linkage Matrix" style="border-color:rgba(212,160,23,.4);color:var(--yellow)">🔗 Linkage</button>
     <button class="btn-icon" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode">🌙</button>
     <button class="btn btn-primary" onclick="openReport(null,null,null)">Log Incident +</button>
   </div>
@@ -859,6 +981,79 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     <div class="modal-body"><p style="font-size:13px;color:var(--text-muted);line-height:1.6">Delete this incident permanently?</p></div>
     <div class="modal-ftr"><button class="btn btn-ghost" onclick="resolveConfirm(false)">Cancel</button><button class="btn btn-danger" onclick="resolveConfirm(true)">Delete</button></div>
   </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     CRIME LINKAGE MATRIX
+═══════════════════════════════════════════ -->
+<div class="matrix-overlay" id="matrixOverlay">
+  <div class="matrix-hdr">
+    <div>
+      <div class="matrix-title">🔗 Crime Linkage Matrix</div>
+      <div class="matrix-sub">Scores every incident pair across method, geography, timing and victim profile. High score = likely same offender. Click any cell to see the full breakdown.</div>
+    </div>
+    <div class="modal-x" onclick="closeMatrix()">✕</div>
+  </div>
+  <div class="matrix-body">
+    <div class="matrix-controls">
+      <label>MIN SCORE:</label>
+      <select id="matrixThreshold" onchange="renderMatrix()">
+        <option value="0">Show All</option>
+        <option value="30">≥ 30%</option>
+        <option value="50" selected>≥ 50%</option>
+        <option value="70">≥ 70% (High only)</option>
+      </select>
+      <label>STATUS:</label>
+      <select id="matrixStatusFilter" onchange="renderMatrix()">
+        <option value="">All Cases (excl. Sighted)</option>
+        <option value="confirmed">Confirmed only</option>
+        <option value="suspected">Suspected only</option>
+        <option value="unconfirmed">Unconfirmed only</option>
+      </select>
+    </div>
+    <div class="matrix-legend">
+      <span><span class="matrix-legend-dot score-high"></span>High ≥70%</span>
+      <span><span class="matrix-legend-dot score-med"></span>Medium 40–69%</span>
+      <span><span class="matrix-legend-dot score-low"></span>Low 20–39%</span>
+      <span><span class="matrix-legend-dot score-none"></span>&lt;20%</span>
+      <span style="margin-left:auto;font-size:9px;color:var(--text-dim)">Click any cell to see factor breakdown →</span>
+    </div>
+    <div class="matrix-table-wrap" id="matrixTableWrap"></div>
+    <div class="link-detail" id="linkDetail">
+      <div class="link-detail-hdr" id="linkDetailHdr"></div>
+      <div id="linkDetailFactors"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     GEOGRAPHIC PROFILING PANEL
+═══════════════════════════════════════════ -->
+<div class="profile-panel" id="profilePanel">
+  <div class="modal-hdr">
+    <div>
+      <div class="modal-title">🎯 Geographic Profile</div>
+      <div class="modal-sub">Jeopardy surface — likely offender base area</div>
+    </div>
+    <div class="modal-x" onclick="closeProfile()">✕</div>
+  </div>
+  <div class="modal-body" id="profileBody">
+    <div class="empty"><div class="empty-icon">📍</div><div class="empty-txt">Log incidents to generate profile.</div></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TIMELINE ANALYSIS VIEW
+═══════════════════════════════════════════ -->
+<div class="tanalysis-overlay" id="tanalysisOverlay">
+  <div class="tanalysis-hdr">
+    <div>
+      <div class="matrix-title">📈 Timeline Analysis</div>
+      <div class="matrix-sub">Attack frequency, cooling-off periods, day/hour patterns and escalation signals. Gaps in the timeline are as important as the attacks themselves.</div>
+    </div>
+    <div class="modal-x" onclick="closeTimeline()">✕</div>
+  </div>
+  <div class="tanalysis-body" id="tanalysisBody"></div>
 </div>
 
 <div class="toast" id="toast"><span id="toastMsg"></span></div>
@@ -2269,9 +2464,12 @@ document.addEventListener('keydown',e=>{
   if(e.key!=='Escape')return;
   // Close in priority order — innermost first
   if(document.getElementById('lightbox').classList.contains('open')){closeLightbox();return;}
+  if(document.getElementById('matrixOverlay').classList.contains('open')){closeMatrix();return;}
+  if(document.getElementById('tanalysisOverlay').classList.contains('open')){closeTimeline();return;}
   if(document.getElementById('confirmOverlay').classList.contains('open')){resolveConfirm(false);return;}
   if(document.getElementById('reportOverlay').classList.contains('open')){closeReport();return;}
   if(document.getElementById('detailOverlay').classList.contains('open')){closeDetail();return;}
+  if(document.getElementById('profilePanel').classList.contains('open')){closeProfile();return;}
   if(document.getElementById('logPrompt').classList.contains('open')){closeLogPrompt();return;}
   if(searchDrop.classList.contains('open')){searchDrop.classList.remove('open');return;}
 });
@@ -2498,6 +2696,431 @@ function loadSamples(){
     {id:'INC-DEMO8',address:'Peckham, Southwark',area:'Southwark',lat:51.4729,lng:-0.0694,datetime:'2025-01-22T20:45:00+00:00',status:'unconfirmed',animalType:'Domestic Cat',catName:'Oscar',animalDesc:'Siamese mix',age:'6',sex:'Neutered Male',method:'Accident',severity:'Fatal',notes:'Fell from third-floor balcony.',witnessName:'',witnessContact:'',witnessStatement:'',photos:[],createdAt:'2025-01-22T21:30:00Z'},
   ];
   saveData();
+}
+
+// ═══════════════════════════════════════════
+//  CRIME LINKAGE MATRIX
+// ═══════════════════════════════════════════
+
+function openMatrix(){
+  renderMatrix();
+  document.getElementById('matrixOverlay').classList.add('open');
+}
+function closeMatrix(){
+  document.getElementById('matrixOverlay').classList.remove('open');
+  document.getElementById('linkDetail').classList.remove('open');
+}
+
+// Score two incidents across 4 forensic dimensions — returns total (0-100) + factor breakdown
+function scorePair(a, b){
+  const factors = [];
+
+  // 1. METHOD SIMILARITY — max 30 pts
+  let mScore = 0;
+  if(a.method && b.method){
+    if(a.method === b.method) mScore = 30;
+    else {
+      const groups = [['Blunt Trauma'],['Sharp Force','Decapitation'],['Poisoning'],['Strangulation']];
+      if(groups.some(g => g.includes(a.method) && g.includes(b.method))) mScore = 15;
+    }
+  }
+  factors.push({label:'Method Similarity', detail:`"${a.method||'?'}" vs "${b.method||'?'}"`, score:mScore, max:30});
+
+  // 2. GEOGRAPHIC PROXIMITY — max 30 pts
+  let gScore = 0, gDetail = 'Coordinates unavailable';
+  const alat=+a.lat, alng=+a.lng, blat=+b.lat, blng=+b.lng;
+  if(!isNaN(alat) && !isNaN(blat)){
+    const dx = (alng-blng)*Math.cos((alat+blat)*Math.PI/360)*111.32;
+    const dy = (alat-blat)*110.574;
+    const km = Math.sqrt(dx*dx+dy*dy);
+    gScore = km<=0.5?30:km<=1?24:km<=2?18:km<=5?10:km<=10?4:0;
+    gDetail = `${km.toFixed(2)} km apart`;
+  }
+  factors.push({label:'Geographic Proximity', detail:gDetail, score:gScore, max:30});
+
+  // 3. TEMPORAL PATTERN — max 20 pts
+  let tScore = 0, tDetail = 'No date data';
+  if(a.datetime && b.datetime){
+    const da = new Date(a.datetime), db = new Date(b.datetime);
+    const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const sameHour = Math.abs(da.getHours()-db.getHours()) <= 2;
+    const sameDay  = da.getDay() === db.getDay();
+    if(sameHour) tScore += 10;
+    if(sameDay)  tScore += 10;
+    tDetail = `${days[da.getDay()]} ~${String(da.getHours()).padStart(2,'0')}:00  vs  ${days[db.getDay()]} ~${String(db.getHours()).padStart(2,'0')}:00`;
+  }
+  factors.push({label:'Temporal Pattern', detail:tDetail, score:tScore, max:20});
+
+  // 4. VICTIM PROFILE — max 20 pts
+  let vScore = 0, vParts = [];
+  if(a.animalType && b.animalType && a.animalType===b.animalType){vScore+=10; vParts.push(`Same type (${a.animalType})`);}
+  if(a.sex && b.sex && a.sex===b.sex){vScore+=5; vParts.push(`Same sex (${a.sex})`);}
+  if(a.severity && b.severity && a.severity===b.severity){vScore+=5; vParts.push(`Same severity (${a.severity})`);}
+  factors.push({label:'Victim Profile', detail:vParts.length?vParts.join(' · '):'No matching characteristics', score:vScore, max:20});
+
+  return {total: factors.reduce((s,f)=>s+f.score,0), factors};
+}
+
+function scoreClass(s){ return s>=70?'score-high':s>=40?'score-med':s>=20?'score-low':'score-none'; }
+
+function renderMatrix(){
+  const threshold = +document.getElementById('matrixThreshold').value;
+  const statusF   = document.getElementById('matrixStatusFilter').value;
+  let pool = incidents.filter(i => i.status !== 'sighted');
+  if(statusF) pool = pool.filter(i => i.status === statusF);
+
+  const wrap = document.getElementById('matrixTableWrap');
+  document.getElementById('linkDetail').classList.remove('open');
+
+  if(pool.length < 2){
+    wrap.innerHTML = `<div class="empty"><div class="empty-icon">🔗</div><div class="empty-txt">Need at least 2 case incidents<br>to build a linkage matrix.</div></div>`;
+    return;
+  }
+
+  // Pre-compute all pairs
+  const cache = {};
+  pool.forEach(a => pool.forEach(b => {
+    if(a.id === b.id) return;
+    const k = [a.id, b.id].sort().join('||');
+    if(!cache[k]) cache[k] = scorePair(a, b);
+  }));
+  const getScore = (a,b) => { const k=[a.id,b.id].sort().join('||'); return cache[k]?.total||0; };
+
+  const sdot = {confirmed:'🔴',suspected:'🟡',unconfirmed:'🟢'};
+  const short = id => id.replace('INC-','');
+
+  const thead = '<tr><th class="row-hdr">Incident ↓ / ↓</th>'
+    + pool.map(b=>`<th title="${esc(b.id)} — ${esc(b.address)}">${sdot[b.status]||''} ${short(b.id)}</th>`).join('')
+    + '</tr>';
+
+  const tbody = pool.map(a => {
+    const cells = pool.map(b => {
+      if(a.id===b.id) return '<td class="self">—</td>';
+      const s = getScore(a,b);
+      if(s < threshold) return `<td class="score-none">·</td>`;
+      return `<td class="${scoreClass(s)} clickable" onclick="showLinkDetail('${a.id.replace(/'/g,"\\'")}','${b.id.replace(/'/g,"\\'")}')">` + s + `%</td>`;
+    }).join('');
+    return `<tr>
+      <td class="row-lbl">${sdot[a.status]||''} ${short(a.id)}<br>
+        <span style="font-size:7px;color:var(--text-dim)">${esc((a.area||a.address||'').substring(0,22))}</span>
+      </td>${cells}</tr>`;
+  }).join('');
+
+  wrap.innerHTML = `<table class="linkage"><thead>${thead}</thead><tbody>${tbody}</tbody></table>`;
+}
+
+function showLinkDetail(idA, idB){
+  const a = incidents.find(i=>i.id===idA);
+  const b = incidents.find(i=>i.id===idB);
+  if(!a||!b) return;
+  const {total, factors} = scorePair(a, b);
+  const sc = scoreClass(total);
+
+  document.getElementById('linkDetailHdr').innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <span style="padding:4px 12px;border-radius:6px;font-family:'Space Mono',monospace;font-size:15px;font-weight:700" class="${sc}">${total}% LINKAGE</span>
+      <div>
+        <div style="font-size:12px;font-weight:600">${esc(idA)} ↔ ${esc(idB)}</div>
+        <div style="font-size:10px;color:var(--text-dim);margin-top:2px">${esc(a.address)} → ${esc(b.address)}</div>
+      </div>
+    </div>`;
+
+  document.getElementById('linkDetailFactors').innerHTML = factors.map(f => {
+    const pct = Math.round(f.score/f.max*100);
+    const fc  = scoreClass(Math.round(f.score/f.max*100));
+    return `<div class="link-factor">
+      <div class="link-factor-score ${fc}">${f.score}<span style="font-size:7px;opacity:.7">/${f.max}</span></div>
+      <div style="flex:1">
+        <div class="link-factor-label">${f.label}</div>
+        <div class="link-factor-detail">${esc(f.detail)}</div>
+      </div>
+      <div class="link-factor-bar"><div class="link-factor-bar-inner ${fc}" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+
+  const detail = document.getElementById('linkDetail');
+  detail.classList.add('open');
+  detail.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+
+// ═══════════════════════════════════════════
+//  GEOGRAPHIC PROFILING — JEOPARDY SURFACE
+// ═══════════════════════════════════════════
+
+function openProfile(){
+  renderProfile();
+  document.getElementById('profilePanel').classList.add('open');
+}
+function closeProfile(){
+  document.getElementById('profilePanel').classList.remove('open');
+  document.querySelectorAll('.centroid-marker,.radius-ring').forEach(el=>el.remove());
+}
+
+function haversineKm(lat1,lng1,lat2,lng2){
+  const R=6371, r=d=>d*Math.PI/180;
+  const dLat=r(lat2-lat1), dLng=r(lng2-lng1);
+  const a=Math.sin(dLat/2)**2+Math.cos(r(lat1))*Math.cos(r(lat2))*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function renderProfile(){
+  const body  = document.getElementById('profileBody');
+  const cases = incidents.filter(i=>i.status!=='sighted' && !isNaN(+i.lat) && !isNaN(+i.lng));
+
+  if(cases.length < 3){
+    body.innerHTML = `<div class="empty"><div class="empty-icon">🎯</div><div class="empty-txt">Need at least 3 case incidents<br>to generate a geographic profile.</div></div>`;
+    return;
+  }
+
+  // ── Mean centroid ──
+  const cLat = cases.reduce((s,i)=>s+ +i.lat,0)/cases.length;
+  const cLng = cases.reduce((s,i)=>s+ +i.lng,0)/cases.length;
+  const dists = cases.map(i=>haversineKm(cLat,cLng,+i.lat,+i.lng));
+  const meanD  = dists.reduce((s,d)=>s+d,0)/dists.length;
+  const maxD   = Math.max(...dists);
+  const minD   = Math.min(...dists);
+  const bufferZone   = minD.toFixed(2);
+  const huntZone     = meanD.toFixed(2);
+  const searchRadius = (meanD*1.2).toFixed(2);
+
+  // ── Day of week ──
+  const days=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const dowC = Array(7).fill(0);
+  cases.forEach(i=>{if(i.datetime) dowC[new Date(i.datetime).getDay()]++;});
+  const maxDow = Math.max(...dowC,1);
+  const peakDay = days[dowC.indexOf(Math.max(...dowC))];
+
+  // ── Hour of day ──
+  const hrC = Array(24).fill(0);
+  cases.forEach(i=>{if(i.datetime) hrC[new Date(i.datetime).getHours()]++;});
+  const maxHr = Math.max(...hrC,1);
+  const peakHr = hrC.indexOf(Math.max(...hrC));
+
+  // ── Night ratio ──
+  const nightN = cases.filter(i=>{if(!i.datetime)return false;const h=new Date(i.datetime).getHours();return h>=22||h<6;}).length;
+
+  // ── Render on map ──
+  document.querySelectorAll('.centroid-marker,.radius-ring').forEach(el=>el.remove());
+  const layer = document.getElementById('markerLayer');
+  const {x,y} = ll2px(cLat, cLng);
+
+  const dot = document.createElement('div');
+  dot.className='centroid-marker';
+  dot.style.cssText=`left:${x}px;top:${y}px;`;
+  dot.title='Incident centroid';
+  layer.appendChild(dot);
+
+  [[bufferZone,'rgba(59,130,246,.5)'],[huntZone,'rgba(212,160,23,.5)'],[searchRadius,'rgba(230,57,70,.45)']].forEach(([km,col])=>{
+    const pxPerDeg = Math.abs(ll2px(cLat+0.01,cLng).y - ll2px(cLat,cLng).y)/0.01;
+    const pxKm     = pxPerDeg*(1/110.574);
+    const sz       = pxKm*km*2;
+    if(sz<8||sz>5000) return;
+    const ring = document.createElement('div');
+    ring.className='radius-ring';
+    ring.style.cssText=`left:${x}px;top:${y}px;width:${sz}px;height:${sz}px;margin-left:${-sz/2}px;margin-top:${-sz/2}px;border-color:${col};`;
+    layer.appendChild(ring);
+  });
+
+  // ── Day grid ──
+  const dowGrid = days.map((d,i)=>{
+    const n=dowC[i], intensity=n/maxDow;
+    const bg=n===0?'':`rgba(230,57,70,${(0.2+intensity*0.7).toFixed(2)})`;
+    return `<div class="day-cell ${n>0?'active':''}" style="${bg?'background:'+bg+';border-color:transparent':''}" title="${d}: ${n} incident${n!==1?'s':''}">${d}</div>`;
+  }).join('');
+
+  // ── Hour bars ──
+  const hrBars = hrC.map((n,h)=>{
+    const pct=Math.round(n/maxHr*100);
+    const cls=h===peakHr?'peak':pct>=50?'high':pct>=20?'med':'';
+    return `<div class="hour-bar ${cls}" style="height:${Math.max(3,pct)}%" title="${String(h).padStart(2,'0')}:00 — ${n} incident${n!==1?'s':''}"></div>`;
+  }).join('');
+
+  body.innerHTML=`
+  <div class="jp-zone">
+    <div class="jp-zone-title">📍 Incident Centroid</div>
+    <div class="jp-kpi-row">
+      <div class="jp-kpi"><div class="jp-kpi-val">${cases.length}</div><div class="jp-kpi-lbl">Cases analysed</div></div>
+      <div class="jp-kpi"><div class="jp-kpi-val" style="font-size:12px;padding-top:4px">${cLat.toFixed(4)}<br>${cLng.toFixed(4)}</div><div class="jp-kpi-lbl">Mean centre</div></div>
+    </div>
+    <div style="font-size:9px;color:var(--text-dim);text-align:center">🔴 dot + dashed rings visible on map — close panel to navigate freely</div>
+  </div>
+
+  <div class="jp-zone">
+    <div class="jp-zone-title">🎯 Jeopardy Search Zones</div>
+    <div class="jp-stat"><span class="jp-stat-label">🔵 Buffer zone (inner limit)</span><span class="jp-stat-val">${bufferZone} km</span></div>
+    <div style="font-size:9px;color:var(--text-dim);padding:2px 0 7px;line-height:1.5">Offender likely lives <em>outside</em> this — serial offenders avoid attacking near home</div>
+    <div class="jp-stat"><span class="jp-stat-label">🟡 Hunting zone (peak band)</span><span class="jp-stat-val">${huntZone} km</span></div>
+    <div style="font-size:9px;color:var(--text-dim);padding:2px 0 7px;line-height:1.5">Most attacks cluster within this band from the centroid</div>
+    <div class="jp-stat"><span class="jp-stat-label">🔴 Search priority zone</span><span class="jp-stat-val jp-highlight">${searchRadius} km</span></div>
+    <div style="font-size:9px;color:var(--text-dim);padding:2px 0 7px;line-height:1.5">Recommended area for patrols, door-to-door, intelligence gathering</div>
+    <div class="jp-stat"><span class="jp-stat-label">Max incident spread</span><span class="jp-stat-val">${maxD.toFixed(2)} km</span></div>
+  </div>
+
+  <div class="jp-zone">
+    <div class="jp-zone-title">⏰ Temporal Profile</div>
+    <div class="jp-stat"><span class="jp-stat-label">Peak attack hour</span><span class="jp-stat-val jp-highlight">${String(peakHr).padStart(2,'0')}:00–${String((peakHr+1)%24).padStart(2,'0')}:00</span></div>
+    <div class="jp-stat"><span class="jp-stat-label">Peak day of week</span><span class="jp-stat-val jp-highlight">${peakDay}</span></div>
+    <div class="jp-stat"><span class="jp-stat-label">Night attacks (22:00–06:00)</span><span class="jp-stat-val">${nightN} / ${cases.length} (${Math.round(nightN/cases.length*100)}%)</span></div>
+    <div class="jp-zone-title" style="margin-top:10px">Day of Week Frequency</div>
+    <div class="day-grid">${dowGrid}</div>
+    <div class="jp-zone-title" style="margin-top:10px">Hour of Day (00:00 → 23:00)</div>
+    <div class="hour-bars">${hrBars}</div>
+    <div style="display:flex;justify-content:space-between;font-family:'Space Mono',monospace;font-size:7px;color:var(--text-dim);margin-top:2px"><span>00</span><span>06</span><span>12</span><span>18</span><span>23</span></div>
+  </div>
+
+  <div class="jp-zone">
+    <div class="jp-zone-title">🧠 Profile Indicators</div>
+    <div class="jp-stat"><span class="jp-stat-label">Territory type</span><span class="jp-stat-val">${maxD>8?'Mobile / wide-ranging':maxD>3?'Semi-local':'Highly localised'}</span></div>
+    <div class="jp-stat"><span class="jp-stat-label">Activity pattern</span><span class="jp-stat-val">${nightN/cases.length>=0.6?'Predominantly nocturnal':nightN/cases.length>=0.3?'Mixed day/night':'Predominantly daytime'}</span></div>
+    <div class="jp-stat"><span class="jp-stat-label">Geographic consistency</span><span class="jp-stat-val">${maxD<3?'High — tight cluster':maxD<8?'Medium':'Low — wide spread'}</span></div>
+    <div style="font-size:9px;color:var(--text-dim);margin-top:8px;line-height:1.6;font-style:italic">⚠ Indicative only. Based on ${cases.length} incident${cases.length!==1?'s':''}. More data = greater accuracy. Do not use as sole basis for any action.</div>
+  </div>`;
+}
+
+// ═══════════════════════════════════════════
+//  TIMELINE ANALYSIS VIEW
+// ═══════════════════════════════════════════
+
+function openTimeline(){
+  renderTimelineAnalysis();
+  document.getElementById('tanalysisOverlay').classList.add('open');
+}
+function closeTimeline(){
+  document.getElementById('tanalysisOverlay').classList.remove('open');
+}
+
+function renderTimelineAnalysis(){
+  const body = document.getElementById('tanalysisBody');
+  const sorted = [...incidents]
+    .filter(i=>i.datetime)
+    .sort((a,b)=>+new Date(a.datetime)-+new Date(b.datetime));
+
+  if(sorted.length < 2){
+    body.innerHTML=`<div class="empty"><div class="empty-icon">📈</div><div class="empty-txt">Log at least 2 incidents with dates<br>to see timeline analysis.</div></div>`;
+    return;
+  }
+
+  const days = d => Math.round((+new Date(d.datetime)-+new Date(sorted[0].datetime))/(1000*60*60*24));
+  const statusLabel = {confirmed:'Confirmed',suspected:'Suspected',unconfirmed:'Unconfirmed',sighted:'Sighted'};
+
+  // ── Gap analysis ──
+  const gaps = [];
+  for(let i=1;i<sorted.length;i++){
+    const gapDays = Math.round((+new Date(sorted[i].datetime)-+new Date(sorted[i-1].datetime))/(1000*60*60*24));
+    gaps.push({from:sorted[i-1], to:sorted[i], gapDays});
+  }
+  const avgGap = Math.round(gaps.reduce((s,g)=>s+g.gapDays,0)/gaps.length);
+  const minGap = Math.min(...gaps.map(g=>g.gapDays));
+  const maxGap = Math.max(...gaps.map(g=>g.gapDays));
+
+  // ── Escalation signal: is the gap shrinking over time? ──
+  let escalating = false;
+  if(gaps.length >= 4){
+    const firstHalf  = gaps.slice(0, Math.floor(gaps.length/2)).reduce((s,g)=>s+g.gapDays,0)/Math.floor(gaps.length/2);
+    const secondHalf = gaps.slice(Math.floor(gaps.length/2)).reduce((s,g)=>s+g.gapDays,0)/Math.ceil(gaps.length/2);
+    escalating = secondHalf < firstHalf * 0.7;
+  }
+
+  // ── Monthly frequency ──
+  const mthC={};
+  sorted.forEach(i=>{
+    const k=new Date(i.datetime).toLocaleDateString('en-GB',{month:'short',year:'2-digit'});
+    mthC[k]=(mthC[k]||0)+1;
+  });
+  const mthKeys=Object.keys(mthC);
+  const maxMth=Math.max(...Object.values(mthC),1);
+
+  // ── Activity calendar: last 52 weeks ──
+  const calMap={};
+  sorted.forEach(i=>{
+    const k=new Date(i.datetime).toISOString().slice(0,10);
+    calMap[k]=(calMap[k]||0)+1;
+  });
+
+  // ── Alerts ──
+  const alerts=[];
+  if(escalating) alerts.push({cls:'critical',icon:'🚨',title:'ESCALATION DETECTED',text:`Attack frequency is accelerating. The gap between incidents in the second half of the record is significantly shorter than the first half. This is a critical warning sign.`});
+  if(minGap<=3) alerts.push({cls:'critical',icon:'🚨',title:'RAPID SUCCESSION ATTACKS',text:`Shortest gap between attacks is ${minGap} day${minGap!==1?'s':''}. Two or more incidents occurred in very quick succession — possible burst of activity.`});
+  if(maxGap>60) alerts.push({cls:'info',icon:'💡',title:'SIGNIFICANT GAP IN RECORD',text:`Longest gap is ${maxGap} days. A prolonged pause may indicate the offender was away, detained, unwell, or changed method/area. Investigate what was happening during this period.`});
+  if(sorted.length>=3){
+    const recentGap=gaps.length?gaps[gaps.length-1].gapDays:null;
+    if(recentGap!==null && recentGap < avgGap*0.5) alerts.push({cls:'warning',icon:'⚠',title:'RECENT GAP BELOW AVERAGE',text:`Most recent gap (${recentGap} days) is less than half the average (${avgGap} days). Activity may be intensifying.`});
+  }
+  if(!alerts.length) alerts.push({cls:'info',icon:'ℹ',title:'No escalation signals detected',text:`Current gap pattern is consistent. Average gap: ${avgGap} days. Continue monitoring.`});
+
+  // ── Render ──
+  const alertsHTML = alerts.map(a=>`
+    <div class="ta-alert ${a.cls}">
+      <div class="ta-alert-icon">${a.icon}</div>
+      <div class="ta-alert-text"><div class="ta-alert-title">${a.title}</div>${a.text}</div>
+    </div>`).join('');
+
+  // Monthly frequency chart
+  const freqHTML = `<div class="ta-freq-chart">${mthKeys.map(k=>{
+    const n=mthC[k], pct=Math.round(n/maxMth*100);
+    const col=n>=3?'var(--accent)':n===2?'var(--yellow)':'var(--green)';
+    return `<div class="ta-freq-bar" style="height:${Math.max(4,pct)}%;background:${col}" title="${k}: ${n} incident${n!==1?'s':''}"></div>`;
+  }).join('')}</div>
+  <div class="ta-freq-label"><span>${mthKeys[0]||''}</span><span>${mthKeys[Math.floor(mthKeys.length/2)]||''}</span><span>${mthKeys[mthKeys.length-1]||''}</span></div>`;
+
+  // Dot timeline with gaps labelled
+  const dotLineHTML = sorted.map((inc,idx)=>{
+    const d=new Date(inc.datetime);
+    const ds=d.toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'})+' '+d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    const gap=idx>0?gaps[idx-1]:null;
+    let gapTag='';
+    if(gap){
+      const cls=gap.gapDays<=7?'short':gap.gapDays<=21?'medium':'long';
+      gapTag=`<span class="ta-tl-gap ${cls}">${gap.gapDays}d gap</span>`;
+    }
+    const title=inc.status==='sighted'?'Suspect Sighted':(inc.catName?`${esc(inc.catName)} (${esc(inc.animalType)})`:esc(inc.animalType||'Unknown'));
+    return `<div class="ta-tl-item s-${inc.status}" onclick="closeTimeline();showDetail('${inc.id.replace(/'/g,"\\'")}')" title="Click to open incident">
+      <div class="ta-tl-date">${ds}${gapTag}</div>
+      <div class="ta-tl-title">${title} — ${esc(inc.area||inc.address||'')}</div>
+      <div style="font-family:'Space Mono',monospace;font-size:8px;color:var(--text-dim);margin-top:2px">${esc(inc.id)} · ${statusLabel[inc.status]||inc.status}${inc.method?' · '+esc(inc.method):''}</div>
+    </div>`;
+  }).join('');
+
+  body.innerHTML=`
+  <!-- Alerts -->
+  <div class="ta-section">
+    <div class="ta-section-title">⚡ Intelligence Alerts</div>
+    ${alertsHTML}
+  </div>
+
+  <!-- Key stats -->
+  <div class="ta-section">
+    <div class="ta-section-title">📊 Gap Statistics</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">
+      ${[['Total incidents',sorted.length,'var(--text)'],['Avg gap',avgGap+' days','var(--text)'],['Shortest gap',minGap+' days',minGap<=3?'var(--accent)':'var(--green)'],['Longest gap',maxGap+' days','var(--text-muted)']].map(([l,v,c])=>`
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:10px;text-align:center">
+        <div style="font-family:'Space Mono',monospace;font-size:18px;font-weight:800;color:${c}">${v}</div>
+        <div style="font-size:8px;color:var(--text-muted);margin-top:3px;line-height:1.3">${l}</div>
+      </div>`).join('')}
+    </div>
+  </div>
+
+  <!-- Monthly frequency -->
+  <div class="ta-section">
+    <div class="ta-section-title">📅 Monthly Frequency</div>
+    ${mthKeys.length?freqHTML:'<div style="color:var(--text-dim);font-size:11px">Not enough date data.</div>'}
+    <div style="display:flex;gap:12px;margin-top:10px;font-family:\'Space Mono\',monospace;font-size:8px;color:var(--text-dim)">
+      <span><span style="display:inline-block;width:8px;height:8px;background:var(--accent);border-radius:1px;margin-right:3px"></span>3+ incidents</span>
+      <span><span style="display:inline-block;width:8px;height:8px;background:var(--yellow);border-radius:1px;margin-right:3px"></span>2 incidents</span>
+      <span><span style="display:inline-block;width:8px;height:8px;background:var(--green);border-radius:1px;margin-right:3px"></span>1 incident</span>
+    </div>
+  </div>
+
+  <!-- Dot timeline with gaps -->
+  <div class="ta-section">
+    <div class="ta-section-title">🕐 Chronological Timeline with Gap Labels <span style="font-weight:400;color:var(--text-dim)">(click incident to open)</span></div>
+    <div style="display:flex;gap:10px;margin-bottom:10px;font-family:\'Space Mono\',monospace;font-size:8px;color:var(--text-dim)">
+      <span><span class="ta-tl-gap short" style="display:inline">≤7d</span> Short</span>
+      <span><span class="ta-tl-gap medium" style="display:inline">8–21d</span> Medium</span>
+      <span><span class="ta-tl-gap long" style="display:inline">&gt;21d</span> Long gap</span>
+    </div>
+    <div class="ta-dot-line">${dotLineHTML}</div>
+  </div>`;
 }
 
 // ── Init ──
