@@ -74,12 +74,15 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .tab.active{color:var(--accent);border-bottom-color:var(--accent);background:rgba(230,57,70,.04);}
 .tab-pane{display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0;}
 .tab-pane.active{display:flex;}
-.search-wrap{padding:12px;border-bottom:1px solid var(--border);flex-shrink:0;position:relative;}
-.search-row{position:relative;}
-.search-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:10px 34px 10px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;transition:border-color .15s;}
+.search-wrap{padding:12px;border-bottom:1px solid var(--border);flex-shrink:0;position:relative;display:flex;gap:8px;align-items:center;}
+.search-row{position:relative;flex:1;display:flex;gap:4px;}
+.search-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:10px 10px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;transition:border-color .15s;}
 .search-input:focus{border-color:var(--accent);}
 .search-input::placeholder{color:var(--text-dim);}
-.search-go{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;padding:0 2px;}
+.search-go{background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);font-size:14px;cursor:pointer;padding:8px 8px;border-radius:var(--r);width:36px;height:36px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.search-go:hover{border-color:var(--accent);color:var(--accent);}
+.search-geo{background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);font-size:16px;cursor:pointer;padding:8px;border-radius:var(--r);width:36px;height:36px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.search-geo:hover{border-color:var(--accent);color:var(--accent);}
 .search-drop{display:none;position:absolute;top:100%;left:12px;right:12px;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r) var(--r);z-index:999;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.3);}
 .search-drop.open{display:block;} /* Support classList for standardized modal state checking */
 .search-item{padding:10px 12px;font-family:'Inter',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;border-bottom:1px solid var(--border);line-height:1.5;}
@@ -670,9 +673,9 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
       <div class="search-wrap">
         <div class="search-row">
           <input class="search-input" id="searchIn" type="text" placeholder="Search address or postcode…" autocomplete="off">
-          <button class="search-go" onclick="geoLocateSearch()" title="Find my location">📍</button>
-          <button class="search-go" onclick="doSearch()">⌕</button>
+          <button class="search-go" onclick="doSearch()" title="Search">⌕</button>
         </div>
+        <button class="search-geo" onclick="geoLocateSearch()" title="Find my location">📍</button>
         <div class="search-drop" id="searchDrop"></div>
       </div>
       <div class="inc-search-wrap">
