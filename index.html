@@ -74,12 +74,13 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .tab.active{color:var(--accent);border-bottom-color:var(--accent);background:rgba(230,57,70,.04);}
 .tab-pane{display:none;flex-direction:column;flex:1;overflow:hidden;min-height:0;}
 .tab-pane.active{display:flex;}
-.search-wrap{padding:12px;border-bottom:1px solid var(--border);flex-shrink:0;position:relative;}
-.search-row{position:relative;}
-.search-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:10px 34px 10px 12px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;transition:border-color .15s;}
+.search-wrap{padding:12px;border-bottom:1px solid var(--border);flex-shrink:0;position:relative;display:flex;gap:8px;align-items:center;}
+.search-row{position:relative;flex:1;}
+.search-input{width:100%;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:10px 10px;color:var(--text);font-family:'Inter',sans-serif;font-size:13px;outline:none;transition:border-color .15s;}
 .search-input:focus{border-color:var(--accent);}
 .search-input::placeholder{color:var(--text-dim);}
-.search-go{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text-muted);font-size:18px;cursor:pointer;padding:0 2px;}
+.search-geo{background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);font-size:16px;cursor:pointer;padding:8px;border-radius:var(--r);width:36px;height:36px;display:flex;align-items:center;justify-content:center;transition:all .15s;flex-shrink:0;}
+.search-geo:hover{border-color:var(--accent);color:var(--accent);}
 .search-drop{display:none;position:absolute;top:100%;left:12px;right:12px;background:var(--surface2);border:1px solid var(--border);border-top:none;border-radius:0 0 var(--r) var(--r);z-index:999;max-height:200px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.3);}
 .search-drop.open{display:block;} /* Support classList for standardized modal state checking */
 .search-item{padding:10px 12px;font-family:'Inter',sans-serif;font-size:13px;color:var(--text-muted);cursor:pointer;border-bottom:1px solid var(--border);line-height:1.5;}
@@ -614,6 +615,10 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     font-size:12px;
   }
 }
+
+/* ═══════════════════════════════════════════
+   CRIME LINKAGE MATRIX
+═══════════════════════════════════════════ */
 </style>
 </head>
 <body>
@@ -666,8 +671,8 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
       <div class="search-wrap">
         <div class="search-row">
           <input class="search-input" id="searchIn" type="text" placeholder="Search address or postcode…" autocomplete="off">
-          <button class="search-go" onclick="doSearch()">⌕</button>
         </div>
+        <button class="search-geo" onclick="geoLocateSearch()" title="Find my location">📍</button>
         <div class="search-drop" id="searchDrop"></div>
       </div>
       <div class="inc-search-wrap">
@@ -774,7 +779,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
           <!-- ADDRESS AUTOCOMPLETE: Dropdown for address suggestions in modal -->
           <div class="search-drop" id="modalAddrDrop" style="position:absolute;top:100%;left:0;right:0;margin-top:4px;"></div>
         </div>
-        <div class="geo-row"><button class="geo-btn" onclick="geocodeAddr()">📍 Find on Map</button><span id="geoStatus"></span></div>
+        <div class="geo-row"><button class="geo-btn" onclick="geocodeAddr()">📍 Find on Map</button><button class="geo-btn" onclick="geoLocateModal()" title="Use device location">🧭 My Location</button><span id="geoStatus"></span></div>
         <div class="frow" style="margin-top:10px">
           <div class="fgrp"><label>LATITUDE</label><input type="text" id="fLat" class="finput" placeholder="51.3757" inputmode="decimal"></div>
           <div class="fgrp"><label>LONGITUDE</label><input type="text" id="fLng" class="finput" placeholder="-0.0982" inputmode="decimal"></div>
@@ -1752,6 +1757,93 @@ function geocodeAddr(){
     }).catch(()=>{st.textContent='✗ Error';st.style.color='var(--accent)';});
 }
 
+function geoLocateModal(){
+  const st=document.getElementById('geoStatus');
+
+  if(!navigator.geolocation){
+    st.textContent='✗ Geolocation not supported';
+    st.style.color='var(--accent)';
+    return;
+  }
+
+  st.textContent='Finding location…';
+  st.style.color='var(--text-muted)';
+
+  navigator.geolocation.getCurrentPosition(
+    (position)=>{
+      const lat=position.coords.latitude;
+      const lng=position.coords.longitude;
+
+      document.getElementById('fLat').value=lat.toFixed(5);
+      document.getElementById('fLng').value=lng.toFixed(5);
+      st.textContent='✓ Location found';
+      st.style.color='var(--green)';
+
+      // Optional: reverse geocode to get address
+      reverseGeocodePin(lat,lng);
+
+      // Pan map to location
+      ms.lat=lat;
+      ms.lng=lng;
+      ms.zoom=MAX_Z;
+      sched();
+    },
+    (error)=>{
+      st.textContent='✗ '+error.message;
+      st.style.color='var(--accent)';
+      console.error('Geolocation error:',error);
+    }
+  );
+}
+
+function geoLocateSearch(){
+  if(!navigator.geolocation){
+    showToast('Geolocation not supported on this browser','var(--accent)');
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    (position)=>{
+      const lat=position.coords.latitude;
+      const lng=position.coords.longitude;
+
+      // Center map on device location
+      ms.lat=lat;
+      ms.lng=lng;
+      ms.zoom=MAX_Z;
+      sched();
+
+      // Reverse geocode to get address for search
+      const url=`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`;
+      fetchWithTimeout(url,5000)
+        .then(r=>r.json())
+        .then(data=>{
+          if(data.address){
+            const addr=[data.address.house_number,data.address.road,data.address.suburb,data.address.town||data.address.city,data.address.county,data.address.postcode].filter(Boolean).join(', ');
+            document.getElementById('searchIn').value=addr;
+            runSearch(addr);
+            showToast('📍 Location found','var(--green)');
+          }else{
+            // Fallback: show coordinates if reverse geocode fails
+            document.getElementById('searchIn').value=`${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+            runSearch(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+            showToast('📍 Location found','var(--green)');
+          }
+        })
+        .catch(()=>{
+          // Fallback: use coordinates if geocoding fails
+          document.getElementById('searchIn').value=`${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+          runSearch(`${lat.toFixed(4)}, ${lng.toFixed(4)}`);
+          showToast('📍 Location found (coordinates)','var(--green)');
+        });
+    },
+    (error)=>{
+      showToast('✗ '+error.message,'var(--accent)');
+      console.error('Geolocation error:',error);
+    }
+  );
+}
+
 function handlePhotos(input){
   storedPhotos=[];document.getElementById('photoPrev').innerHTML='';
   Array.from(input.files).forEach(f=>{
@@ -2499,6 +2591,8 @@ function loadSamples(){
   ];
   saveData();
 }
+
+// (Removed Crime Linkage Matrix, Geographic Profiling, and Timeline Analysis features)
 
 // ── Init ──
 initTheme(); // Initialize theme from localStorage
