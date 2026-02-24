@@ -1718,28 +1718,21 @@ function closeReport(){
 }
 function updateFormForStatus(status){
   const isSighted=status==='sighted';
-  // Preserve original display values instead of resetting to default
-  const show=el=>{if(!el)return;el.style.display=el.dataset.originalDisplay||'block';};
-  const hide=el=>{if(!el)return;if(!el.dataset.originalDisplay)el.dataset.originalDisplay=window.getComputedStyle(el).display;el.style.display='none';};
-  // Store original display values on first call
-  const preserveDisplay=el=>{if(el&&!el.dataset.originalDisplay)el.dataset.originalDisplay=window.getComputedStyle(el).display;};
-  ['rowAnimalType','rowAnimalDesc','rowSex','secInjury','rowSightedDesc'].forEach(id=>{
-    preserveDisplay(document.getElementById(id));
-  });
+
   if(isSighted){
     // Show only suspect description for "Suspect Sighted" cases
-    hide(document.getElementById('rowAnimalType'));
-    hide(document.getElementById('rowAnimalDesc'));
-    hide(document.getElementById('rowSex'));
-    hide(document.getElementById('secInjury'));
-    show(document.getElementById('rowSightedDesc'));
+    document.getElementById('rowAnimalType').style.display='none';
+    document.getElementById('rowAnimalDesc').style.display='none';
+    document.getElementById('rowSex').style.display='none';
+    document.getElementById('secInjury').style.display='none';
+    document.getElementById('rowSightedDesc').style.display='block';
   }else{
     // Show animal details for incident cases
-    show(document.getElementById('rowAnimalType'));
-    show(document.getElementById('rowAnimalDesc'));
-    show(document.getElementById('rowSex'));
-    show(document.getElementById('secInjury'));
-    hide(document.getElementById('rowSightedDesc'));
+    document.getElementById('rowAnimalType').style.display='block';
+    document.getElementById('rowAnimalDesc').style.display='block';
+    document.getElementById('rowSex').style.display='block';
+    document.getElementById('secInjury').style.display='block';
+    document.getElementById('rowSightedDesc').style.display='none';
   }
 }
 
