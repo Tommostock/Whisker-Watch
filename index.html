@@ -1723,16 +1723,18 @@ function updateFormForStatus(status){
   const hide=el=>{if(!el)return;if(!el.dataset.originalDisplay)el.dataset.originalDisplay=window.getComputedStyle(el).display;el.style.display='none';};
   // Store original display values on first call
   const preserveDisplay=el=>{if(el&&!el.dataset.originalDisplay)el.dataset.originalDisplay=window.getComputedStyle(el).display;};
-  ['rowAnimalType','rowAnimalDesc','rowSex','secInjury','rowSightedDesc','rowSightedWitness'].forEach(id=>{
+  ['rowAnimalType','rowAnimalDesc','rowSex','secInjury','rowSightedDesc'].forEach(id=>{
     preserveDisplay(document.getElementById(id));
   });
   if(isSighted){
+    // Show only suspect description for "Suspect Sighted" cases
     hide(document.getElementById('rowAnimalType'));
     hide(document.getElementById('rowAnimalDesc'));
     hide(document.getElementById('rowSex'));
     hide(document.getElementById('secInjury'));
     show(document.getElementById('rowSightedDesc'));
   }else{
+    // Show animal details for incident cases
     show(document.getElementById('rowAnimalType'));
     show(document.getElementById('rowAnimalDesc'));
     show(document.getElementById('rowSex'));
