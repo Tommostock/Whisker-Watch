@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Whisker Watch — SLAIN Network</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+<header>
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+        <path d="M 50 48 L 42 58 L 58 58 Z" fill="currentColor"/>
+        <path d="M 20 35 L 28 55 L 33 40 L 38 55 L 46 35" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M 54 35 L 62 55 L 67 40 L 72 55 L 80 35" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M 50 58 Q 44 64 40 68" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+        <path d="M 50 58 Q 56 64 60 68" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <div>
+      <div class="logo-text">Whisker Watch</div>
+      <div class="logo-sub">
+        <span class="slain">SLAIN: South London Animal Investigation Network</span>
+        <span class="divider">·</span>
+        <span class="creator">Created by</span> <span class="name">Spektator</span>
+      </div>
+    </div>
+  </div>
+  <div class="hdr-right">
+    <div class="stat-pill">Total <span class="n" id="cTotal" style="color:var(--text)">0</span></div>
+    <div class="stat-pill">Open <span class="n" id="cOpen" style="color:var(--green)">0</span></div>
+    <div class="stat-pill">Closed <span class="n" id="cClosed" style="color:var(--accent)">0</span></div>
+    <button class="btn btn-ghost btn-sm" id="loginBtn" title="Login (not yet implemented)">Login</button>
+    <button class="btn-icon" id="themeToggle" title="Toggle dark/light mode">🌙</button>
+    <button class="btn btn-primary" id="logIncidentBtn">Log Incident +</button>
+  </div>
+</header>
+
+<div class="main">
+  <div class="sidebar" id="sidebar">
+    <div class="sidebar-tabs">
+      <div class="tab active" id="tabInc">INCIDENTS</div>
+      <div class="tab" id="tabStats">STATS</div>
+    </div>
+    <div class="tab-pane active" id="pane-inc">
+      <div class="search-wrap">
+        <div class="search-row">
+          <input class="search-input" id="searchIn" type="text" placeholder="Search address or postcode…" autocomplete="off">
+        </div>
+        <div class="search-drop" id="searchDrop"></div>
+      </div>
+      <div class="filter-bar">
+        <select class="filter-sel" id="fStatus">
+          <option value="">All Status</option>
+          <option value="open">Open</option>
+          <option value="suspect">Suspect</option>
+          <option value="closed">Closed</option>
+        </select>
+        <select class="filter-sel" id="fMethod">
+          <option value="">All Methods</option>
+          <option>Blunt Trauma</option><option>Sharp Force</option>
+          <option>Strangulation</option><option>Poisoning</option>
+          <option>Other / Unknown</option>
+        </select>
+        <select class="filter-sel" id="fArea"></select>
+        <button class="clear-btn" id="clearFiltersBtn">✕</button>
+      </div>
+      <div class="sort-bar">
+        <span>SORT</span>
+        <div class="sort-opts">
+          <span class="sort-opt active" id="sortDate">DATE</span>
+          <span class="sort-opt" id="sortArea">AREA</span>
+          <span class="sort-opt" id="sortStatus">STATUS</span>
+        </div>
+        <span id="filteredCount"></span>
+      </div>
+      <div class="inc-list" id="incList"></div>
+    </div>
+    <div class="tab-pane" id="pane-stats">
+      <div class="stats-wrap" id="statsWrap"></div>
+    </div>
+  </div>
+
+  <div class="map-wrap" id="mapWrap">
+    <canvas id="mapCanvas"></canvas>
+    <canvas id="heatCanvas"></canvas>
+    <div id="markerLayer"></div>
+    <div id="mapPopup" class="map-popup"></div>
+    <div class="map-top-left">
+      <button class="map-btn" id="toggleSidebarBtn">☰ PANEL</button>
+    </div>
+    <div class="map-top-right">
+      <button class="map-btn on" id="btnHeat">🌡 HEATMAP ON</button>
+      <button class="map-btn on" id="btnMarkers">📍 MARKERS ON</button>
+      <button class="map-btn" id="btnFitAll">⌖ FIT ALL</button>
+      <button class="map-btn" id="btnReset">⟲ RESET</button>
+    </div>
+    <div class="zoom-wrap">
+      <button class="zoom-btn" id="zoomInBtn">+</button>
+      <button class="zoom-btn" id="zoomOutBtn">−</button>
+    </div>
+    <div class="map-legend">
+      <div class="leg-title">Status</div>
+      <div class="leg-row"><div class="leg-dot" style="background:var(--green)"></div>Open</div>
+      <div class="leg-row"><div class="leg-dot" style="background:var(--yellow)"></div>Suspect ID'd</div>
+      <div class="leg-row"><div class="leg-dot" style="background:var(--accent)"></div>Closed</div>
+    </div>
+    <div class="attr">© OpenStreetMap contributors © CARTO</div>
+  </div>
+</div>
+
+<!-- REPORT MODAL -->
+<div class="overlay" id="reportOverlay">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div><div class="modal-title" id="reportModalTitle">Log New Incident</div><div class="modal-sub" id="reportSub">Click the map to pin a location, or enter an address below</div></div>
+      <div class="modal-x" id="closeReportBtn">✕</div>
+    </div>
+    <div class="modal-body">
+      <div class="fsec">
+        <div class="fsec-title">📍 Location</div>
+        <div class="fgrp" style="position:relative;">
+          <label>ADDRESS / AREA *</label>
+          <input type="text" id="fAddr" class="finput" placeholder="e.g. 42 Victoria Road, Croydon" autocomplete="off">
+          <div class="search-drop" id="modalAddrDrop" style="position:absolute;top:100%;left:0;right:0;margin-top:4px;"></div>
+        </div>
+        <div class="geo-row"><button class="geo-btn" id="geocodeBtn">📍 Find on Map</button><span id="geoStatus"></span></div>
+        <div class="frow" style="margin-top:10px">
+          <div class="fgrp"><label>LATITUDE</label><input type="text" id="fLat" class="finput" placeholder="51.3757" inputmode="decimal"></div>
+          <div class="fgrp"><label>LONGITUDE</label><input type="text" id="fLng" class="finput" placeholder="-0.0982" inputmode="decimal"></div>
+        </div>
+        <div style="font-family:'Space Mono',monospace;font-size:8px;color:var(--text-dim);margin-top:4px">💡 Close modal and click map to auto-fill coordinates</div>
+      </div>
+      <div class="fsec">
+        <div class="fsec-title">📋 Incident Details</div>
+        <div class="frow">
+          <div class="fgrp"><label>DATE & TIME *</label><input type="datetime-local" id="fDatetime" class="finput"></div>
+          <div class="fgrp"><label>CASE STATUS</label><select id="fStatus2" class="finput"><option value="open">Open</option><option value="suspect">Suspect Identified</option><option value="closed">Closed</option></select></div>
+        </div>
+        <div class="frow">
+          <div class="fgrp"><label>ANIMAL TYPE</label><select id="fAnimalType" class="finput"><option>Domestic Cat</option><option>Kitten</option><option>Feral Cat</option><option>Other</option></select></div>
+          <div class="fgrp"><label>CAT NAME (IF KNOWN)</label><input type="text" id="fCatName" class="finput" placeholder="e.g. Whiskers"></div>
+        </div>
+        <div class="frow">
+          <div class="fgrp"><label>DESCRIPTION</label><input type="text" id="fAnimalDesc" class="finput" placeholder="e.g. Black & white tabby"></div>
+          <div class="fgrp"><label>AGE (YEARS)</label><select id="fAge" class="finput"><option value="">Unknown</option><option>&lt; 1</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20+</option></select></div>
+        </div>
+        <div class="frow">
+          <div class="fgrp"><label>SEX</label><select id="fSex" class="finput"><option value="">Unknown</option><option>Male</option><option>Female</option><option>Neutered Male</option><option>Spayed Female</option></select></div>
+          <div class="fgrp" id="suspectDescGroup" style="display:none"><label>SUSPECT DESCRIPTION</label><textarea id="fSuspectDesc" class="finput" placeholder="Describe the suspect..."></textarea></div>
+        </div>
+      </div>
+      <div class="fsec">
+        <div class="fsec-title">⚡ Injury & Method</div>
+        <div class="frow">
+          <div class="fgrp"><label>METHOD</label><select id="fMethod2" class="finput"><option>Blunt Trauma</option><option>Sharp Force</option><option>Strangulation</option><option>Poisoning</option><option>Decapitation</option><option>Roadkill</option><option>Accident</option><option>Other / Unknown</option></select></div>
+          <div class="fgrp"><label>SEVERITY</label><select id="fSeverity" class="finput"><option>Fatal</option><option>Critical</option><option>Injured — Survived</option><option>Suspected</option></select></div>
+        </div>
+        <div class="fgrp"><label>NOTES</label><textarea id="fNotes" class="finput" placeholder="Scene description, observations…"></textarea></div>
+      </div>
+      <div class="fsec">
+        <div class="fsec-title">👁 Witness</div>
+        <div class="frow">
+          <div class="fgrp"><label>NAME</label><input type="text" id="fWitName" class="finput" placeholder="Optional"></div>
+          <div class="fgrp"><label>CONTACT</label><input type="text" id="fWitContact" class="finput" placeholder="Phone or email"></div>
+        </div>
+        <div class="fgrp"><label>STATEMENT</label><textarea id="fWitStatement" class="finput" placeholder="What was seen or heard…" style="min-height:54px"></textarea></div>
+      </div>
+      <div class="fsec">
+        <div class="fsec-title">📷 Photos</div>
+        <label class="file-zone" for="fPhotos">
+          <input type="file" id="fPhotos" accept="image/*" multiple>
+          <div class="file-txt">📷 Click to attach photos<br><span style="font-size:8px;color:var(--text-dim)">Saved with incident record</span></div>
+          <div class="file-prev" id="photoPrev"></div>
+        </label>
+      </div>
+      <div class="valmsg" id="valMsg"></div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn btn-ghost" id="cancelReportBtn">Cancel</button>
+      <button class="btn btn-primary" id="reportSubmitBtn" style="padding:9px 22px;font-size:13px">SUBMIT INCIDENT</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="overlay" id="detailOverlay">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div><div class="modal-title" id="detailTitle"></div><div class="modal-sub" id="detailSub"></div></div>
+      <div class="modal-x" id="closeDetailBtn">✕</div>
+    </div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-ftr" style="justify-content:space-between">
+      <button class="btn btn-danger btn-sm" id="deleteBtn">🗑 Delete</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-ghost" id="editBtn">✎ Edit</button>
+        <button class="btn btn-ghost" id="closeDetailBtn2">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM MODAL -->
+<div class="overlay" id="confirmOverlay">
+  <div class="modal" style="max-width:340px">
+    <div class="modal-hdr"><div class="modal-title">Confirm Delete</div><div class="modal-x" id="confirmCancelBtn">✕</div></div>
+    <div class="modal-body"><p style="font-size:13px;color:var(--text-muted);line-height:1.6">Delete this incident permanently?</p></div>
+    <div class="modal-ftr"><button class="btn btn-ghost" id="confirmNoBtn">Cancel</button><button class="btn btn-danger" id="confirmYesBtn">Delete</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"><span id="toastMsg"></span></div>
+
+<!-- Image Lightbox -->
+<div class="lightbox" id="lightbox">
+  <div class="lightbox-close" id="closeLightboxBtn">✕</div>
+  <img id="lightboxImg" src="" alt="Full size image">
+</div>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

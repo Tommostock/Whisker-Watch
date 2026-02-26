@@ -1,0 +1,343 @@
+/* ═══════════════════════════════════════════
+   MAP STYLES: Canvas, Controls, Popups
+   ═══════════════════════════════════════════ */
+
+.map-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-width: 0;
+  background: #1a1f2a;
+}
+
+#mapCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  display: block;
+}
+
+#mapCanvas.grabbing {
+  cursor: grabbing;
+}
+
+#heatCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  display: block;
+}
+
+#markerLayer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* Map Top Controls */
+.map-top-left {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 20;
+  display: flex;
+  gap: 6px;
+}
+
+.map-top-right {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.map-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 7px 10px;
+  color: var(--text-muted);
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+  transition: all 0.15s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.map-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.map-btn.on {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(230, 57, 70, 0.08);
+}
+
+/* Zoom Controls */
+.zoom-wrap {
+  position: absolute;
+  bottom: 36px;
+  right: 12px;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.zoom-btn {
+  width: 32px;
+  height: 32px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  color: var(--text-muted);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  transition: all 0.15s;
+}
+
+.zoom-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+/* Map Legend */
+.map-legend {
+  position: absolute;
+  bottom: 36px;
+  left: 12px;
+  z-index: 20;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 9px 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+.leg-title {
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  margin-bottom: 7px;
+  text-transform: uppercase;
+}
+
+.leg-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-bottom: 4px;
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.leg-row:last-child {
+  margin-bottom: 0;
+}
+
+.leg-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Attribution */
+.attr {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'Space Mono', monospace;
+  font-size: 8px;
+  color: rgba(255, 255, 255, 0.25);
+  white-space: nowrap;
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* Popup */
+.map-popup {
+  position: absolute;
+  z-index: 30;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 12px 14px;
+  min-width: 190px;
+  max-width: 230px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.6);
+  pointer-events: all;
+  display: none;
+}
+
+.map-popup::after {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-top: 7px solid var(--border);
+}
+
+.map-popup::before {
+  content: '';
+  position: absolute;
+  bottom: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid var(--surface);
+}
+
+.popup-close {
+  position: absolute;
+  top: 6px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.popup-title {
+  font-weight: 700;
+  font-size: 12px;
+  margin-bottom: 3px;
+  margin-right: 16px;
+  color: var(--text);
+}
+
+.popup-sub {
+  font-family: 'Space Mono', monospace;
+  font-size: 9px;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+  line-height: 1.4;
+}
+
+.popup-btn {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 4px 10px;
+  background: var(--accent);
+  color: white;
+  border-radius: 4px;
+  font-size: 10px;
+  cursor: pointer;
+  font-family: 'Syne', sans-serif;
+  font-weight: 600;
+  border: none;
+}
+
+.popup-btn:hover {
+  background: #c1121f;
+}
+
+/* Log Prompt */
+.log-prompt {
+  position: absolute;
+  z-index: 25;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 10px 12px;
+  display: none;
+}
+
+.log-prompt-title {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text);
+}
+
+.log-prompt-btns {
+  display: flex;
+  gap: 6px;
+}
+
+.log-prompt-yes {
+  padding: 5px 12px;
+  background: var(--green);
+  border: none;
+  border-radius: 4px;
+  color: white;
+  font-size: 11px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.log-prompt-yes:hover {
+  opacity: 0.8;
+}
+
+.log-prompt-no {
+  padding: 5px 12px;
+  background: var(--border);
+  border: none;
+  border-radius: 4px;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.log-prompt-no:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Drag Pin */
+.drag-pin {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  background: var(--accent);
+  border: 2px solid white;
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(230, 57, 70, 0.8);
+}
+
+/* Pin Marker */
+.pin {
+  position: absolute;
+  width: 18px;
+  height: 18px;
+  background: var(--accent);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  border-radius: 50% 50% 50% 0;
+  transform: rotate(-45deg);
+  box-shadow: 0 0 10px var(--accent), 0 2px 6px rgba(0, 0, 0, 0.7);
+  cursor: pointer;
+  pointer-events: none;
+  transition: transform 0.12s;
+  z-index: 10;
+}

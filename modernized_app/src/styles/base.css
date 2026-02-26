@@ -1,0 +1,75 @@
+/* ═══════════════════════════════════════════
+   BASE STYLES: Reset, Typography, Variables
+   ═══════════════════════════════════════════ */
+
+:root {
+  /* Dark mode colors (default) */
+  --bg: #080a0d;
+  --surface: #0f1117;
+  --surface2: #161a22;
+  --border: #1c2230;
+  --accent: #e63946;
+  --accent2: #ff6b35;
+  --text: #e8eaf0;
+  --text-muted: #9ca3af;
+  --text-dim: #6b7280;
+  --green: #2d9d6e;
+  --yellow: #d4a017;
+  --blue: #3b82f6;
+  --r: 6px;
+
+  /* Light mode colors */
+  --bg-light: #ffffff;
+  --surface-light: #f9fafb;
+  --surface2-light: #f3f4f6;
+  --border-light: #e5e7eb;
+  --text-light: #111827;
+  --text-muted-light: #6b7280;
+  --text-dim-light: #9ca3af;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  background: var(--bg);
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Typography */
+label {
+  display: block;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+  letter-spacing: 0.01em;
+}
+
+.empty {
+  padding: 36px 20px;
+  text-align: center;
+  color: var(--text-dim);
+}
+
+.empty-icon {
+  font-size: 28px;
+  margin-bottom: 10px;
+}
+
+.empty-txt {
+  font-family: 'Space Mono', monospace;
+  font-size: 10px;
+  line-height: 1.8;
+}

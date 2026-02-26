@@ -1,0 +1,15 @@
+{
+  "name": "whisker-watch",
+  "version": "2.0.0",
+  "description": "Whisker Watch — SLAIN Network: South London Animal Investigation Network",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "devDependencies": {
+    "vite": "^6.1.0"
+  }
+}

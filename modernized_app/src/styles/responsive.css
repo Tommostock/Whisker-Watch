@@ -1,0 +1,384 @@
+/* ═══════════════════════════════════════════
+   RESPONSIVE DESIGN: Mobile Optimizations
+   ═══════════════════════════════════════════ */
+
+@media (max-width: 640px) {
+  /* Sidebar Mobile */
+  .sidebar {
+    position: absolute;
+    left: 0;
+    top: 64px;
+    bottom: 0;
+    width: 90%;
+    max-width: 300px;
+    transform: translateX(-105%);
+    transition: transform 0.28s;
+  }
+
+  .sidebar.mob-open {
+    transform: translateX(0);
+  }
+
+  .sidebar.collapsed {
+    width: 90%;
+    min-width: unset;
+    transform: translateX(-105%);
+  }
+
+  /* Header Mobile */
+  header {
+    padding: 0 12px;
+    height: auto;
+    min-height: 60px;
+    flex-wrap: wrap;
+  }
+
+  .logo {
+    flex: 1 1 100%;
+    justify-content: center;
+    margin: 8px 0 4px;
+  }
+
+  .hdr-right {
+    flex: 1 1 100%;
+    justify-content: center;
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+
+  /* Hide stat pills on mobile */
+  .stat-pill {
+    display: none;
+  }
+
+  /* Logo sizing */
+  .logo-text {
+    font-size: 20px;
+  }
+
+  .logo-sub {
+    font-size: 9px;
+    line-height: 1.4;
+  }
+
+  .logo-sub .divider {
+    display: none;
+  }
+
+  .logo-sub .creator {
+    display: inline;
+    font-size: 9px;
+  }
+
+  /* Buttons on mobile */
+  .btn-primary {
+    padding: 7px 12px;
+    font-size: 12px;
+  }
+
+  .btn-icon {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+
+  /* Form layout on mobile */
+  .frow {
+    grid-template-columns: 1fr;
+  }
+
+  /* Mobile header controls */
+  #mobileHeaderControls {
+    display: flex !important;
+    gap: 6px;
+  }
+
+  .mobile-login-btn,
+  .mobile-new-entry-btn,
+  .mobile-theme-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    padding: 6px 10px;
+    color: var(--text-muted);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .mobile-login-btn:hover,
+  .mobile-new-entry-btn:hover,
+  .mobile-theme-btn:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+
+  /* Incident list on mobile */
+  .inc-card {
+    padding: 8px 8px 8px 10px;
+    font-size: 12px;
+  }
+
+  /* Tab size on mobile */
+  .tab {
+    font-size: 10px;
+    padding: 10px 6px;
+  }
+
+  /* Filter bar on mobile */
+  .filter-bar {
+    padding: 8px 10px;
+  }
+
+  .filter-sel {
+    font-size: 10px;
+    padding: 5px 3px;
+  }
+
+  /* Sort bar on mobile */
+  .sort-bar {
+    font-size: 8px;
+    gap: 4px;
+  }
+
+  .sort-opts {
+    gap: 4px;
+  }
+
+  /* Search on mobile */
+  .search-wrap {
+    padding: 10px;
+  }
+
+  .search-input {
+    font-size: 13px;
+    padding: 8px;
+  }
+
+  .search-geo {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+    padding: 6px;
+  }
+
+  /* Modal on mobile */
+  .modal {
+    max-width: 100%;
+    border-radius: 12px 12px 0 0;
+  }
+
+  /* Map legend on mobile */
+  .map-legend {
+    bottom: 50px;
+    left: 50%;
+    transform: translateX(-50%);
+    max-width: 80%;
+  }
+
+  .zoom-wrap {
+    bottom: 12px;
+    right: 12px;
+  }
+
+  /* Map top left controls - hide sidebar toggle on smaller screens */
+  .map-top-left {
+    left: 12px;
+    top: 70px;
+  }
+
+  /* Mobile button text sizing */
+  .map-btn {
+    font-size: 8px;
+    padding: 6px 8px;
+  }
+
+  /* Search dropdown on mobile */
+  .search-drop {
+    left: 10px;
+    right: 10px;
+    max-height: 150px;
+  }
+
+  /* Incident card on mobile */
+  .card-hdr {
+    margin-bottom: 3px;
+    gap: 4px;
+  }
+
+  .card-id {
+    font-size: 8px;
+  }
+
+  .card-animal {
+    font-size: 11px;
+    margin-bottom: 1px;
+  }
+
+  .card-loc {
+    font-size: 8px;
+    margin-bottom: 3px;
+  }
+
+  .card-meta {
+    gap: 3px;
+  }
+
+  .mtag {
+    font-size: 7px;
+    padding: 1px 4px;
+  }
+
+  /* Detail fields on mobile */
+  .dlabel {
+    width: 85px;
+    font-size: 8px;
+  }
+
+  .dval {
+    font-size: 11px;
+  }
+
+  /* Form sections on mobile */
+  .fsec-title {
+    font-size: 7px;
+    margin-bottom: 8px;
+  }
+
+  .finput {
+    font-size: 12px;
+    padding: 8px 10px;
+  }
+
+  /* File preview on mobile */
+  .file-prev img {
+    width: 48px;
+    height: 48px;
+  }
+
+  /* Toast on mobile */
+  .toast {
+    bottom: 12px;
+    right: 12px;
+    font-size: 12px;
+    padding: 8px 12px;
+  }
+
+  /* Lightbox on mobile */
+  .lightbox {
+    padding: 12px;
+  }
+
+  .lightbox img {
+    max-width: 95%;
+    max-height: 85%;
+  }
+
+  .lightbox-close {
+    width: 36px;
+    height: 36px;
+    font-size: 18px;
+    top: 12px;
+    right: 12px;
+  }
+
+  /* Popup on mobile */
+  .map-popup {
+    min-width: 160px;
+    max-width: 200px;
+    font-size: 12px;
+  }
+
+  .popup-title {
+    font-size: 11px;
+  }
+
+  .popup-sub {
+    font-size: 8px;
+  }
+
+  .popup-btn {
+    font-size: 9px;
+    padding: 3px 8px;
+  }
+
+  /* Stats wrap on mobile */
+  .stats-wrap {
+    padding: 10px;
+  }
+
+  /* Badge sizing on mobile */
+  .sbadge {
+    font-size: 7px;
+    padding: 1px 4px;
+  }
+}
+
+/* Extra small screens (phones in portrait) */
+@media (max-width: 480px) {
+  header {
+    min-height: 56px;
+  }
+
+  .logo-text {
+    font-size: 18px;
+  }
+
+  .sidebar {
+    width: 85%;
+  }
+
+  .map-legend {
+    font-size: 8px;
+    padding: 8px 10px;
+  }
+
+  .map-btn {
+    padding: 5px 6px;
+    font-size: 7px;
+  }
+
+  .zoom-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
+
+  .modal {
+    max-width: 100%;
+    max-height: 95vh;
+  }
+
+  .filter-sel {
+    font-size: 9px;
+  }
+
+  .search-input {
+    font-size: 12px;
+  }
+}
+
+/* Landscape mode optimizations */
+@media (max-height: 500px) {
+  header {
+    min-height: 50px;
+    height: auto;
+  }
+
+  .logo-text {
+    font-size: 18px;
+  }
+
+  .logo-sub {
+    font-size: 9px;
+    margin-top: 2px;
+  }
+
+  .modal {
+    max-height: 90vh;
+  }
+
+  .map-legend {
+    padding: 6px 10px;
+  }
+}

@@ -1,0 +1,51 @@
+/* ═══════════════════════════════════════════
+   THEME SWITCHING: Dark & Light Mode
+   ═══════════════════════════════════════════ */
+
+/* Light mode - comprehensive theme switching */
+body.light-mode {
+  --bg: var(--bg-light);
+  --surface: var(--surface-light);
+  --surface2: var(--surface2-light);
+  --border: var(--border-light);
+  --text: var(--text-light);
+  --text-muted: var(--text-muted-light);
+  --text-dim: var(--text-dim-light);
+}
+
+body.light-mode .map-wrap {
+  background: #e5e7eb !important;
+}
+
+/* Light mode map controls need proper contrast */
+body.light-mode .map-btn {
+  background: #ffffff;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+body.light-mode .map-btn:hover {
+  border-color: var(--accent);
+  background: #f9fafb;
+}
+
+body.light-mode .map-btn.on {
+  background: #fee2e2;
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+body.light-mode .zoom-btn {
+  background: #ffffff;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+body.light-mode .map-legend {
+  background: #ffffff;
+  border-color: #d1d5db;
+}
+
+body.light-mode .attr {
+  color: #6b7280 !important;
+}
