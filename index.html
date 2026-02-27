@@ -881,7 +881,6 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
       <div class="valmsg" id="valMsg"></div>
     </div>
     <div class="modal-ftr">
-      <button class="btn btn-ghost" onclick="closeReport()">Cancel</button>
       <button class="btn btn-primary" id="reportSubmitBtn" style="padding:9px 22px;font-size:13px" onclick="submitReport()">SUBMIT INCIDENT</button>
     </div>
   </div>
@@ -899,7 +898,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
       <button class="btn btn-danger btn-sm" id="deleteBtn">🗑 Delete</button>
       <div style="display:flex;gap:8px">
         <button class="btn btn-ghost" id="compareBtn">⚖ Compare</button>
-        <button class="btn btn-ghost" id="addNoteBtn">📝 Add Note</button>
+        <button class="btn btn-ghost" id="addNoteBtn">🔍 Intel</button>
         <button class="btn btn-ghost" id="editBtn">✎ Edit</button>
         <button class="btn btn-ghost" onclick="closeDetail()">Close</button>
       </div>
@@ -2766,7 +2765,7 @@ function showDetail(id){
   }
   fields.push(
     ['Notes',esc(inc.notes)||'<span style="color:var(--text-dim)">None</span>'],
-    ['Case Notes',renderCaseNotes(inc)],
+    ['Intel',renderCaseNotes(inc)],
     ['Witness',inc.witnessName?esc(inc.witnessName)+(inc.witnessContact?' · '+esc(inc.witnessContact):''):'<span style="color:var(--text-dim)">None</span>'],
     ['Statement',esc(inc.witnessStatement)||'<span style="color:var(--text-dim)">None</span>'],
     ['Logged',esc(new Date(inc.createdAt).toLocaleString('en-GB'))]
