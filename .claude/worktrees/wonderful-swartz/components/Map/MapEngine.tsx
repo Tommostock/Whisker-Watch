@@ -25,6 +25,20 @@ import {
   Cluster,
 } from '@/lib/mapMath';
 import {
+  PrioritizedTileCache,
+  getClusterSize,
+  getClusterColor,
+  getTouchCentroid,
+  getTouchDistance,
+  getTouchAngle,
+  serializeMapState,
+  deserializeMapState,
+  isPointInBounds,
+  getViewportBounds,
+  isIncidentVisible,
+  throttle,
+} from '@/lib/mapUtils';
+import {
   TILE_SIZE,
   MIN_ZOOM,
   MAX_ZOOM,
@@ -35,6 +49,7 @@ import {
   HEATMAP_RADIUS,
   STATUS_COLORS,
   MOBILE_WIDTH_BREAKPOINT,
+  STORAGE_KEYS,
 } from '@/lib/constants';
 
 interface MapEngineProps {
@@ -84,25 +99,37 @@ export const MapEngine = React.forwardRef<MapEngineRef, MapEngineProps>(
     const heatCanvasRef = useRef<HTMLCanvasElement>(null);
     const containerRef = useRef<HTMLDivElement>(null);
 
+    // Initialize map state from localStorage
+    const getInitialMapState = (): MapState => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEYS.MAP_STATE);
+        if (stored) {
+          const parsed = deserializeMapState(JSON.parse(stored));
+          if (parsed) return parsed;
+        }
+      } catch {
+        // Fall through to default
+      }
+      return { lat: 51.505, lng: -0.09, zoom: 11 };
+    };
+
     // Map state
-    const [mapState, setMapStateLocal] = useState<MapState>({
-      lat: 51.505,
-      lng: -0.09,
-      zoom: 11,
-    });
+    const [mapState, setMapStateLocal] = useState<MapState>(getInitialMapState());
 
     // Interaction state
     const [isDragging, setIsDragging] = useState(false);
     const [dragStart, setDragStart] = useState<PixelCoords | null>(null);
     const [isUserInteracting, setIsUserInteracting] = useState(false);
+    const [isTouching, setIsTouching] = useState(false);
+    const [touchDistance, setTouchDistance] = useState(0);
 
     // Performance state
     const [renderPending, setRenderPending] = useState(false);
     const lastRenderTimeRef = useRef(0);
     const interactionTimeoutRef = useRef<NodeJS.Timeout>();
 
-    // Tile cache
-    const tileCacheRef = useRef<Map<string, Promise<HTMLImageElement>>>(new Map());
+    // Tile cache with prioritization
+    const tileCacheRef = useRef(new PrioritizedTileCache());
 
     // Animation state
     const animationRef = useRef<{
@@ -116,6 +143,14 @@ export const MapEngine = React.forwardRef<MapEngineRef, MapEngineProps>(
     const setMapState = useCallback((newState: MapState) => {
       setMapStateLocal(newState);
       onMapStateChange?.(newState);
+
+      // Persist to localStorage
+      try {
+        const serialized = serializeMapState(newState.lat, newState.lng, newState.zoom);
+        localStorage.setItem(STORAGE_KEYS.MAP_STATE, JSON.stringify(serialized));
+      } catch {
+        // Storage full or unavailable, continue anyway
+      }
     }, [onMapStateChange]);
 
     // Mark user as interacting
@@ -152,13 +187,6 @@ export const MapEngine = React.forwardRef<MapEngineRef, MapEngineProps>(
       });
 
       tileCacheRef.current.set(url, promise);
-
-      // Clean up cache if too large
-      if (tileCacheRef.current.size > 400) {
-        const firstKey = tileCacheRef.current.keys().next().value;
-        tileCacheRef.current.delete(firstKey);
-      }
-
       return promise;
     }, []);
 
@@ -180,8 +208,10 @@ export const MapEngine = React.forwardRef<MapEngineRef, MapEngineProps>(
       ctx.fillRect(0, 0, width, height);
       heatCtx.clearRect(0, 0, width, height);
 
-      // Get tiles to render
+      // Get tiles to render and update cache viewport
       const tiles = getTilesToLoad(mapState, width, height);
+      const viewportTileKeys = new Set(tiles.map((t) => `${t.x}-${t.y}-${t.z}`));
+      tileCacheRef.current.setViewportTiles(viewportTileKeys);
 
       // Load and render tiles
       tiles.forEach((tile) => {
@@ -203,7 +233,7 @@ export const MapEngine = React.forwardRef<MapEngineRef, MapEngineProps>(
         });
       });
 
-      // Render heatmap if enabled
+      // Render heatmap if enabled (only for visible incidents)
       if (showHeatmap && incidents.length > 0) {
         renderHeatmap(heatCtx, width, height);
       }
@@ -271,10 +301,18 @@ export const MapEngine = React.forwardRef<MapEngineRef, MapEngineProps>(
         if (pixel.x < 0 || pixel.x > width || pixel.y < 0 || pixel.y > height) return;
 
         if (isCluster) {
-          // Draw cluster circle
+          // Draw cluster circle with optimized sizing
           const cluster = item as Cluster;
-          const size = 20 + Math.log(cluster.count) * 5;
-          ctx.fillStyle = '#e63946';
+          const clusterIncidents = incidents.filter((i) =>
+            pixelDistance(
+              latLngToPixel(i.lat, i.lng, mapState, width, height),
+              pixel
+            ) < CLUSTER_RADIUS
+          );
+          const size = getClusterSize(cluster.count);
+          const color = getClusterColor(clusterIncidents);
+
+          ctx.fillStyle = color;
           ctx.beginPath();
           ctx.arc(pixel.x, pixel.y, size, 0, Math.PI * 2);
           ctx.fill();
@@ -444,6 +482,109 @@ export const MapEngine = React.forwardRef<MapEngineRef, MapEngineProps>(
       onMapClick?.(lat, lng);
     };
 
+    // Touch event handlers for mobile pinch zoom
+    const handleTouchStart = (e: React.TouchEvent) => {
+      if (e.touches.length === 1) {
+        markUserInteracting();
+        setIsTouching(true);
+        setDragStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+      } else if (e.touches.length === 2) {
+        setTouchDistance(getTouchDistance(e.touches));
+        setIsTouching(true);
+      }
+    };
+
+    const handleTouchMove = (e: React.TouchEvent) => {
+      if (e.touches.length === 1 && dragStart && isTouching) {
+        // Single touch pan
+        markUserInteracting();
+        const canvas = mapCanvasRef.current;
+        if (!canvas) return;
+
+        const dx = e.touches[0].clientX - dragStart.x;
+        const dy = e.touches[0].clientY - dragStart.y;
+
+        const pixelsPerLat = lat2y(mapState.lat + 1, mapState.zoom) - lat2y(mapState.lat, mapState.zoom);
+        const pixelsPerLng = lng2x(mapState.lng + 1, mapState.zoom) - lng2x(mapState.lng, mapState.zoom);
+
+        const newLat = mapState.lat - dy / pixelsPerLat;
+        const newLng = mapState.lng - dx / pixelsPerLng;
+
+        setMapState({ ...mapState, lat: newLat, lng: newLng });
+        setDragStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
+      } else if (e.touches.length === 2 && touchDistance > 0) {
+        // Pinch zoom
+        markUserInteracting();
+        const newDistance = getTouchDistance(e.touches);
+        const scale = newDistance / touchDistance;
+
+        if (scale !== 1) {
+          const zoomDelta = Math.log2(scale);
+          const newZoom = clampZoom(mapState.zoom + zoomDelta);
+          setMapState({ ...mapState, zoom: newZoom });
+          setTouchDistance(newDistance);
+        }
+      }
+    };
+
+    const handleTouchEnd = () => {
+      setIsTouching(false);
+      setDragStart(null);
+      setTouchDistance(0);
+    };
+
+    // Keyboard event handler
+    const handleKeyDown = useCallback((e: KeyboardEvent) => {
+      const mapCanvas = mapCanvasRef.current;
+      if (!mapCanvas || document.activeElement?.tagName === 'INPUT') return;
+
+      const panSpeed = 50; // pixels
+
+      switch (e.key) {
+        case 'ArrowUp':
+          e.preventDefault();
+          markUserInteracting();
+          const pixelsPerLat = lat2y(mapState.lat + 1, mapState.zoom) - lat2y(mapState.lat, mapState.zoom);
+          setMapState({ ...mapState, lat: mapState.lat + panSpeed / pixelsPerLat });
+          break;
+
+        case 'ArrowDown':
+          e.preventDefault();
+          markUserInteracting();
+          const pixelsPerLatDown = lat2y(mapState.lat + 1, mapState.zoom) - lat2y(mapState.lat, mapState.zoom);
+          setMapState({ ...mapState, lat: mapState.lat - panSpeed / pixelsPerLatDown });
+          break;
+
+        case 'ArrowLeft':
+          e.preventDefault();
+          markUserInteracting();
+          const pixelsPerLngLeft = lng2x(mapState.lng + 1, mapState.zoom) - lng2x(mapState.lng, mapState.zoom);
+          setMapState({ ...mapState, lng: mapState.lng - panSpeed / pixelsPerLngLeft });
+          break;
+
+        case 'ArrowRight':
+          e.preventDefault();
+          markUserInteracting();
+          const pixelsPerLngRight = lng2x(mapState.lng + 1, mapState.zoom) - lng2x(mapState.lng, mapState.zoom);
+          setMapState({ ...mapState, lng: mapState.lng + panSpeed / pixelsPerLngRight });
+          break;
+
+        case '+':
+        case '=':
+          e.preventDefault();
+          markUserInteracting();
+          setMapState({ ...mapState, zoom: clampZoom(mapState.zoom + 1) });
+          break;
+
+        case '-':
+        case '_':
+          e.preventDefault();
+          markUserInteracting();
+          setMapState({ ...mapState, zoom: clampZoom(mapState.zoom - 1) });
+          break;
+      }
+    }, [mapState, setMapState, markUserInteracting]);
+
     // Resize observer
     useEffect(() => {
       const container = containerRef.current;
@@ -464,6 +605,12 @@ export const MapEngine = React.forwardRef<MapEngineRef, MapEngineProps>(
       resizeObserver.observe(container);
       return () => resizeObserver.disconnect();
     }, [scheduleRender]);
+
+    // Keyboard event listener
+    useEffect(() => {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [handleKeyDown]);
 
     // Expose methods via ref
     useImperativeHandle(
@@ -531,11 +678,15 @@ export const MapEngine = React.forwardRef<MapEngineRef, MapEngineProps>(
           onMouseLeave={handleMouseUp}
           onWheel={handleWheel}
           onClick={handleClick}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
           style={{
             position: 'absolute',
             top: 0,
             left: 0,
             display: 'block',
+            touchAction: 'none',
           }}
         />
         <canvas
