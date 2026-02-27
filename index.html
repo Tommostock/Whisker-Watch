@@ -2684,8 +2684,9 @@ function showComparisonSelector(currentId){
 }
 
 function selectComparisonIncident(id){
+  const id1=comparisonId1;  // Save before it gets cleared
   closeComparisonSelector();
-  showComparison(comparisonId1, id);
+  showComparison(id1, id);
 }
 
 function closeComparisonSelector(){
