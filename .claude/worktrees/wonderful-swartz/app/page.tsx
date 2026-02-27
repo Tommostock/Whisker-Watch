@@ -12,7 +12,9 @@ import { Map } from '@/components/Map';
 import type { MapRef } from '@/components/Map';
 import { ReportPanel } from '@/components/ReportPanel';
 import { DetailModal } from '@/components/DetailModal';
-import { useAppIncidents } from '@/context/AppContext';
+import { useAppIncidents, useAppTheme } from '@/context/AppContext';
+import { useKeyboardShortcuts } from '@/hooks/useKeyboardShortcuts';
+import { useMobileSidebar } from '@/hooks/useMobileSidebar';
 import { HEADER_HEIGHT, SIDEBAR_WIDTH } from '@/lib/constants';
 
 /**
@@ -42,10 +44,31 @@ export default function Home() {
   const [mapClickCoords, setMapClickCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [editingIncident, setEditingIncident] = useState<any | null>(null);
   const { incidents } = useAppIncidents();
+  const { toggleTheme } = useAppTheme();
+  const { isMobile, sidebarOpen, closeSidebar, toggleSidebar } = useMobileSidebar();
+
+  // Register keyboard shortcuts
+  useKeyboardShortcuts({
+    onNewReport: () => {
+      setEditingIncident(null);
+      setMapClickCoords(null);
+      setReportPanelOpen(true);
+    },
+    onToggleTheme: toggleTheme,
+    onEscape: () => {
+      setReportPanelOpen(false);
+      setDetailModalOpen(false);
+    },
+  });
 
   const handleIncidentSelect = (incidentId: string) => {
     setSelectedIncidentId(incidentId);
     setDetailModalOpen(true);
+
+    // Close sidebar on mobile
+    if (isMobile) {
+      closeSidebar();
+    }
 
     // Find incident and fly to it on map
     const incident = incidents.find((i) => i.id === incidentId);
@@ -94,12 +117,29 @@ export default function Home() {
         <Header onLogIncidentClick={handleOpenReportPanel} />
       </div>
 
+      {/* Mobile Sidebar Overlay */}
+      {isMobile && sidebarOpen && (
+        <div
+          onClick={closeSidebar}
+          style={{
+            position: 'fixed',
+            top: HEADER_HEIGHT,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            zIndex: 999,
+          }}
+        />
+      )}
+
       {/* Main Content Area */}
       <div
         style={{
           display: 'flex',
           flex: 1,
           overflow: 'hidden',
+          position: 'relative',
         }}
       >
         {/* Sidebar */}
@@ -108,6 +148,14 @@ export default function Home() {
             width: SIDEBAR_WIDTH,
             flexShrink: 0,
             overflow: 'hidden',
+            // Mobile: absolute positioning, slide in/out
+            position: isMobile ? 'absolute' : 'relative',
+            top: isMobile ? 0 : 'auto',
+            left: isMobile && !sidebarOpen ? `-${SIDEBAR_WIDTH}px` : 0,
+            height: '100%',
+            zIndex: isMobile ? 1000 : 'auto',
+            transition: isMobile ? 'left 0.3s ease' : 'none',
+            backgroundColor: 'var(--bg-primary)',
           }}
         >
           <Sidebar
@@ -121,8 +169,38 @@ export default function Home() {
           style={{
             flex: 1,
             overflow: 'hidden',
+            position: 'relative',
+            width: isMobile ? '100%' : 'auto',
           }}
         >
+          {/* Mobile Sidebar Toggle Button */}
+          {isMobile && (
+            <button
+              onClick={toggleSidebar}
+              title="Toggle sidebar"
+              style={{
+                position: 'absolute',
+                top: '10px',
+                left: '10px',
+                zIndex: 10,
+                width: '40px',
+                height: '40px',
+                borderRadius: '4px',
+                backgroundColor: 'var(--bg-primary)',
+                border: '1px solid var(--border-color)',
+                color: 'var(--text-primary)',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '20px',
+                fontWeight: 'bold',
+              }}
+            >
+              ☰
+            </button>
+          )}
+
           <Map
             ref={mapRef}
             incidents={incidents}

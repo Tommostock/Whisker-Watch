@@ -12,3 +12,9 @@ export type { SidebarFilters, SidebarFiltersHook } from './useSidebarFilters';
 export { useFormValidation } from './useFormValidation';
 export { VALIDATION_RULES } from './useFormValidation';
 export type { FormErrors, ValidationRules, FormValidationHook } from './useFormValidation';
+
+export { useKeyboardShortcuts } from './useKeyboardShortcuts';
+export type { KeyboardShortcuts } from './useKeyboardShortcuts';
+
+export { useMobileSidebar } from './useMobileSidebar';
+export type { MobileSidebarHook } from './useMobileSidebar';
