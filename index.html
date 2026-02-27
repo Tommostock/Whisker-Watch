@@ -655,16 +655,16 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
 .import-error{padding:12px;background:rgba(230,57,70,0.1);border:1px solid rgba(230,57,70,0.3);border-radius:var(--r);color:var(--accent);font-size:11px;margin-bottom:12px;}
 
 /* ═══════════════════════════════════════════
-   CASE NOTES
+   INTEL
 ═══════════════════════════════════════════ */
-.case-notes-container{padding:0;}
-.case-note-item{padding:8px;margin-bottom:6px;background:var(--surface2);border-radius:3px;border-left:3px solid var(--accent);}
-.case-note-timestamp{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;}
-.case-note-time{font-size:10px;color:var(--text-dim);font-family:'Space Mono',monospace;}
-.case-note-delete{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;padding:0;opacity:0.6;transition:opacity .15s;}
-.case-note-delete:hover{opacity:1;color:var(--accent);}
-.case-note-text{font-size:11px;line-height:1.4;color:var(--text);word-break:break-word;}
-.case-notes-empty{color:var(--text-dim);font-size:12px;}
+.intel-container{padding:0;}
+.intel-item{padding:8px;margin-bottom:6px;background:var(--surface2);border-radius:3px;border-left:3px solid var(--accent);}
+.intel-timestamp{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;}
+.intel-time{font-size:10px;color:var(--text-dim);font-family:'Space Mono',monospace;}
+.intel-delete{background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:12px;padding:0;opacity:0.6;transition:opacity .15s;}
+.intel-delete:hover{opacity:1;color:var(--accent);}
+.intel-text{font-size:11px;line-height:1.4;color:var(--text);word-break:break-word;}
+.intel-empty{color:var(--text-dim);font-size:12px;}
 #caseNoteText:focus{border-color:var(--accent);}
 </style>
 </head>
@@ -951,7 +951,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
   </div>
 </div>
 
-<!-- ADD CASE NOTE MODAL -->
+<!-- ADD INTEL MODAL -->
 <div class="overlay" id="addNoteOverlay">
   <div class="modal" style="max-width:500px;">
     <div class="modal-hdr">
@@ -2006,7 +2006,7 @@ function mergeAndImport(newIncidents,duplicateActions){
   showToast(`✅ Import complete: ${imported} new, ${updated} updated, ${skipped} skipped`,'var(--green)');
 }
 
-// ── Case Notes ──
+// ── Intel ──
 function generateCaseNoteId(){
   return'cn-'+Date.now().toString(36).toUpperCase().slice(-8);
 }
@@ -2056,7 +2056,7 @@ function addCaseNote(incidentId,text){
   inc.caseNotes.push(note);
   inc.updatedAt=new Date().toISOString();
   saveData();
-  showToast('✅ Case note added','var(--green)');
+  showToast('✅ Intel added','var(--green)');
   closeAddNoteModal();
   showDetail(incidentId);
 }
@@ -2068,21 +2068,21 @@ function deleteCaseNote(incidentId,noteId){
   inc.caseNotes.splice(noteIdx,1);
   inc.updatedAt=new Date().toISOString();
   saveData();
-  showToast('🗑 Case note deleted','var(--green)');
+  showToast('🗑 Intel deleted','var(--green)');
   showDetail(incidentId);
 }
 function renderCaseNotes(inc){
   if(!inc.caseNotes||!inc.caseNotes.length){
-    return'<div class="case-notes-empty">No case notes yet</div>';
+    return'<div class="intel-empty">No intel yet</div>';
   }
   const sorted=[...inc.caseNotes].sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp));
-  return'<div class="case-notes-container">'+sorted.map(note=>`
-    <div class="case-note-item">
-      <div class="case-note-timestamp">
-        <span class="case-note-time">${formatCaseNoteTime(note.timestamp)}</span>
-        <button class="case-note-delete" onclick="deleteCaseNote('${inc.id.replace(/'/g,"\\'")}',' ${note.id}')" title="Delete note">✕</button>
+  return'<div class="intel-container">'+sorted.map(note=>`
+    <div class="intel-item">
+      <div class="intel-timestamp">
+        <span class="intel-time">${formatCaseNoteTime(note.timestamp)}</span>
+        <button class="intel-delete" onclick="deleteCaseNote('${inc.id.replace(/'/g,"\\'")}',' ${note.id}')" title="Delete note">✕</button>
       </div>
-      <div class="case-note-text">${esc(note.text)}</div>
+      <div class="intel-text">${esc(note.text)}</div>
     </div>
   `).join('')+'</div>';
 }
