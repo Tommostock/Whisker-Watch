@@ -631,6 +631,28 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
 #comparisonBody .comparison-value.diff{background:rgba(230,57,70,0.1);padding:4px 6px;border-radius:3px;border-left:3px solid var(--accent);}
 #comparisonBody .comparison-photos{display:flex;gap:8px;flex-wrap:wrap;}
 #comparisonBody .comparison-photos img{max-width:80px;max-height:80px;border-radius:4px;cursor:pointer;}
+
+/* ═══════════════════════════════════════════
+   DATA IMPORT
+═══════════════════════════════════════════ */
+.import-tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px;}
+.import-tab{flex:1;padding:12px;font-size:12px;font-weight:600;text-align:center;cursor:pointer;color:var(--text-muted);border-bottom:2px solid transparent;transition:all .15s;}
+.import-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.import-content{display:none;}
+.import-content.active{display:block;}
+.duplicate-item{border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:8px;background:var(--surface2);}
+.duplicate-item-header{font-weight:600;color:var(--accent);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.duplicate-comparison{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:8px;font-size:11px;}
+.duplicate-field{margin-bottom:6px;}
+.duplicate-field-label{font-size:9px;color:var(--text-muted);text-transform:uppercase;font-weight:600;}
+.duplicate-field-old{color:var(--accent);word-break:break-word;}
+.duplicate-field-new{color:var(--green);word-break:break-word;}
+.duplicate-actions{display:flex;gap:6px;}
+.duplicate-actions button{flex:1;padding:6px 10px;font-size:11px;}
+.import-progress{padding:12px;background:var(--surface2);border-radius:var(--r);margin-bottom:12px;}
+.import-progress-bar{width:100%;height:6px;background:var(--border);border-radius:2px;overflow:hidden;margin-bottom:6px;}
+.import-progress-fill{height:100%;background:var(--accent);width:0%;transition:width .3s;}
+.import-error{padding:12px;background:rgba(230,57,70,0.1);border:1px solid rgba(230,57,70,0.3);border-radius:var(--r);color:var(--accent);font-size:11px;margin-bottom:12px;}
 </style>
 </head>
 <body>
@@ -668,6 +690,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     <!-- TODO: Implement authentication - currently non-functional -->
     <button class="btn btn-ghost btn-sm" onclick="handleLogin()" title="Login (not yet implemented)">Login</button>
     <button class="btn-icon" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode">🌙</button>
+    <button class="btn btn-ghost btn-sm" onclick="openImportModal()" title="Import incidents from CSV or JSON">📥 Import</button>
     <button class="btn btn-primary" onclick="openReport(null,null,null)">Log Incident +</button>
   </div>
 </header>
@@ -910,6 +933,58 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     <div class="modal-body" id="comparisonBody" style="display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:20px;"></div>
     <div class="modal-ftr" style="justify-content:center;">
       <button class="btn btn-ghost" onclick="closeComparison()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT MODAL -->
+<div class="overlay" id="importOverlay">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-hdr">
+      <div><div class="modal-title">Import Incidents</div><div class="modal-sub">Import incidents from JSON or CSV file</div></div>
+      <div class="modal-x" onclick="closeImportModal()">✕</div>
+    </div>
+    <div class="modal-body">
+      <div class="import-tabs">
+        <div class="import-tab active" onclick="switchImportTab('json')">JSON</div>
+        <div class="import-tab" onclick="switchImportTab('csv')">CSV</div>
+      </div>
+      <div id="jsonTab" class="import-content active">
+        <input type="file" id="jsonFileInput" accept=".json" onchange="handleJsonFile(this.files[0])" style="margin-bottom:12px;">
+        <div id="jsonPreview" style="display:none;margin-top:12px;padding:12px;background:var(--surface);border-radius:var(--r);max-height:300px;overflow-y:auto;font-size:11px;">
+          <div style="color:var(--text-muted);margin-bottom:8px;" id="jsonStatus"></div>
+          <div id="jsonPreviewContent"></div>
+        </div>
+      </div>
+      <div id="csvTab" class="import-content" style="display:none;">
+        <input type="file" id="csvFileInput" accept=".csv" onchange="handleCsvFile(this.files[0])" style="margin-bottom:12px;">
+        <div id="csvPreview" style="display:none;margin-top:12px;padding:12px;background:var(--surface);border-radius:var(--r);max-height:300px;overflow-y:auto;font-size:11px;">
+          <div style="color:var(--text-muted);margin-bottom:8px;" id="csvStatus"></div>
+          <div id="csvPreviewContent"></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn btn-ghost" onclick="closeImportModal()">Cancel</button>
+      <button class="btn btn-primary" id="importButton" onclick="confirmImport()" disabled>Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- DUPLICATE DIALOG -->
+<div class="overlay" id="duplicateOverlay" style="display:none;">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-hdr">
+      <div><div class="modal-title">Handle Duplicate Incidents</div><div class="modal-sub" id="duplicateCount"></div></div>
+      <div class="modal-x" onclick="closeDuplicateDialog()">✕</div>
+    </div>
+    <div class="modal-body" id="duplicateBody" style="max-height:400px;overflow-y:auto;"></div>
+    <div class="modal-ftr">
+      <div style="flex:1;display:flex;gap:8px;align-items:center;">
+        <input type="checkbox" id="applyToAll" style="cursor:pointer;"> <label for="applyToAll" style="cursor:pointer;font-size:12px;">Apply to all remaining</label>
+      </div>
+      <button class="btn btn-ghost" onclick="closeDuplicateDialog()">Cancel</button>
+      <button class="btn btn-primary" onclick="processDuplicates()">Continue</button>
     </div>
   </div>
 </div>
@@ -1643,6 +1718,261 @@ function loadData(){
     console.error('Failed to load data from localStorage:',e);
     return[];
   }
+}
+
+// ── Data Import ──
+let importData=null;
+let importDuplicates=[];
+let importDuplicateActions={};
+
+function openImportModal(){
+  document.getElementById('importOverlay').style.display='flex';
+  document.getElementById('jsonFileInput').value='';
+  document.getElementById('csvFileInput').value='';
+  document.getElementById('jsonPreview').style.display='none';
+  document.getElementById('csvPreview').style.display='none';
+  document.getElementById('importButton').disabled=true;
+  importData=null;
+}
+function closeImportModal(){
+  document.getElementById('importOverlay').style.display='none';
+  importData=null;
+}
+function switchImportTab(tab){
+  document.querySelectorAll('.import-tab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.import-content').forEach(c=>c.classList.remove('active'));
+  document.querySelector(`.import-tab:nth-child(${tab==='json'?1:2})`).classList.add('active');
+  document.getElementById(tab+'Tab').classList.add('active');
+}
+function handleJsonFile(file){
+  if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const data=JSON.parse(e.target.result);
+      if(!Array.isArray(data)){
+        showToast('❌ JSON must be an array of incidents','var(--accent)');
+        return;
+      }
+      importData={type:'json',incidents:data,errors:[]};
+      showJsonPreview(data);
+      document.getElementById('importButton').disabled=false;
+    }catch(err){
+      showToast('❌ Invalid JSON: '+err.message,'var(--accent)');
+    }
+  };
+  r.readAsText(file);
+}
+function showJsonPreview(data){
+  const preview=document.getElementById('jsonPreview');
+  const status=document.getElementById('jsonStatus');
+  const content=document.getElementById('jsonPreviewContent');
+
+  const errors=[];
+  data.forEach((inc,idx)=>{
+    const err=validateIncident(inc);
+    if(err)errors.push({row:idx,error:err});
+  });
+
+  importData.errors=errors;
+  status.innerHTML=`Found ${data.length} incidents${errors.length?' ('+errors.length+' errors)':''}`;
+
+  let html=`<div style="color:var(--text-muted);margin-bottom:8px;font-weight:600;">Preview:</div>`;
+  data.slice(0,5).forEach((inc,idx)=>{
+    const err=errors.find(e=>e.row===idx);
+    html+=`<div style="padding:8px;margin-bottom:6px;background:var(--surface2);border-radius:3px;${err?'border-left:3px solid var(--accent)':''}">
+      <div style="font-weight:600;">${esc(inc.id||'[no id]')}</div>
+      <div style="font-size:10px;color:var(--text-dim);">${esc(inc.address||'[no address]')}</div>
+      ${err?'<div style="color:var(--accent);font-size:10px;margin-top:4px;">⚠️ '+esc(err)+'</div>':''}
+    </div>`;
+  });
+  if(data.length>5)html+=`<div style="color:var(--text-muted);font-size:10px;margin-top:8px;">... and ${data.length-5} more</div>`;
+
+  content.innerHTML=html;
+  preview.style.display='block';
+}
+function handleCsvFile(file){
+  if(!file)return;
+  const r=new FileReader();
+  r.onload=e=>{
+    try{
+      const data=parseCSV(e.target.result);
+      if(!data.length){
+        showToast('❌ CSV is empty','var(--accent)');
+        return;
+      }
+      importData={type:'csv',incidents:data,errors:[]};
+      showCsvPreview(data);
+      document.getElementById('importButton').disabled=false;
+    }catch(err){
+      showToast('❌ Invalid CSV: '+err.message,'var(--accent)');
+    }
+  };
+  r.readAsText(file);
+}
+function parseCSV(csvText){
+  const lines=csvText.trim().split('\n');
+  if(!lines.length)return[];
+
+  const headers=lines[0].split(',').map(h=>h.trim().toLowerCase());
+  const data=[];
+
+  for(let i=1;i<lines.length;i++){
+    const values=lines[i].split(',').map(v=>v.trim());
+    const obj={};
+    headers.forEach((h,idx)=>{
+      if(values[idx])obj[h]=values[idx];
+    });
+    if(Object.keys(obj).length>0)data.push(obj);
+  }
+
+  return data;
+}
+function showCsvPreview(data){
+  const preview=document.getElementById('csvPreview');
+  const status=document.getElementById('csvStatus');
+  const content=document.getElementById('csvPreviewContent');
+
+  const errors=[];
+  data.forEach((inc,idx)=>{
+    const err=validateIncident(inc);
+    if(err)errors.push({row:idx,error:err});
+  });
+
+  importData.errors=errors;
+  status.innerHTML=`Found ${data.length} incidents${errors.length?' ('+errors.length+' errors)':''}`;
+
+  let html=`<div style="color:var(--text-muted);margin-bottom:8px;font-weight:600;">Preview:</div>`;
+  data.slice(0,5).forEach((inc,idx)=>{
+    const err=errors.find(e=>e.row===idx);
+    html+=`<div style="padding:8px;margin-bottom:6px;background:var(--surface2);border-radius:3px;${err?'border-left:3px solid var(--accent)':''}">
+      <div style="font-weight:600;">${esc(inc.id||'[no id]')}</div>
+      <div style="font-size:10px;color:var(--text-dim);">${esc(inc.address||'[no address]')}</div>
+      ${err?'<div style="color:var(--accent);font-size:10px;margin-top:4px;">⚠️ '+esc(err)+'</div>':''}
+    </div>`;
+  });
+  if(data.length>5)html+=`<div style="color:var(--text-muted);font-size:10px;margin-top:8px;">... and ${data.length-5} more</div>`;
+
+  content.innerHTML=html;
+  preview.style.display='block';
+}
+function validateIncident(inc){
+  if(!inc.id)return'Missing ID';
+  if(!inc.address)return'Missing Address';
+  if(!inc.status)return'Missing Status';
+  if(!['unconfirmed','suspected','confirmed','sighted'].includes(inc.status))return'Invalid Status';
+  if(!inc.datetime)return'Missing DateTime';
+  if(!inc.animaltype&&inc.status!=='sighted')return'Missing Animal Type';
+  return null;
+}
+function confirmImport(){
+  if(!importData)return;
+
+  const hasErrors=importData.errors.length>0;
+  if(hasErrors){
+    const confirmed=confirm(`⚠️ Found ${importData.errors.length} validation errors in your data.\n\nRows with errors will be skipped. Continue?`);
+    if(!confirmed)return;
+  }
+
+  const validIncidents=importData.incidents.filter((inc,idx)=>!importData.errors.find(e=>e.row===idx));
+  const duplicates=detectDuplicates(validIncidents);
+
+  if(duplicates.length>0){
+    showDuplicateDialog(validIncidents,duplicates);
+  }else{
+    mergeAndImport(validIncidents,{});
+  }
+}
+function detectDuplicates(newIncidents){
+  const existingIds=new Set(incidents.map(i=>i.id));
+  return newIncidents.filter(inc=>existingIds.has(inc.id));
+}
+function showDuplicateDialog(allIncidents,duplicateIncidents){
+  importDuplicates=duplicateIncidents;
+  importDuplicateActions={};
+
+  const overlay=document.getElementById('duplicateOverlay');
+  const body=document.getElementById('duplicateBody');
+  const countEl=document.getElementById('duplicateCount');
+
+  countEl.textContent=`${duplicateIncidents.length} duplicate incident(s) found`;
+
+  let html='';
+  duplicateIncidents.forEach(dupInc=>{
+    const existing=incidents.find(i=>i.id===dupInc.id);
+    html+=`
+      <div class="duplicate-item">
+        <div class="duplicate-item-header">
+          ${esc(dupInc.id)}
+          <div class="duplicate-actions">
+            <button class="btn btn-sm btn-ghost" onclick="setDuplicateAction('${dupInc.id}','skip')">Skip</button>
+            <button class="btn btn-sm btn-ghost" onclick="setDuplicateAction('${dupInc.id}','update')">Update</button>
+            <button class="btn btn-sm btn-ghost" onclick="setDuplicateAction('${dupInc.id}','new')">New ID</button>
+          </div>
+        </div>
+        <div class="duplicate-comparison">
+          <div>
+            <div class="duplicate-field-label">Current Data</div>
+            <div class="duplicate-field-old">${esc(existing.address)}</div>
+            <div style="font-size:9px;color:var(--text-dim);">Status: ${existing.status}</div>
+          </div>
+          <div>
+            <div class="duplicate-field-label">Import Data</div>
+            <div class="duplicate-field-new">${esc(dupInc.address||'N/A')}</div>
+            <div style="font-size:9px;color:var(--text-dim);">Status: ${dupInc.status||'N/A'}</div>
+          </div>
+        </div>
+      </div>
+    `;
+  });
+
+  body.innerHTML=html;
+  overlay.style.display='flex';
+}
+function setDuplicateAction(id,action){
+  importDuplicateActions[id]=action;
+  document.querySelectorAll(`.duplicate-item .duplicate-actions button`).forEach(b=>b.classList.remove('btn-primary'));
+  const applyToAll=document.getElementById('applyToAll').checked;
+  if(applyToAll){
+    Object.keys(importDuplicateActions).forEach(id=>importDuplicateActions[id]=action);
+    processDuplicates();
+  }
+}
+function closeDuplicateDialog(){
+  document.getElementById('duplicateOverlay').style.display='none';
+  importDuplicates=[];
+  importDuplicateActions={};
+}
+function processDuplicates(){
+  const validIncidents=importData.incidents.filter((inc,idx)=>!importData.errors.find(e=>e.row===idx));
+  mergeAndImport(validIncidents,importDuplicateActions);
+  closeDuplicateDialog();
+  closeImportModal();
+}
+function mergeAndImport(newIncidents,duplicateActions){
+  let imported=0,skipped=0,updated=0;
+
+  newIncidents.forEach(newInc=>{
+    const action=duplicateActions[newInc.id]||'skip';
+    const existingIdx=incidents.findIndex(i=>i.id===newInc.id);
+
+    if(action==='skip'){
+      skipped++;
+    }else if(action==='update'&&existingIdx>=0){
+      incidents[existingIdx]={...incidents[existingIdx],...newInc,updatedAt:new Date().toISOString()};
+      updated++;
+    }else if(action==='new'||existingIdx<0){
+      const newId='INC-'+Date.now().toString(36).toUpperCase().slice(-6);
+      const incWithId={...newInc,id:newId,createdAt:new Date().toISOString()};
+      incidents.push(incWithId);
+      imported++;
+    }
+  });
+
+  saveData();
+  renderAll();
+
+  showToast(`✅ Import complete: ${imported} new, ${updated} updated, ${skipped} skipped`,'var(--green)');
 }
 
 // ── Report modal ──
