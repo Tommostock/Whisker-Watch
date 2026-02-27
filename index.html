@@ -2371,6 +2371,16 @@ document.getElementById('deleteBtn').addEventListener('click',async()=>{
   incidents=incidents.filter(i=>i.id!==currentDetailId);
   saveData();closeDetail();renderAll();showToast('Incident deleted','var(--yellow)');
 });
+
+document.getElementById('compareBtn').addEventListener('click',()=>{
+  if(!currentDetailId)return;
+  startComparison(currentDetailId);
+});
+
+document.getElementById('editBtn').addEventListener('click',()=>{
+  if(!currentDetailId)return;
+  editIncident(currentDetailId);
+});
 function resolveConfirm(v){document.getElementById('confirmOverlay').classList.remove('open');if(confirmResolve){confirmResolve(v);confirmResolve=null;}}
 
 // ── Search ──
