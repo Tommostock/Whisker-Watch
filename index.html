@@ -888,6 +888,18 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
 </div>
 
 
+
+<!-- COMPARISON SELECTOR MODAL -->
+<div class="overlay" id="comparisonSelectorOverlay">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-hdr">
+      <div><div class="modal-title">Select Incident to Compare</div><div class="modal-sub">Choose another incident to compare with the current one</div></div>
+      <div class="modal-x" onclick="closeComparisonSelector()">✕</div>
+    </div>
+    <div class="modal-body" id="comparisonSelectorList" style="max-height:500px;overflow-y:auto;padding:0;"></div>
+  </div>
+</div>
+
 <!-- COMPARISON MODAL -->
 <div class="overlay" id="comparisonOverlay">
   <div class="modal" style="max-width:1200px;max-height:90vh;overflow-y:auto;">
@@ -2642,18 +2654,43 @@ let comparisonId2=null;
 
 function startComparison(id){
   comparisonId1=id;
-  // Show a simple prompt to select second incident
-  const secondId=prompt('Enter ID of incident to compare with (e.g., INC-000001):');
-  if(!secondId)return;
+  showComparisonSelector(id);
+}
 
-  const inc2=lckData.find(i=>i.id===secondId.toUpperCase());
-  if(!inc2){
-    alert('Incident not found');
-    return;
+function showComparisonSelector(currentId){
+  const selector=document.getElementById('comparisonSelectorList');
+  // Show all incidents except the current one
+  const otherIncidents=lckData.filter(i=>i.id!==currentId);
+
+  if(!otherIncidents.length){
+    selector.innerHTML='<div class="empty" style="padding:40px 20px;text-align:center"><div class="empty-icon">📍</div><div class="empty-txt">No other incidents to compare with.</div></div>';
+  } else {
+    selector.innerHTML=otherIncidents.map(inc=>{
+      const d=inc.datetime?new Date(inc.datetime):null;
+      const ds=d&&!isNaN(d)?d.toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'—';
+      const ts=d&&!isNaN(d)?d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'';
+      const animalTitle=inc.status==='sighted'?'Suspect Sighted':(inc.catName?`${esc(inc.catName)} (${esc(inc.animalType)})`:`${esc(inc.animalType)}`);
+      const statusClass=`s-${inc.status}`;
+      return `<div class="inc-card ${statusClass}" style="margin:0;border-radius:0;border-bottom:1px solid var(--border);cursor:pointer;" onclick="selectComparisonIncident('${inc.id.replace(/'/g, "\\'")}')" onmouseover="this.style.background='var(--surface-alt)'" onmouseout="this.style.background=''">
+        <div class="card-hdr"><span class="card-id">${esc(inc.id)}</span><span class="sbadge b-${inc.status}">${inc.status==='confirmed'?'CONFIRMED':inc.status==='suspected'?'SUSPECTED':inc.status==='sighted'?'SUSPECT SIGHTED':'UNCONFIRMED'}</span></div>
+        <div class="card-animal">${animalTitle}</div>
+        <div class="card-loc">📍 ${esc(inc.address)}</div>
+        <div class="card-meta"><span class="mtag">📅 ${ds} ${ts}</span></div>
+      </div>`;
+    }).join('');
   }
 
-  comparisonId2=inc2.id;
-  showComparison(id, inc2.id);
+  document.getElementById('comparisonSelectorOverlay').classList.add('open');
+}
+
+function selectComparisonIncident(id){
+  closeComparisonSelector();
+  showComparison(comparisonId1, id);
+}
+
+function closeComparisonSelector(){
+  document.getElementById('comparisonSelectorOverlay').classList.remove('open');
+  comparisonId1=null;
 }
 
 function showComparison(id1, id2){
