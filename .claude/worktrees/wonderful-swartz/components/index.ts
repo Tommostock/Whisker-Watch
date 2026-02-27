@@ -11,3 +11,10 @@ export { Lightbox, useLightbox } from './Lightbox';
 
 export { Header } from './Header';
 export type { } from './Header';
+
+export { Sidebar } from './Sidebar';
+export type { } from './Sidebar';
+
+export { Map } from './Map';
+export type { MapRef } from './Map/Map';
+export { MapControls, useMapControls } from './Map';
