@@ -2660,7 +2660,7 @@ function startComparison(id){
 function showComparisonSelector(currentId){
   const selector=document.getElementById('comparisonSelectorList');
   // Show all incidents except the current one
-  const otherIncidents=lckData.filter(i=>i.id!==currentId);
+  const otherIncidents=incidents.filter(i=>i.id!==currentId);
 
   if(!otherIncidents.length){
     selector.innerHTML='<div class="empty" style="padding:40px 20px;text-align:center"><div class="empty-icon">📍</div><div class="empty-txt">No other incidents to compare with.</div></div>';
@@ -2694,8 +2694,8 @@ function closeComparisonSelector(){
 }
 
 function showComparison(id1, id2){
-  const inc1=lckData.find(i=>i.id===id1);
-  const inc2=lckData.find(i=>i.id===id2);
+  const inc1=incidents.find(i=>i.id===id1);
+  const inc2=incidents.find(i=>i.id===id2);
 
   if(!inc1 || !inc2)return;
 
