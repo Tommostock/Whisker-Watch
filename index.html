@@ -881,6 +881,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
       <div class="valmsg" id="valMsg"></div>
     </div>
     <div class="modal-ftr">
+      <button class="btn btn-ghost" onclick="closeReport()">Cancel</button>
       <button class="btn btn-primary" id="reportSubmitBtn" style="padding:9px 22px;font-size:13px" onclick="submitReport()">SUBMIT INCIDENT</button>
     </div>
   </div>
@@ -954,7 +955,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
 <div class="overlay" id="addNoteOverlay">
   <div class="modal" style="max-width:500px;">
     <div class="modal-hdr">
-      <div><div class="modal-title">Add Case Note</div><div class="modal-sub" id="noteSubtitle"></div></div>
+      <div><div class="modal-title">Add Intel</div><div class="modal-sub" id="noteSubtitle"></div></div>
       <div class="modal-x" onclick="closeAddNoteModal()">✕</div>
     </div>
     <div class="modal-body">
