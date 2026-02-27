@@ -10,6 +10,8 @@ import { Header } from '@/components/Header';
 import { Sidebar } from '@/components/Sidebar';
 import { Map } from '@/components/Map';
 import type { MapRef } from '@/components/Map';
+import { ReportPanel } from '@/components/ReportPanel';
+import { DetailModal } from '@/components/DetailModal';
 import { useAppIncidents } from '@/context/AppContext';
 import { HEADER_HEIGHT, SIDEBAR_WIDTH } from '@/lib/constants';
 
@@ -35,10 +37,15 @@ import { HEADER_HEIGHT, SIDEBAR_WIDTH } from '@/lib/constants';
 export default function Home() {
   const mapRef = useRef<MapRef>(null);
   const [selectedIncidentId, setSelectedIncidentId] = useState<string>();
+  const [reportPanelOpen, setReportPanelOpen] = useState(false);
+  const [detailModalOpen, setDetailModalOpen] = useState(false);
+  const [mapClickCoords, setMapClickCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [editingIncident, setEditingIncident] = useState<any | null>(null);
   const { incidents } = useAppIncidents();
 
   const handleIncidentSelect = (incidentId: string) => {
     setSelectedIncidentId(incidentId);
+    setDetailModalOpen(true);
 
     // Find incident and fly to it on map
     const incident = incidents.find((i) => i.id === incidentId);
@@ -48,8 +55,21 @@ export default function Home() {
   };
 
   const handleMapClick = (lat: number, lng: number) => {
-    // TODO: Open incident logging form with pre-filled coordinates
-    console.log(`Map clicked at: ${lat}, ${lng}`);
+    setMapClickCoords({ lat, lng });
+    setEditingIncident(null);
+    setReportPanelOpen(true);
+  };
+
+  const handleEditIncident = (incident: any) => {
+    setEditingIncident(incident);
+    setDetailModalOpen(false);
+    setReportPanelOpen(true);
+  };
+
+  const handleOpenReportPanel = () => {
+    setEditingIncident(null);
+    setMapClickCoords(null);
+    setReportPanelOpen(true);
   };
 
   return (
@@ -71,7 +91,7 @@ export default function Home() {
           borderBottom: '1px solid var(--border-color)',
         }}
       >
-        <Header />
+        <Header onLogIncidentClick={handleOpenReportPanel} />
       </div>
 
       {/* Main Content Area */}
@@ -112,6 +132,25 @@ export default function Home() {
           />
         </div>
       </div>
+
+      {/* Report Panel Modal */}
+      <ReportPanel
+        isOpen={reportPanelOpen}
+        onClose={() => setReportPanelOpen(false)}
+        incident={editingIncident}
+        initialLat={mapClickCoords?.lat}
+        initialLng={mapClickCoords?.lng}
+      />
+
+      {/* Detail Modal */}
+      {selectedIncidentId && (
+        <DetailModal
+          isOpen={detailModalOpen}
+          onClose={() => setDetailModalOpen(false)}
+          incident={incidents.find((i) => i.id === selectedIncidentId) || null}
+          onEdit={handleEditIncident}
+        />
+      )}
     </div>
   );
 }

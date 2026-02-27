@@ -18,3 +18,6 @@ export type { } from './Sidebar';
 export { Map } from './Map';
 export type { MapRef } from './Map/Map';
 export { MapControls, useMapControls } from './Map';
+
+export { ReportPanel } from './ReportPanel';
+export { DetailModal } from './DetailModal';
