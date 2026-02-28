@@ -28,7 +28,7 @@ interface LightboxProps {
  *   title="Incident Photo"
  * />
  *
- * {/* Open lightbox */}
+ * To open lightbox on click:
  * <img
  *   src={photo.data}
  *   onClick={() => setLightbox({ isOpen: true, src: photo.data })}

@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node /tmp/write-components.js)",
+      "Bash(git add index.html)",
+      "Bash(git commit:*)",
+      "Bash(git push origin main)",
+      "Bash(git push origin main --force)",
+      "Bash(git add hooks/useKeyboardShortcuts.ts hooks/useMobileSidebar.ts app/page.tsx hooks/index.ts)",
+      "Bash(git add PHASE_2_9_SUMMARY.md)",
+      "Bash(wc -l app/*.tsx app/*.css hooks/*.ts components/**/*.tsx components/*.tsx lib/*.ts)",
+      "Bash(git add jest.config.js jest.setup.js lib/test-utils.tsx hooks/__tests__/ package.json)",
+      "Bash(git add PHASE_3_0_PART1_SUMMARY.md)",
+      "Bash(wc -l app/*.tsx app/*.css hooks/*.ts hooks/__tests__/*.ts components/**/*.tsx components/*.tsx lib/*.ts lib/*.tsx)",
+      "Bash(npm test -- components/__tests__/ReportPanel.test.tsx --no-coverage)",
+      "Bash(npm test -- components/__tests__/ --no-coverage)",
+      "Bash(npm test -- components/__tests__/DetailModal.test.tsx --no-coverage)",
+      "Bash(git add -A)"
+    ]
+  }
+}

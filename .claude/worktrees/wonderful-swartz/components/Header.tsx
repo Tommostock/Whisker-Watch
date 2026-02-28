@@ -8,7 +8,7 @@
 
 import React from 'react';
 import { useApp, useAppTheme, useAppIncidents } from '@/context/AppContext';
-import { useToast } from './Toast';
+import { Toast, useToast } from './Toast';
 
 interface HeaderProps {
   onLogIncidentClick?: () => void;

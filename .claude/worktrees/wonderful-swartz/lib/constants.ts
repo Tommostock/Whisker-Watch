@@ -46,6 +46,14 @@ export const INCIDENT_STATUSES = [
   'sighted',
 ] as const;
 
+// Object version for form dropdowns
+export const INCIDENT_STATUS = {
+  unconfirmed: 'unconfirmed',
+  suspected: 'suspected',
+  confirmed: 'confirmed',
+  sighted: 'sighted',
+} as const;
+
 export const STATUS_DISPLAY = {
   unconfirmed: 'Unconfirmed Case',
   suspected: 'Suspected Case',
@@ -129,6 +137,9 @@ export const METHODS = [
   'Other / Unknown',
 ] as const;
 
+// Array version for form dropdowns (alias for METHODS)
+export const INCIDENT_METHODS = METHODS;
+
 // ═══════════════════════════════════════════════════════════════
 //  SEVERITY LEVELS
 // ═══════════════════════════════════════════════════════════════
@@ -139,6 +150,9 @@ export const SEVERITY_OPTIONS = [
   'Injured — Survived',
   'Suspected',
 ] as const;
+
+// Array version for form dropdowns (alias for SEVERITY_OPTIONS)
+export const INCIDENT_SEVERITY = SEVERITY_OPTIONS;
 
 export const SEVERITY_PRIORITY: Record<string, number> = {
   'Fatal': 0,
