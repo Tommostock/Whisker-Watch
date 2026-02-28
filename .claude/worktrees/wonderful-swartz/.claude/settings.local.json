@@ -15,7 +15,8 @@
       "Bash(npm test -- components/__tests__/ReportPanel.test.tsx --no-coverage)",
       "Bash(npm test -- components/__tests__/ --no-coverage)",
       "Bash(npm test -- components/__tests__/DetailModal.test.tsx --no-coverage)",
-      "Bash(git add -A)"
+      "Bash(git add -A)",
+      "Bash(npm test -- --testPathPattern=\"AppContext.integration\" --no-coverage)"
     ]
   }
 }
