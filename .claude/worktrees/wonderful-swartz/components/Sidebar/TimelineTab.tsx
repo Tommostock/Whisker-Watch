@@ -15,12 +15,6 @@ interface TimelineTabProps {
   onIncidentSelect?: (incidentId: string) => void;
 }
 
-interface TimelineGroup {
-  date: Date;
-  dateStr: string;
-  incidents: Incident[];
-}
-
 /**
  * TimelineTab - Chronological view of incidents
  *

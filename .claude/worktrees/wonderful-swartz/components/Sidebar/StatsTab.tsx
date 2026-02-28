@@ -111,7 +111,7 @@ export const StatsTab: React.FC<StatsTabProps> = ({ incidents, filteredIncidents
   };
 
   const statusItems: StatItem[] = Object.entries(INCIDENT_STATUS)
-    .map(([key, status]) => ({
+    .map(([, status]) => ({
       label: status.charAt(0).toUpperCase() + status.slice(1),
       value: stats.filtered.byStatus[status] || 0,
       color: STATUS_COLORS[status as keyof typeof STATUS_COLORS] || '#999',

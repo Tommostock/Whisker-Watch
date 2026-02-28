@@ -251,6 +251,7 @@ export const STORAGE_KEYS = {
   incidents: 'lckData', // Main incident data
   theme: 'slainTheme', // Dark/light mode preference
   mapBookmarks: 'mapBookmarks', // Saved map views
+  mapState: 'whiskerWatchMapState', // Current map view (zoom, center)
   userPreferences: 'whiskerWatchPrefs', // Other user settings
 };
 

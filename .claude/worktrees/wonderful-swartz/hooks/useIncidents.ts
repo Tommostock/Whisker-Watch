@@ -9,11 +9,9 @@ import {
   Incident,
   FilterState,
   CaseNote,
-  Photo,
 } from '@/lib/types';
 import {
   STORAGE_KEYS,
-  INCIDENT_STATUSES,
   STATUS_PRIORITY,
   BOROUGHS,
 } from '@/lib/constants';

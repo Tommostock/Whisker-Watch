@@ -7,7 +7,7 @@
 
 import React, { useMemo } from 'react';
 import { Incident } from '@/lib/types';
-import { STATUS_COLORS, INCIDENT_STATUS, INCIDENT_METHODS } from '@/lib/constants';
+import { STATUS_COLORS, INCIDENT_STATUS } from '@/lib/constants';
 import type { SidebarFiltersHook } from '@/hooks/useSidebarFilters';
 
 interface IncidentsTabProps {

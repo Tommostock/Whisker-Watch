@@ -7,7 +7,7 @@
 'use client';
 
 import React, { useRef } from 'react';
-import { Incident } from '@/lib/types';
+import { Incident, MapState } from '@/lib/types';
 import { MapEngine } from './MapEngine';
 import { MapControls, useMapControls } from './MapControls';
 
@@ -16,7 +16,7 @@ interface MapProps {
   selectedIncidentId?: string;
   onMapClick?: (lat: number, lng: number) => void;
   onIncidentClick?: (incidentId: string) => void;
-  onMapStateChange?: (lat: number, lng: number, zoom: number) => void;
+  onMapStateChange?: (state: MapState) => void;
 }
 
 export interface MapRef {

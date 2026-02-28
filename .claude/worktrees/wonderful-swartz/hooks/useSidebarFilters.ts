@@ -3,7 +3,7 @@
  * Manages sidebar filtering and search state
  */
 
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback } from 'react';
 import { Incident } from '@/lib/types';
 import { INCIDENT_STATUS, INCIDENT_METHODS } from '@/lib/constants';
 

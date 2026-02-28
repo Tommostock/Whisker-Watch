@@ -275,7 +275,7 @@ export function clusterIncidents(
     return incidents;
   }
 
-  const clustered: Cluster[] = [];
+  const clustered: (Cluster | { id: string; lat: number; lng: number })[] = [];
   const processed = new Set<string>();
 
   for (const incident of incidents) {

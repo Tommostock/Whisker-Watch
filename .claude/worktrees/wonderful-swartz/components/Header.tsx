@@ -7,7 +7,7 @@
 'use client';
 
 import React from 'react';
-import { useApp, useAppTheme, useAppIncidents } from '@/context/AppContext';
+import { useAppTheme, useAppIncidents } from '@/context/AppContext';
 import { Toast, useToast } from './Toast';
 
 interface HeaderProps {

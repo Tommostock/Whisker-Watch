@@ -5,12 +5,12 @@
 
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Incident } from '@/lib/types';
 import { useAppIncidents } from '@/context/AppContext';
-import { useConfirmDialog } from '@/components/ConfirmDialog';
-import { useLightbox } from '@/components/Lightbox';
-import { STATUS_COLORS, INCIDENT_SEVERITY } from '@/lib/constants';
+import { ConfirmDialog, useConfirmDialog } from '@/components/ConfirmDialog';
+import { Lightbox, useLightbox } from '@/components/Lightbox';
+import { STATUS_COLORS } from '@/lib/constants';
 
 interface DetailModalProps {
   isOpen: boolean;
@@ -36,24 +36,20 @@ export const DetailModal: React.FC<DetailModalProps> = ({
   onEdit,
 }) => {
   const { deleteIncident } = useAppIncidents();
-  const { showConfirmDialog } = useConfirmDialog();
-  const { showLightbox } = useLightbox();
+  const { isOpen: confirmOpen, openConfirm, closeConfirm, handleConfirm } = useConfirmDialog();
+  const { isOpen: lightboxOpen, imageSrc, title: lightboxTitle, openLightbox, closeLightbox } = useLightbox();
 
-  const handleDelete = async () => {
+  const handleDeleteClick = async () => {
     if (!incident) return;
+    openConfirm();
+  };
 
-    const confirmed = await showConfirmDialog({
-      title: 'Delete Incident',
-      message: 'Are you sure you want to delete this incident? This cannot be undone.',
-      confirmText: 'Delete',
-      cancelText: 'Cancel',
-      isDangerous: true,
-    });
-
-    if (confirmed) {
+  const handleConfirmDelete = async () => {
+    if (!incident) return;
+    await handleConfirm(async () => {
       deleteIncident(incident.id);
       onClose();
-    }
+    });
   };
 
   if (!isOpen || !incident) return null;
@@ -61,7 +57,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
   const statusColor = STATUS_COLORS[incident.status] || '#999';
   const incidentDate = new Date(incident.datetime);
   const createdDate = new Date(incident.createdAt);
-  const updatedDate = new Date(incident.updatedAt);
+  const updatedDate = new Date(incident.updatedAt || incident.createdAt);
 
   return (
     <div
@@ -326,7 +322,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
                 {incident.photos.map((photo, idx) => (
                   <div
                     key={idx}
-                    onClick={() => showLightbox(photo.data)}
+                    onClick={() => openLightbox(photo.data)}
                     style={{
                       cursor: 'pointer',
                       borderRadius: '4px',
@@ -464,7 +460,7 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           }}
         >
           <button
-            onClick={handleDelete}
+            onClick={handleDeleteClick}
             style={{
               padding: '8px 16px',
               backgroundColor: 'var(--danger-color)',
@@ -514,6 +510,22 @@ export const DetailModal: React.FC<DetailModalProps> = ({
           </button>
         </div>
       </div>
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        title="Delete Incident"
+        message="Are you sure you want to delete this incident? This cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDanger
+        onConfirm={handleConfirmDelete}
+        onCancel={closeConfirm}
+      />
+      <Lightbox
+        isOpen={lightboxOpen}
+        imageSrc={imageSrc}
+        title={lightboxTitle}
+        onClose={closeLightbox}
+      />
     </div>
   );
 };

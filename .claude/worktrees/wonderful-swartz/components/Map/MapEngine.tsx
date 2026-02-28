@@ -18,9 +18,7 @@ import {
   fitBounds,
   clampZoom,
   easeZoom,
-  easePosition,
   PixelCoords,
-  LatLng,
   MapState,
   Cluster,
 } from '@/lib/mapMath';
@@ -28,23 +26,14 @@ import {
   PrioritizedTileCache,
   getClusterSize,
   getClusterColor,
-  getTouchCentroid,
   getTouchDistance,
-  getTouchAngle,
   serializeMapState,
   deserializeMapState,
-  isPointInBounds,
-  getViewportBounds,
-  isIncidentVisible,
-  throttle,
 } from '@/lib/mapUtils';
 import {
   TILE_SIZE,
-  MIN_ZOOM,
-  MAX_ZOOM,
   RENDER_INTERVALS,
   INTERACTION_TIMEOUT,
-  CLUSTER_ZOOM_THRESHOLD,
   CLUSTER_RADIUS,
   HEATMAP_RADIUS,
   STATUS_COLORS,
@@ -102,7 +91,7 @@ export const MapEngine = React.forwardRef<MapEngineRef, MapEngineProps>(
     // Initialize map state from localStorage
     const getInitialMapState = (): MapState => {
       try {
-        const stored = localStorage.getItem(STORAGE_KEYS.MAP_STATE);
+        const stored = localStorage.getItem(STORAGE_KEYS.mapState);
         if (stored) {
           const parsed = deserializeMapState(JSON.parse(stored));
           if (parsed) return parsed;
@@ -147,7 +136,7 @@ export const MapEngine = React.forwardRef<MapEngineRef, MapEngineProps>(
       // Persist to localStorage
       try {
         const serialized = serializeMapState(newState.lat, newState.lng, newState.zoom);
-        localStorage.setItem(STORAGE_KEYS.MAP_STATE, JSON.stringify(serialized));
+        localStorage.setItem(STORAGE_KEYS.mapState, JSON.stringify(serialized));
       } catch {
         // Storage full or unavailable, continue anyway
       }
@@ -325,7 +314,8 @@ export const MapEngine = React.forwardRef<MapEngineRef, MapEngineProps>(
           ctx.fillText(String(cluster.count), pixel.x, pixel.y);
         } else {
           // Draw incident pin
-          const incident = incidents.find((i) => i.id === item.id);
+          const singleItem = item as { id: string; lat: number; lng: number };
+          const incident = incidents.find((i) => i.id === singleItem.id);
           if (!incident) return;
 
           const color = STATUS_COLORS[incident.status] || '#ff0000';
@@ -489,7 +479,7 @@ export const MapEngine = React.forwardRef<MapEngineRef, MapEngineProps>(
         setIsTouching(true);
         setDragStart({ x: e.touches[0].clientX, y: e.touches[0].clientY });
       } else if (e.touches.length === 2) {
-        setTouchDistance(getTouchDistance(e.touches));
+        setTouchDistance(getTouchDistance(e.touches as unknown as TouchList));
         setIsTouching(true);
       }
     };
@@ -515,7 +505,7 @@ export const MapEngine = React.forwardRef<MapEngineRef, MapEngineProps>(
       } else if (e.touches.length === 2 && touchDistance > 0) {
         // Pinch zoom
         markUserInteracting();
-        const newDistance = getTouchDistance(e.touches);
+        const newDistance = getTouchDistance(e.touches as unknown as TouchList);
         const scale = newDistance / touchDistance;
 
         if (scale !== 1) {

@@ -11,7 +11,6 @@ import {
   NOMINATIM_REVERSE_PARAMS,
   API_TIMEOUT,
 } from '@/lib/constants';
-import { GeocodeResult } from '@/lib/types';
 
 interface SearchResult {
   display_name: string;
@@ -87,7 +86,11 @@ export function useGeocoding(): UseGeocodingReturn {
 
     try {
       const params = new URLSearchParams({
-        ...NOMINATIM_SEARCH_PARAMS,
+        format: NOMINATIM_SEARCH_PARAMS.format,
+        limit: String(NOMINATIM_SEARCH_PARAMS.limit),
+        countrycodes: NOMINATIM_SEARCH_PARAMS.countrycodes,
+        zoom: String(NOMINATIM_SEARCH_PARAMS.zoom),
+        addressdetails: String(NOMINATIM_SEARCH_PARAMS.addressdetails),
         q: query + ' UK', // Add UK to prioritize results
       });
 
@@ -140,7 +143,9 @@ export function useGeocoding(): UseGeocodingReturn {
 
       try {
         const params = new URLSearchParams({
-          ...NOMINATIM_REVERSE_PARAMS,
+          format: NOMINATIM_REVERSE_PARAMS.format,
+          zoom: String(NOMINATIM_REVERSE_PARAMS.zoom),
+          addressdetails: String(NOMINATIM_REVERSE_PARAMS.addressdetails),
           lat: lat.toString(),
           lon: lon.toString(),
         });
@@ -206,7 +211,11 @@ export function useGeocoding(): UseGeocodingReturn {
 export async function geocodeAddress(address: string): Promise<SearchResult | null> {
   try {
     const params = new URLSearchParams({
-      ...NOMINATIM_SEARCH_PARAMS,
+      format: NOMINATIM_SEARCH_PARAMS.format,
+      limit: String(NOMINATIM_SEARCH_PARAMS.limit),
+      countrycodes: NOMINATIM_SEARCH_PARAMS.countrycodes,
+      zoom: String(NOMINATIM_SEARCH_PARAMS.zoom),
+      addressdetails: String(NOMINATIM_SEARCH_PARAMS.addressdetails),
       q: address + ' UK',
     });
 
@@ -235,7 +244,9 @@ export async function reverseGeocodeCoordinates(
 ): Promise<string | null> {
   try {
     const params = new URLSearchParams({
-      ...NOMINATIM_REVERSE_PARAMS,
+      format: NOMINATIM_REVERSE_PARAMS.format,
+      zoom: String(NOMINATIM_REVERSE_PARAMS.zoom),
+      addressdetails: String(NOMINATIM_REVERSE_PARAMS.addressdetails),
       lat: lat.toString(),
       lon: lon.toString(),
     });

@@ -3,7 +3,6 @@
  * Helper functions for tile management, touch events, and optimizations
  */
 
-import { Cluster } from '@/lib/mapMath';
 import { Incident } from '@/lib/types';
 import { STATUS_COLORS } from '@/lib/constants';
 
@@ -13,7 +12,6 @@ import { STATUS_COLORS } from '@/lib/constants';
  */
 export class PrioritizedTileCache {
   private cache = new Map<string, Promise<HTMLImageElement>>();
-  private loadingQueue: string[] = [];
   private maxSize = 400;
   private viewportTiles = new Set<string>();
 
@@ -320,9 +318,6 @@ export interface GeographicBounds {
 }
 
 export function getViewportBounds(
-  mapLat: number,
-  mapLng: number,
-  zoom: number,
   canvasWidth: number,
   canvasHeight: number,
   pixelToLatLng: (x: number, y: number) => { lat: number; lng: number }

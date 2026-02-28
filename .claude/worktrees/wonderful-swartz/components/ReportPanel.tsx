@@ -18,7 +18,6 @@ import {
   ANIMAL_TYPES,
   AGE_OPTIONS,
   SEX_OPTIONS,
-  STATUS_COLORS,
 } from '@/lib/constants';
 
 interface ReportPanelProps {
@@ -67,7 +66,7 @@ export const ReportPanel: React.FC<ReportPanelProps> = ({
   initialLng,
 }) => {
   const { createIncident, updateIncident } = useAppIncidents();
-  const { geocodeAddress } = useAppGeocoding();
+  const { searchAddress } = useAppGeocoding();
   const { showToast } = useToast();
   const { errors, validate, clearErrors, setFieldError } = useFormValidation(
     VALIDATION_RULES
@@ -132,17 +131,15 @@ export const ReportPanel: React.FC<ReportPanelProps> = ({
 
     setIsGeocoding(true);
     try {
-      const result = await geocodeAddress(formData.address);
-      if (result) {
+      const results = await searchAddress(formData.address);
+      if (results && results.length > 0) {
+        const result = results[0];
         setFormData((prev) => ({
           ...prev,
           lat: result.lat,
           lng: result.lng,
         }));
-        showToast({
-          message: `Located: ${result.lat.toFixed(4)}, ${result.lng.toFixed(4)}`,
-          type: 'success',
-        });
+        showToast(`Located: ${result.lat.toFixed(4)}, ${result.lng.toFixed(4)}`, 'var(--green)');
       } else {
         setFieldError('address', 'Location not found. Please try another address.');
       }
@@ -151,17 +148,14 @@ export const ReportPanel: React.FC<ReportPanelProps> = ({
     } finally {
       setIsGeocoding(false);
     }
-  }, [formData.address, geocodeAddress, setFieldError, showToast]);
+  }, [formData.address, searchAddress, setFieldError, showToast]);
 
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
 
       if (!validate(formData)) {
-        showToast({
-          message: 'Please fix validation errors',
-          type: 'error',
-        });
+        showToast('Please fix validation errors', 'var(--red)');
         return;
       }
 
@@ -169,31 +163,18 @@ export const ReportPanel: React.FC<ReportPanelProps> = ({
       try {
         if (incident) {
           // Update existing incident
-          updateIncident(incident.id, {
-            ...formData,
-          });
-          showToast({
-            message: 'Incident updated successfully',
-            type: 'success',
-          });
+          updateIncident(incident.id, formData as Partial<Incident>);
+          showToast('Incident updated successfully', 'var(--green)');
         } else {
           // Create new incident
-          createIncident({
-            ...formData,
-          });
-          showToast({
-            message: 'Incident reported successfully',
-            type: 'success',
-          });
+          createIncident(formData as Omit<Incident, 'id' | 'createdAt'>);
+          showToast('Incident reported successfully', 'var(--green)');
         }
 
         clearErrors();
         onClose();
       } catch (err) {
-        showToast({
-          message: 'Failed to save incident. Please try again.',
-          type: 'error',
-        });
+        showToast('Failed to save incident. Please try again.', 'var(--red)');
       } finally {
         setIsSubmitting(false);
       }
