@@ -73,10 +73,9 @@ describe('useKeyboardShortcuts Hook', () => {
         key: 'n',
         ctrlKey: true,
         bubbles: true,
-        target: input,
       });
 
-      window.dispatchEvent(event);
+      input.dispatchEvent(event);
       expect(mockNewReport).not.toHaveBeenCalled();
 
       document.body.removeChild(input);
@@ -97,10 +96,9 @@ describe('useKeyboardShortcuts Hook', () => {
         key: 'n',
         ctrlKey: true,
         bubbles: true,
-        target: textarea,
       });
 
-      window.dispatchEvent(event);
+      textarea.dispatchEvent(event);
       expect(mockNewReport).not.toHaveBeenCalled();
 
       document.body.removeChild(textarea);
@@ -172,10 +170,9 @@ describe('useKeyboardShortcuts Hook', () => {
         key: 'm',
         ctrlKey: true,
         bubbles: true,
-        target: input,
       });
 
-      window.dispatchEvent(event);
+      input.dispatchEvent(event);
       expect(mockOpenMap).not.toHaveBeenCalled();
 
       document.body.removeChild(input);
@@ -259,10 +256,9 @@ describe('useKeyboardShortcuts Hook', () => {
         key: 't',
         ctrlKey: true,
         bubbles: true,
-        target: input,
       });
 
-      window.dispatchEvent(event);
+      input.dispatchEvent(event);
       expect(mockToggleTheme).not.toHaveBeenCalled();
 
       document.body.removeChild(input);

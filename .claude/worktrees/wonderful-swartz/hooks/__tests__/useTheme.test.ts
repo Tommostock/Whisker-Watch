@@ -22,7 +22,7 @@ describe('useTheme Hook', () => {
     });
 
     it('should load saved theme from localStorage', () => {
-      localStorage.setItem('slainTheme', 'light');
+      localStorage.setItem('slainTheme', JSON.stringify('light'));
       const { result } = renderHook(() => useTheme());
       expect(result.current.theme).toBe('light');
       expect(result.current.isDark).toBe(false);
@@ -50,7 +50,7 @@ describe('useTheme Hook', () => {
     });
 
     it('should toggle from light to dark', () => {
-      localStorage.setItem('slainTheme', 'light');
+      localStorage.setItem('slainTheme', JSON.stringify('light'));
       const { result } = renderHook(() => useTheme());
       expect(result.current.isDark).toBe(false);
 
@@ -84,7 +84,7 @@ describe('useTheme Hook', () => {
 
   describe('Set Specific Theme', () => {
     it('should set theme to dark', () => {
-      localStorage.setItem('slainTheme', 'light');
+      localStorage.setItem('slainTheme', JSON.stringify('light'));
       const { result } = renderHook(() => useTheme());
       expect(result.current.isDark).toBe(false);
 

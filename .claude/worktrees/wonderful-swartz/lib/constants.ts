@@ -298,6 +298,13 @@ export const VALIDATION = {
   maxPhotoCount: 10,
 };
 
+export const COORDINATE_BOUNDS = {
+  minLat: VALIDATION.minLatitude,
+  maxLat: VALIDATION.maxLatitude,
+  minLng: VALIDATION.minLongitude,
+  maxLng: VALIDATION.maxLongitude,
+};
+
 // ═══════════════════════════════════════════════════════════════
 //  DATE & TIME
 // ═══════════════════════════════════════════════════════════════
