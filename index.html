@@ -747,7 +747,6 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     <div class="stat-pill status-toggle active" id="toggle-unconfirmed" onclick="toggleStatusFilter('unconfirmed')" title="Click to filter: Unconfirmed">Unconfirmed <span class="n" id="cOpen" style="color:var(--green)">0</span></div>
     <!-- TODO: Implement authentication - currently non-functional -->
     <button class="btn btn-ghost btn-sm" onclick="handleLogin()" title="Login (not yet implemented)">Login</button>
-    <button class="btn-icon" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode">🌙</button>
     <button class="btn btn-ghost btn-sm" onclick="openImportModal()" title="Import incidents from CSV or JSON">📥 Import</button>
     <button class="btn btn-primary" onclick="openReport(null,null,null)">Log Incident +</button>
   </div>
@@ -849,6 +848,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
       <button class="map-btn" onclick="fitAll()">⌖ FIT ALL</button>
     </div>
     <div class="zoom-wrap">
+      <button class="btn-icon" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode">🌙</button>
       <button class="zoom-btn" onclick="zoomIn()">+</button>
       <button class="zoom-btn" onclick="zoomOut()">−</button>
     </div>
