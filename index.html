@@ -3324,27 +3324,6 @@ function renderAnalysis(){
     html+=`</div>`;
   }
 
-  // Status Summary
-  html+=`<div class="analysis-section">
-    <div class="analysis-title">📊 Case Status</div>
-    <div class="analysis-item">
-      <span class="analysis-label">Confirmed</span>
-      <span class="analysis-value">${incidents.filter(i=>i.status==='confirmed').length}</span>
-    </div>
-    <div class="analysis-item">
-      <span class="analysis-label">Suspected</span>
-      <span class="analysis-value">${incidents.filter(i=>i.status==='suspected').length}</span>
-    </div>
-    <div class="analysis-item">
-      <span class="analysis-label">Unconfirmed</span>
-      <span class="analysis-value">${incidents.filter(i=>i.status==='unconfirmed').length}</span>
-    </div>
-    <div class="analysis-item">
-      <span class="analysis-label">Suspect Sightings</span>
-      <span class="analysis-value">${incidents.filter(i=>i.status==='sighted').length}</span>
-    </div>
-  </div>`;
-
   el.innerHTML=html;
 }
 
