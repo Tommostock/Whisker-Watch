@@ -742,9 +742,9 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
   <div class="hdr-right">
     <div class="stat-pill" id="dbStatus" title="Database connection status">📡 Connecting…</div>
     <div class="stat-pill">Total <span class="n" id="cTotal" style="color:var(--text)">0</span></div>
-    <div class="stat-pill status-toggle active" id="toggle-unconfirmed" onclick="toggleStatusFilter('unconfirmed')" title="Click to filter: Unconfirmed">Unconfirmed <span class="n" id="cOpen" style="color:var(--green)">0</span></div>
-    <div class="stat-pill status-toggle active" id="toggle-suspected" onclick="toggleStatusFilter('suspected')" title="Click to filter: Suspected">Suspected <span class="n" id="cSuspected" style="color:var(--yellow)">0</span></div>
     <div class="stat-pill status-toggle active" id="toggle-confirmed" onclick="toggleStatusFilter('confirmed')" title="Click to filter: Confirmed">Confirmed <span class="n" id="cClosed" style="color:var(--accent)">0</span></div>
+    <div class="stat-pill status-toggle active" id="toggle-suspected" onclick="toggleStatusFilter('suspected')" title="Click to filter: Suspected">Suspected <span class="n" id="cSuspected" style="color:var(--yellow)">0</span></div>
+    <div class="stat-pill status-toggle active" id="toggle-unconfirmed" onclick="toggleStatusFilter('unconfirmed')" title="Click to filter: Unconfirmed">Unconfirmed <span class="n" id="cOpen" style="color:var(--green)">0</span></div>
     <!-- TODO: Implement authentication - currently non-functional -->
     <button class="btn btn-ghost btn-sm" onclick="handleLogin()" title="Login (not yet implemented)">Login</button>
     <button class="btn-icon" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode">🌙</button>
