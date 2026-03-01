@@ -2267,10 +2267,42 @@ function processDuplicates(){
   closeDuplicateDialog();
   closeImportModal();
 }
-function mergeAndImport(newIncidents,duplicateActions){
+// Enhanced import with progress tracking and Supabase sync
+async function mergeAndImport(newIncidents,duplicateActions){
   let imported=0,skipped=0,updated=0;
+  const totalIncidents=newIncidents.length;
 
-  newIncidents.forEach(newInc=>{
+  // Create progress modal
+  const progressEl=document.createElement('div');
+  progressEl.id='importProgressModal';
+  progressEl.style.cssText=`
+    position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+    background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:24px;
+    z-index:9999;min-width:320px;box-shadow:0 10px 40px rgba(0,0,0,0.3);
+  `;
+
+  progressEl.innerHTML=`
+    <div style="font-weight:600;margin-bottom:12px;color:var(--text);">
+      🔄 Importing ${totalIncidents} incidents...
+    </div>
+    <div style="background:var(--surface2);border-radius:4px;height:8px;overflow:hidden;margin-bottom:12px;">
+      <div id="progressBar" style="background:var(--accent);height:100%;width:0%;transition:width 0.3s;"></div>
+    </div>
+    <div style="margin-bottom:12px;font-size:13px;">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+        <span id="progressText" style="color:var(--text);">0 / ${totalIncidents}</span>
+        <span id="progressPercent" style="color:var(--text-muted);">0%</span>
+      </div>
+      <div style="font-size:11px;color:var(--text-dim);">Processing locally...</div>
+    </div>
+  `;
+  document.body.appendChild(progressEl);
+
+  // Process incidents locally
+  console.log(`Starting import of ${totalIncidents} incidents...`);
+
+  for(let idx=0;idx<newIncidents.length;idx++){
+    const newInc=newIncidents[idx];
     const action=duplicateActions[newInc.id]||'skip';
     const existingIdx=incidents.findIndex(i=>i.id===newInc.id);
 
@@ -2281,16 +2313,131 @@ function mergeAndImport(newIncidents,duplicateActions){
       updated++;
     }else if(action==='new'||existingIdx<0){
       const newId='INC-'+Date.now().toString(36).toUpperCase().slice(-6);
-      const incWithId={...newInc,id:newId,createdAt:new Date().toISOString()};
+      const incWithId={...newInc,id:newId,createdAt:newInc.createdAt||new Date().toISOString()};
       incidents.push(incWithId);
       imported++;
     }
-  });
 
+    // Update progress bar
+    const progress=Math.round(((idx+1)/totalIncidents)*100);
+    document.getElementById('progressBar').style.width=progress+'%';
+    document.getElementById('progressText').textContent=(idx+1)+' / '+totalIncidents;
+    document.getElementById('progressPercent').textContent=progress+'%';
+
+    // Allow UI to update
+    if(idx%10===0)await new Promise(r=>setTimeout(r,10));
+  }
+
+  console.log(`Local processing complete: ${imported} new, ${updated} updated, ${skipped} skipped`);
+
+  // Save to localStorage
   saveData();
-  renderAll();
 
-  showToast(`✅ Import complete: ${imported} new, ${updated} updated, ${skipped} skipped`,'var(--green)');
+  // Sync to Supabase (background)
+  if(dbConnected&&supabaseClient){
+    console.log('Starting Supabase sync...');
+
+    const progressInfo=progressEl.querySelector('div:last-child');
+    progressInfo.innerHTML=`<div style="font-size:11px;color:var(--text-muted);">📡 Syncing to database... (${imported+updated} records)</div>`;
+
+    (async()=>{
+      try{
+        const incidentsToSync=incidents.filter(inc=>(inc.id.startsWith('INC-')&&inc.createdAt)||(new Date(inc.updatedAt)>new Date(Date.now()-60000)));
+        console.log(`Syncing ${incidentsToSync.length} incidents to Supabase...`);
+
+        let syncedCount=0;
+        const batchSize=10;
+
+        for(let i=0;i<incidentsToSync.length;i+=batchSize){
+          const batch=incidentsToSync.slice(i,i+batchSize);
+          for(const inc of batch){
+            try{await saveIncidentToDB(inc);syncedCount++;}
+            catch(e){console.error(`Failed to sync ${inc.id}:`,e);}
+          }
+
+          if(progressEl.parentNode){
+            progressInfo.innerHTML=`<div style="font-size:11px;color:var(--text-muted);">✅ Syncing to database... ${syncedCount} / ${incidentsToSync.length}</div>`;
+          }
+          await new Promise(r=>setTimeout(r,100));
+        }
+
+        console.log(`✅ Successfully synced ${syncedCount} incidents to Supabase`);
+        if(progressEl.parentNode)progressEl.remove();
+
+        const summary=`✅ Import complete: ${imported} new, ${updated} updated, ${skipped} skipped`;
+        const syncNote=syncedCount>0?' · Synced to database!':'';
+        showToast(summary+syncNote,'var(--green)');
+
+        if(realtimeSubscription)console.log('📡 Real-time sync enabled - other users will see changes within 1-2 seconds');
+      }catch(e){
+        console.error('❌ Supabase sync error:',e);
+        if(progressEl.parentNode)progressEl.remove();
+        showToast(`⚠️ Data imported locally but sync error: ${e.message}. Will retry automatically.`,'var(--yellow)');
+
+        setTimeout(()=>{mergeAndImport([],{});},30000);
+      }
+    })();
+  }else{
+    console.log('⚠️ Database not connected - import saved to localStorage only');
+    if(progressEl.parentNode)progressEl.remove();
+    showToast(`✅ Import complete: ${imported} new, ${updated} updated, ${skipped} skipped (local only)`,'var(--yellow)');
+  }
+
+  renderAll();
+}
+
+// Batch sync helper for very large imports
+async function batchSyncToSupabase(incidents,batchSize=20){
+  if(!dbConnected||!supabaseClient){
+    console.warn('Database not connected');
+    return {success:0,failed:0};
+  }
+
+  let successCount=0,failureCount=0;
+  console.log(`Starting batch sync of ${incidents.length} incidents (batch size: ${batchSize})`);
+
+  for(let i=0;i<incidents.length;i+=batchSize){
+    const batch=incidents.slice(i,i+batchSize);
+    const promises=batch.map(inc=>saveIncidentToDB(inc));
+
+    try{
+      const results=await Promise.allSettled(promises);
+      results.forEach(result=>{
+        if(result.status==='fulfilled')successCount++;
+        else{failureCount++;console.error('Batch sync error:',result.reason);}
+      });
+
+      const totalProcessed=Math.min(i+batchSize,incidents.length);
+      console.log(`Synced ${totalProcessed} / ${incidents.length}`);
+    }catch(e){
+      console.error('Batch processing error:',e);
+      failureCount+=batch.length;
+    }
+
+    await new Promise(r=>setTimeout(r,100));
+  }
+
+  console.log(`Batch sync complete: ${successCount} succeeded, ${failureCount} failed`);
+  return {success:successCount,failed:failureCount};
+}
+
+// Import validation helper
+function validateImportData(incidents){
+  const issues=[];
+  incidents.forEach((inc,idx)=>{
+    if(!inc.id)issues.push(`Row ${idx}: Missing ID`);
+    if(!inc.address)issues.push(`Row ${idx}: Missing address`);
+    if(!inc.lat||!inc.lng)issues.push(`Row ${idx}: Missing coordinates`);
+    if(!inc.datetime)issues.push(`Row ${idx}: Missing datetime`);
+    if(!inc.status)issues.push(`Row ${idx}: Missing status`);
+
+    const lat=parseFloat(inc.lat);
+    const lng=parseFloat(inc.lng);
+    if(lat<50||lat>59||lng<-8||lng>2)issues.push(`Row ${idx}: Coordinates outside London bounds`);
+
+    if(!['unconfirmed','suspected','confirmed','sighted'].includes(inc.status))issues.push(`Row ${idx}: Invalid status: ${inc.status}`);
+  });
+  return issues;
 }
 
 // ── Intel ──
