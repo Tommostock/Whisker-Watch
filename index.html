@@ -453,9 +453,14 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     font-size:0;
     flex-shrink:0;
   }
-  .hdr-right .btn-ghost::before{
+  .hdr-right .btn-ghost[onclick="handleLogin()"]::before{
     font-size:18px;
     content:'🔓';
+    display:block;
+  }
+  .hdr-right .btn-ghost[onclick="openImportModal()"]::before{
+    font-size:18px;
+    content:'📥';
     display:block;
   }
   .hdr-right .btn-icon::before{
