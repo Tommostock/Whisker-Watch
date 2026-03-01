@@ -3107,7 +3107,7 @@ function renderList(){
     const metaTags=inc.status==='sighted'
       ?`<span class="mtag">📅 ${ds} ${ts}</span>${inc.photos&&inc.photos.length?`<span class="mtag">📷 ${inc.photos.length}</span>`:''}`
       :`<span class="mtag">📅 ${ds} ${ts}</span><span class="mtag">⚡ ${esc(inc.method)}</span><span class="mtag">☠ ${esc(inc.severity)}</span>${inc.photos&&inc.photos.length?`<span class="mtag">📷 ${inc.photos.length}</span>`:''}`;
-    return `<div class="inc-card s-${inc.status}" onclick="showDetail('${sid}')" data-incident-id="${inc.id}" onmouseover="highlightPin('${inc.id}')" onmouseout="unhighlightPin('${inc.id}')">
+    return `<div class="inc-card s-${inc.status}" onclick="showDetail('${sid}')" data-incident-id="${inc.id}" onmouseenter="highlightPin('${inc.id}')" onmouseleave="unhighlightPin('${inc.id}')">
       <div class="card-hdr"><span class="card-id">${esc(inc.id)}</span><span class="sbadge b-${inc.status}">${inc.status==='confirmed'?'CONFIRMED':inc.status==='suspected'?'SUSPECTED':inc.status==='sighted'?'SUSPECT SIGHTED':'UNCONFIRMED'}</span></div>
       <div class="card-animal">${animalTitle}${cardDesc}</div>
       <div class="card-loc">📍 ${esc(inc.address)}</div>
