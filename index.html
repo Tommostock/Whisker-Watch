@@ -116,8 +116,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .inc-card.s-confirmed::before{background:var(--accent);}
 .inc-card.s-sighted::before{background:var(--blue);}
 .inc-card:hover{border-color:var(--accent);transform:translateX(2px);}
-/* Card highlight from pin hover */
-.inc-card.card-highlighted{background:var(--border);}
+/* Card dimming when another is hovered on map */
+.inc-card.card-dimmed{opacity:0.4;}
 /* Pin highlight from incident hover */
 .pin.highlighted{transform:rotate(-45deg) scale(1.5) !important;}
 .card-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;gap:6px;}
@@ -1620,16 +1620,19 @@ function unhighlightPin(incidentId){
   if(pin) pin.classList.remove('highlighted');
 }
 
-// Highlight incident card when pin is hovered
+// Highlight incident card when pin is hovered (dim all others)
 function highlightCard(incidentId){
-  const card=document.querySelector(`.inc-card[data-incident-id="${incidentId}"]`);
-  if(card) card.classList.add('card-highlighted');
+  const cards=document.querySelectorAll('.inc-card');
+  const highlightedCard=document.querySelector(`.inc-card[data-incident-id="${incidentId}"]`);
+  cards.forEach(card=>{
+    if(card!==highlightedCard) card.classList.add('card-dimmed');
+  });
 }
 
-// Unhighlight incident card when pin is unhovered
+// Unhighlight incident card when pin is unhovered (restore all)
 function unhighlightCard(incidentId){
-  const card=document.querySelector(`.inc-card[data-incident-id="${incidentId}"]`);
-  if(card) card.classList.remove('card-highlighted');
+  const cards=document.querySelectorAll('.inc-card');
+  cards.forEach(card=>card.classList.remove('card-dimmed'));
 }
 
 // ── Heatmap ──
