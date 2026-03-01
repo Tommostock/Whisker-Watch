@@ -8,6 +8,8 @@
 <meta name="theme-color" content="#080a0d">
 <title>Whisker Watch — SLAIN Network</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Supabase Client -->
+<script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @font-face {
   font-family: 'True Lies';
@@ -696,6 +698,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     </div>
   </div>
   <div class="hdr-right">
+    <div class="stat-pill" id="dbStatus" title="Database connection status">📡 Connecting…</div>
     <div class="stat-pill">Total <span class="n" id="cTotal" style="color:var(--text)">0</span></div>
     <div class="stat-pill">Unconfirmed <span class="n" id="cOpen" style="color:var(--green)">0</span></div>
     <div class="stat-pill">Suspected <span class="n" id="cSuspected" style="color:var(--yellow)">0</span></div>
@@ -1022,6 +1025,251 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
 
 <script>
 'use strict';
+
+// ═══════════════════════════════════════════
+//  SUPABASE INITIALIZATION
+// ═══════════════════════════════════════════
+
+// Supabase credentials
+const SUPABASE_URL = 'https://xbtkcvnroryrnunsxedh.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhidGtjdm5yb3J5cm51bnN4ZWRoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzE2MDk2NDAsImV4cCI6MjA4NzE4NTY0MH0.qZbRS2VxsvTd5SjF0DA-kaR34HYNYDU0bgtRAFELzj4';
+
+let supabaseClient = null;
+let dbConnected = false;
+let realtimeSubscription = null;
+
+// Initialize Supabase client when library loads
+function initSupabase() {
+  if (typeof supabase === 'undefined') {
+    console.warn('Supabase library not loaded, retrying in 1s...');
+    setTimeout(initSupabase, 1000);
+    return;
+  }
+
+  try {
+    supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    console.log('✅ Supabase client initialized');
+    dbConnected = true;
+  } catch (e) {
+    console.error('❌ Failed to initialize Supabase:', e);
+    dbConnected = false;
+  }
+}
+
+// Wait for Supabase script to load, then initialize
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initSupabase);
+} else {
+  initSupabase();
+}
+
+// ═══════════════════════════════════════════
+//  SUPABASE DATABASE OPERATIONS
+// ═══════════════════════════════════════════
+
+// Fetch all incidents from database
+async function loadDataFromDB() {
+  if (!dbConnected || !supabaseClient) {
+    console.warn('Database not connected, using fallback');
+    return [];
+  }
+
+  try {
+    const { data, error } = await supabaseClient
+      .from('incidents')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('❌ Error loading incidents:', error);
+      showToast('⚠️ Could not load incidents from database', 'var(--accent)');
+      return [];
+    }
+
+    console.log(`✅ Loaded ${data?.length || 0} incidents from database`);
+    return data || [];
+  } catch (e) {
+    console.error('❌ Database load error:', e);
+    return [];
+  }
+}
+
+// Save incident to database (create or update)
+async function saveIncidentToDB(incident) {
+  if (!dbConnected || !supabaseClient) {
+    console.warn('Database not connected');
+    return false;
+  }
+
+  try {
+    // Convert incident object to database format (snake_case)
+    const dbIncident = {
+      id: incident.id,
+      address: incident.address,
+      area: incident.area,
+      lat: incident.lat,
+      lng: incident.lng,
+      datetime: incident.datetime,
+      status: incident.status,
+      animal_type: incident.animalType,
+      cat_name: incident.catName,
+      animal_desc: incident.animalDesc,
+      age: incident.age,
+      sex: incident.sex,
+      method: incident.method,
+      severity: incident.severity,
+      notes: incident.notes,
+      witness_name: incident.witnessName,
+      witness_contact: incident.witnessContact,
+      witness_statement: incident.witnessStatement,
+      sighted_desc: incident.sightedDesc,
+      photos: incident.photos,
+      updated_at: new Date().toISOString()
+    };
+
+    // Check if incident exists
+    const { data: existing } = await supabaseClient
+      .from('incidents')
+      .select('id')
+      .eq('id', incident.id)
+      .single();
+
+    let result;
+    if (existing) {
+      // Update existing
+      result = await supabaseClient
+        .from('incidents')
+        .update(dbIncident)
+        .eq('id', incident.id);
+    } else {
+      // Create new
+      dbIncident.created_at = incident.createdAt || new Date().toISOString();
+      result = await supabaseClient
+        .from('incidents')
+        .insert([dbIncident]);
+    }
+
+    if (result.error) {
+      console.error('❌ Error saving incident:', result.error);
+      showToast('⚠️ Could not save incident to database', 'var(--accent)');
+      return false;
+    }
+
+    console.log(`✅ Incident ${incident.id} saved to database`);
+    return true;
+  } catch (e) {
+    console.error('❌ Database save error:', e);
+    return false;
+  }
+}
+
+// Delete incident from database
+async function deleteIncidentFromDB(incidentId) {
+  if (!dbConnected || !supabaseClient) {
+    console.warn('Database not connected');
+    return false;
+  }
+
+  try {
+    const { error } = await supabaseClient
+      .from('incidents')
+      .delete()
+      .eq('id', incidentId);
+
+    if (error) {
+      console.error('❌ Error deleting incident:', error);
+      showToast('⚠️ Could not delete incident from database', 'var(--accent)');
+      return false;
+    }
+
+    console.log(`✅ Incident ${incidentId} deleted from database`);
+    return true;
+  } catch (e) {
+    console.error('❌ Database delete error:', e);
+    return false;
+  }
+}
+
+// Update status indicator in header
+function updateDBStatus(){
+  const statusEl = document.getElementById('dbStatus');
+  if(!statusEl) return;
+
+  if(dbConnected && supabaseClient){
+    statusEl.textContent = '✅ Database Connected';
+    statusEl.title = 'Connected to Supabase database - multi-user sync enabled';
+    statusEl.style.color = 'var(--green)';
+  }else{
+    statusEl.textContent = '📋 Local Storage Only';
+    statusEl.title = 'Using local storage - database sync unavailable';
+    statusEl.style.color = 'var(--yellow)';
+  }
+}
+
+// Set up real-time subscription to incidents table
+function setupRealtimeSubscription() {
+  if (!supabaseClient) return;
+
+  try {
+    if (realtimeSubscription) {
+      supabaseClient.removeChannel(realtimeSubscription);
+    }
+
+    realtimeSubscription = supabaseClient
+      .channel('public:incidents')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'incidents'
+      }, (payload) => {
+        console.log('📡 Real-time update received:', payload.eventType, payload.new?.id);
+
+        // Reload data when database changes
+        (async () => {
+          const dbIncidents = await loadDataFromDB();
+          convertDBIncidents(dbIncidents);
+          renderAll();
+          showToast('📡 Data synced from other user', 'var(--blue)');
+        })();
+      })
+      .subscribe((status) => {
+        console.log('Real-time subscription status:', status);
+      });
+
+    console.log('✅ Real-time subscription established');
+  } catch (e) {
+    console.error('❌ Error setting up real-time subscription:', e);
+  }
+}
+
+// Convert database format (snake_case) back to app format (camelCase)
+function convertDBIncidents(dbIncidents) {
+  incidents = dbIncidents.map(db => ({
+    id: db.id,
+    address: db.address,
+    area: db.area,
+    lat: db.lat,
+    lng: db.lng,
+    datetime: db.datetime,
+    status: db.status,
+    animalType: db.animal_type,
+    catName: db.cat_name,
+    animalDesc: db.animal_desc,
+    age: db.age,
+    sex: db.sex,
+    method: db.method,
+    severity: db.severity,
+    notes: db.notes,
+    witnessName: db.witness_name,
+    witnessContact: db.witness_contact,
+    witnessStatement: db.witness_statement,
+    sightedDesc: db.sighted_desc,
+    photos: db.photos || [],
+    caseNotes: [], // TODO: Load from separate table
+    createdAt: db.created_at,
+    updatedAt: db.updated_at
+  }));
+}
 
 // ═══════════════════════════════════════════
 //  THEME & AUTH MANAGEMENT
@@ -1734,21 +1982,60 @@ let editingIncidentId=null; // Track which incident we're editing
 let currentGeocodingRequestId=null; // Track current geocoding request to prevent race conditions
 
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+// Hybrid save: tries database first, falls back to localStorage
 function saveData(){
+  // Always save to localStorage as fallback
   try{
     localStorage.setItem('lckData',JSON.stringify(incidents));
   }catch(e){
     console.error('Failed to save data to localStorage:',e);
     showToast('⚠️ Could not save data - storage may be full or unavailable','var(--accent)');
   }
+
+  // Also save to database asynchronously if available
+  if(dbConnected && supabaseClient){
+    (async () => {
+      try{
+        for(const incident of incidents){
+          await saveIncidentToDB(incident);
+        }
+      }catch(e){
+        console.error('Failed to save to database:', e);
+      }
+    })();
+  }
 }
-function loadData(){
+
+// Hybrid load: tries database first, falls back to localStorage
+async function loadData(){
+  // Try database first
+  if(dbConnected && supabaseClient){
+    const dbIncidents = await loadDataFromDB();
+    if(dbIncidents.length > 0){
+      convertDBIncidents(dbIncidents);
+      return incidents;
+    }
+  }
+
+  // Fallback to localStorage
   try{
-    return JSON.parse(localStorage.getItem('lckData')||'[]');
+    const local = JSON.parse(localStorage.getItem('lckData')||'[]');
+    if(local.length > 0){
+      incidents = local;
+      // Sync local data to database
+      if(dbConnected && supabaseClient){
+        for(const inc of local){
+          await saveIncidentToDB(inc);
+        }
+      }
+      return local;
+    }
   }catch(e){
     console.error('Failed to load data from localStorage:',e);
-    return[];
   }
+
+  return [];
 }
 
 // ── Data Import ──
@@ -2828,8 +3115,14 @@ function flyTo(id){
 document.getElementById('deleteBtn').addEventListener('click',async()=>{
   if(!currentDetailId)return;
   if(!await new Promise(r=>{confirmResolve=r;document.getElementById('confirmOverlay').classList.add('open');}))return;
-  incidents=incidents.filter(i=>i.id!==currentDetailId);
-  saveData();closeDetail();renderAll();showToast('Incident deleted','var(--yellow)');
+  const idToDelete = currentDetailId;
+  incidents=incidents.filter(i=>i.id!==idToDelete);
+  saveData();
+  // Also delete from database if available
+  if(dbConnected && supabaseClient){
+    await deleteIncidentFromDB(idToDelete);
+  }
+  closeDetail();renderAll();showToast('Incident deleted','var(--yellow)');
 });
 
 document.getElementById('compareBtn').addEventListener('click',()=>{
@@ -3088,12 +3381,35 @@ function loadSamples(){
 // (Removed Crime Linkage Matrix, Geographic Profiling, and Timeline Analysis features)
 
 // ── Init ──
-initTheme(); // Initialize theme from localStorage
-incidents=loadData();
-loadSamples();
-renderAll();
-resizeCvs();
-sched();
+(async function initApp(){
+  initTheme(); // Initialize theme from localStorage
+
+  // Wait for Supabase to be ready
+  let attempts = 0;
+  while(!dbConnected && attempts < 10){
+    await new Promise(r => setTimeout(r, 500));
+    attempts++;
+  }
+
+  updateDBStatus(); // Update header status indicator
+
+  if(dbConnected){
+    console.log('📡 Loading data from database...');
+    await loadData();
+    setupRealtimeSubscription();
+  }else{
+    console.log('⚠️ Database not available, loading from localStorage...');
+    incidents = await loadData();
+  }
+
+  loadSamples();
+  renderAll();
+  resizeCvs();
+  sched();
+
+  console.log('✅ App initialization complete');
+  showToast('✅ Whisker Watch ready', 'var(--green)');
+})();
 
 
 // COMPARISON VIEW
