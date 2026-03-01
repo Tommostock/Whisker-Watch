@@ -694,6 +694,16 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
 .intel-text{font-size:11px;line-height:1.4;color:var(--text);word-break:break-word;}
 .intel-empty{color:var(--text-dim);font-size:12px;}
 #caseNoteText:focus{border-color:var(--accent);}
+/* Analysis Section */
+.analysis-section{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);padding:12px;margin-bottom:12px;}
+.analysis-title{font-size:12px;font-weight:700;color:var(--accent);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em;}
+.analysis-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.analysis-item:last-child{border-bottom:none;}
+.analysis-label{color:var(--text-muted);flex:1;}
+.analysis-value{color:var(--accent);font-weight:600;white-space:nowrap;margin-left:8px;}
+.analysis-bar{width:100%;background:var(--border);height:6px;border-radius:3px;margin:6px 0;overflow:hidden;}
+.analysis-bar-fill{height:100%;background:var(--accent);transition:width .3s;}
+.analysis-empty{color:var(--text-dim);font-size:12px;padding:20px;text-align:center;}
 </style>
 </head>
 <body>
@@ -743,6 +753,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
       <div class="tab active" onclick="switchTab('inc')">INCIDENTS</div>
       <div class="tab" onclick="switchTab('timeline')">TIMELINE</div>
       <div class="tab" onclick="switchTab('stats')">STATS</div>
+      <div class="tab" onclick="switchTab('analysis')">ANALYSIS</div>
     </div>
     <div class="tab-pane active" id="pane-inc">
       <div class="search-wrap">
@@ -802,6 +813,11 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     </div>
     <div class="tab-pane" id="pane-stats">
       <div class="stats-wrap" id="statsWrap"></div>
+    </div>
+    <div class="tab-pane" id="pane-analysis">
+      <div style="padding:12px;overflow-y:auto;flex:1;">
+        <div id="analysisContent"></div>
+      </div>
     </div>
   </div>
 
@@ -3050,7 +3066,7 @@ function getFiltered(){
 }
 
 // ── Render ──
-function renderAll(){renderList();updateCounts();updateAreaFilter();renderStats();drawPins();if(showHeat)drawHeat();}
+function renderAll(){renderList();updateCounts();updateAreaFilter();renderStats();renderAnalysis();drawPins();if(showHeat)drawHeat();}
 function updateCounts(){document.getElementById('cTotal').textContent=incidents.length;document.getElementById('cOpen').textContent=incidents.filter(i=>i.status==='unconfirmed').length;document.getElementById('cSuspected').textContent=incidents.filter(i=>i.status==='suspected').length;document.getElementById('cClosed').textContent=incidents.filter(i=>i.status==='confirmed').length;}
 function updateAreaFilter(){
   const areas=[...new Set(incidents.map(i=>i.area).filter(a=>a&&a!=='Unknown'))].sort();
@@ -3216,6 +3232,120 @@ function renderStats(){
   ${topA.length?`${secTitle('Hotspot Areas')}${barRows(topA.slice(0,10),maxA,'var(--accent2)')}` : ''}
 
   `;
+}
+
+// ── Analysis ──
+function renderAnalysis(){
+  const el=document.getElementById('analysisContent');
+  if(!incidents.length){el.innerHTML=`<div class="analysis-empty">📊 Log incidents to see analysis patterns.</div>`;return;}
+
+  const caseOnly=incidents.filter(i=>i.status!=='sighted');
+  let html='';
+
+  // Animal Type Analysis
+  const ac={};caseOnly.forEach(i=>{if(i.animalType)ac[i.animalType]=(ac[i.animalType]||0)+1;});
+  const topAnimals=Object.entries(ac).sort((a,b)=>b[1]-a[1]);
+  if(topAnimals.length){
+    html+=`<div class="analysis-section">
+      <div class="analysis-title">🐱 Animals Targeted</div>`;
+    topAnimals.slice(0,5).forEach(([type,count])=>{
+      const pct=(count/caseOnly.length*100).toFixed(0);
+      html+=`<div class="analysis-item">
+        <span class="analysis-label">${esc(type)}</span>
+        <span class="analysis-value">${pct}%</span>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+
+  // Geographic Hotspots
+  const ac2={};caseOnly.forEach(i=>{if(i.area)ac2[i.area]=(ac2[i.area]||0)+1;});
+  const topAreas=Object.entries(ac2).sort((a,b)=>b[1]-a[1]);
+  if(topAreas.length){
+    html+=`<div class="analysis-section">
+      <div class="analysis-title">📍 Geographic Hotspots</div>`;
+    topAreas.slice(0,5).forEach(([area,count])=>{
+      const pct=(count/caseOnly.length*100).toFixed(0);
+      html+=`<div class="analysis-item">
+        <span class="analysis-label">${esc(area)}</span>
+        <span class="analysis-value">${pct}%</span>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+
+  // Method Analysis
+  const mc={};caseOnly.forEach(i=>{if(i.method)mc[i.method]=(mc[i.method]||0)+1;});
+  const topMethods=Object.entries(mc).sort((a,b)=>b[1]-a[1]);
+  if(topMethods.length){
+    html+=`<div class="analysis-section">
+      <div class="analysis-title">⚔️ Primary Methods</div>`;
+    topMethods.forEach(([method,count])=>{
+      const pct=(count/caseOnly.length*100).toFixed(0);
+      html+=`<div class="analysis-item">
+        <span class="analysis-label">${esc(method)}</span>
+        <span class="analysis-value">${pct}%</span>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+
+  // Severity Analysis
+  const sc={};caseOnly.forEach(i=>{if(i.severity)sc[i.severity]=(sc[i.severity]||0)+1;});
+  const topSev=Object.entries(sc).sort((a,b)=>b[1]-a[1]);
+  if(topSev.length){
+    html+=`<div class="analysis-section">
+      <div class="analysis-title">☠️ Severity Distribution</div>`;
+    topSev.forEach(([sev,count])=>{
+      const pct=(count/caseOnly.length*100).toFixed(0);
+      html+=`<div class="analysis-item">
+        <span class="analysis-label">${esc(sev)}</span>
+        <span class="analysis-value">${pct}%</span>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+
+  // Temporal Analysis
+  const dayMap={'0':'Sun','1':'Mon','2':'Tue','3':'Wed','4':'Thu','5':'Fri','6':'Sat'};
+  const dc={};caseOnly.forEach(i=>{if(i.datetime){const d=new Date(i.datetime);dc[dayMap[d.getDay()]]=(dc[dayMap[d.getDay()]]||0)+1;}});
+  if(Object.keys(dc).length){
+    html+=`<div class="analysis-section">
+      <div class="analysis-title">📅 Day of Week Patterns</div>`;
+    ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(day=>{
+      if(dc[day]){
+        const pct=(dc[day]/caseOnly.length*100).toFixed(0);
+        html+=`<div class="analysis-item">
+          <span class="analysis-label">${day}</span>
+          <span class="analysis-value">${pct}%</span>
+        </div>`;
+      }
+    });
+    html+=`</div>`;
+  }
+
+  // Status Summary
+  html+=`<div class="analysis-section">
+    <div class="analysis-title">📊 Case Status</div>
+    <div class="analysis-item">
+      <span class="analysis-label">Confirmed</span>
+      <span class="analysis-value">${incidents.filter(i=>i.status==='confirmed').length}</span>
+    </div>
+    <div class="analysis-item">
+      <span class="analysis-label">Suspected</span>
+      <span class="analysis-value">${incidents.filter(i=>i.status==='suspected').length}</span>
+    </div>
+    <div class="analysis-item">
+      <span class="analysis-label">Unconfirmed</span>
+      <span class="analysis-value">${incidents.filter(i=>i.status==='unconfirmed').length}</span>
+    </div>
+    <div class="analysis-item">
+      <span class="analysis-label">Suspect Sightings</span>
+      <span class="analysis-value">${incidents.filter(i=>i.status==='sighted').length}</span>
+    </div>
+  </div>`;
+
+  el.innerHTML=html;
 }
 
 // ── Detail ──
@@ -3498,11 +3628,12 @@ document.addEventListener('click',e=>{
 
 // ── Tabs ──
 function switchTab(name){
-  const ns=['inc','timeline','stats'];
+  const ns=['inc','timeline','stats','analysis'];
   document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',ns[i]===name));
   document.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
   document.getElementById('pane-'+name).classList.add('active');
   if(name==='timeline')renderTimeline();
+  if(name==='analysis')renderAnalysis();
 }
 
 // ── Timeline ──
