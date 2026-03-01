@@ -976,7 +976,16 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
   <img id="lightboxImg" src="" alt="Full size image">
 </div>
 
-
+<!-- Street View Modal -->
+<div class="overlay" id="streetViewOverlay" style="z-index:999;">
+  <div style="width:90vw;max-width:900px;height:80vh;background:var(--surface);border:1px solid var(--border);border-radius:8px;display:flex;flex-direction:column;position:relative;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:16px 18px;border-bottom:1px solid var(--border);flex-shrink:0;">
+      <div style="font-size:15px;font-weight:800;">Street View</div>
+      <button onclick="closeStreetView()" style="background:var(--surface2);border:1px solid var(--border);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);font-size:12px;">✕</button>
+    </div>
+    <div id="streetViewContainer" style="flex:1;overflow:hidden;border-radius:8px;"></div>
+  </div>
+</div>
 
 <!-- COMPARISON SELECTOR MODAL -->
 <div class="overlay" id="comparisonSelectorOverlay">
@@ -1379,6 +1388,36 @@ function openLightbox(imageSrc){
 
 function closeLightbox(){
   document.getElementById('lightbox').classList.remove('open');
+}
+
+// Google Street View functions
+function openStreetView(lat,lng){
+  const apiKey='YOUR_GOOGLE_MAPS_API_KEY'; // Replace with your API key
+  if(apiKey==='YOUR_GOOGLE_MAPS_API_KEY'){
+    showToast('⚠️ Street View API key not configured','var(--accent)');
+    return;
+  }
+  const container=document.getElementById('streetViewContainer');
+  container.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:var(--surface2)"><div style="text-align:center;color:var(--text-muted)"><div style="font-size:48px;margin-bottom:12px">🛣️</div><div>Loading Street View...</div></div></div>';
+
+  // Load Google Maps API script if not already loaded
+  if(!window.google){
+    const script=document.createElement('script');
+    script.src=`https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=streetview`;
+    script.onload=()=>renderStreetView(lat,lng,container,apiKey);
+    document.head.appendChild(script);
+  }else{
+    renderStreetView(lat,lng,container,apiKey);
+  }
+  document.getElementById('streetViewOverlay').classList.add('open');
+}
+function renderStreetView(lat,lng,container,apiKey){
+  container.innerHTML='';
+  const panorama=new google.maps.StreetViewPanorama(container,{position:{lat,lng},pov:{heading:0,pitch:0},zoom:1});
+}
+function closeStreetView(){
+  document.getElementById('streetViewOverlay').classList.remove('open');
+  document.getElementById('streetViewContainer').innerHTML='';
 }
 
 // ═══════════════════════════════════════════
@@ -3401,7 +3440,8 @@ function showDetail(id){
   // Update photo display to open lightbox instead of new window - using safe event delegation
   const photos=inc.photos&&inc.photos.length?`<div class="dfield"><div class="dlabel">Photos</div><div class="dval"><div class="dphotos" data-incident-id="${esc(id)}">${inc.photos.map((p,idx)=>`<img src="${p.data}" title="${esc(p.name)}" class="photo-thumbnail" data-photo-index="${idx}">`).join('')}</div></div></div>`:'';
   const flyBtn=(!isNaN(lat)&&!isNaN(lng))?`<button class="btn btn-ghost btn-sm" onclick="flyTo('${id.replace(/'/g,"\\'")}')" style="margin-top:12px">📍 Show on Map</button>`:'';
-  document.getElementById('detailBody').innerHTML=fields.map(([l,v])=>`<div class="dfield"><div class="dlabel">${l}</div><div class="dval">${v}</div></div>`).join('')+photos+`<div style="text-align:center">${flyBtn}</div>`;
+  const streetViewBtn=(!isNaN(lat)&&!isNaN(lng))?`<button class="btn btn-ghost btn-sm" onclick="openStreetView(${lat},${lng})" style="margin-top:12px;margin-left:8px">🛣️ Street View</button>`:'';
+  document.getElementById('detailBody').innerHTML=fields.map(([l,v])=>`<div class="dfield"><div class="dlabel">${l}</div><div class="dval">${v}</div></div>`).join('')+photos+`<div style="text-align:center">${flyBtn}${streetViewBtn}</div>`;
   
   // Add Edit button handler
   document.getElementById('editBtn').onclick=()=>{
