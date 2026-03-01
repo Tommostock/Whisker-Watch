@@ -239,6 +239,32 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
 .empty{padding:36px 20px;text-align:center;color:var(--text-dim);}
 .empty-icon{font-size:28px;margin-bottom:10px;}
 .empty-txt{font-family:'Space Mono',monospace;font-size:10px;line-height:1.8;}
+
+/* ── RESPONSIVE HEADER CLEANUP (Desktop) ── */
+@media(max-width:1400px){
+  /* At 1400px and below: Hide creator/Spektator attribution */
+  .logo-sub .creator,.logo-sub .divider,.logo-sub .name{display:none;}
+}
+@media(max-width:1200px){
+  /* At 1200px and below: Hide SLAIN subtitle entirely */
+  .logo-sub{display:none;}
+  /* Reduce logo icon size slightly */
+  .logo-icon{width:40px;height:40px;}
+}
+@media(max-width:1024px){
+  /* At 1024px and below: Hide some stat pills for more breathing room */
+  .hdr-right{gap:8px;}
+  .stat-pill:nth-child(4),.stat-pill:nth-child(5){display:none;} /* Hide Suspected and Confirmed pills */
+}
+@media(max-width:900px){
+  /* At 900px and below: Hide more stat pills, keep only dbStatus and Total */
+  .stat-pill:nth-child(3),.stat-pill:nth-child(4),.stat-pill:nth-child(5){display:none;} /* Hide Unconfirmed, Suspected, Confirmed */
+}
+@media(max-width:800px){
+  /* At 800px and below: Hide Login button to save space */
+  .hdr-right .btn-ghost[onclick="handleLogin()"]{display:none;}
+}
+
 @media(max-width:768px){
   /* ── MOBILE LAYOUT OPTIMIZATION ── */
   .sidebar{position:absolute;left:0;top:64px;bottom:0;width:90%;max-width:300px;transform:translateX(-105%);transition:transform .28s;}
