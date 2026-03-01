@@ -998,9 +998,9 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
         </div>
       </div>
     </div>
-    <div class="modal-ftr">
-      <button class="btn btn-ghost" onclick="closeImportModal()">Cancel</button>
-      <button class="btn btn-primary" id="importButton" onclick="confirmImport()" disabled>Import</button>
+    <div class="modal-ftr" style="display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn btn-ghost" onclick="closeImportModal()" style="display:inline-block;">Cancel</button>
+      <button class="btn btn-primary" id="importButton" onclick="confirmImport()" disabled style="display:inline-block;">📥 Import</button>
     </div>
   </div>
 </div>
@@ -2044,17 +2044,24 @@ let importDuplicates=[];
 let importDuplicateActions={};
 
 function openImportModal(){
-  document.getElementById('importOverlay').style.display='flex';
+  const overlay=document.getElementById('importOverlay');
+  overlay.style.display='flex';
+  overlay.classList.add('open');
   document.getElementById('jsonFileInput').value='';
   document.getElementById('csvFileInput').value='';
   document.getElementById('jsonPreview').style.display='none';
   document.getElementById('csvPreview').style.display='none';
   document.getElementById('importButton').disabled=true;
+  document.getElementById('importButton').style.display='flex';
   importData=null;
+  console.log('Import modal opened');
 }
 function closeImportModal(){
-  document.getElementById('importOverlay').style.display='none';
+  const overlay=document.getElementById('importOverlay');
+  overlay.style.display='none';
+  overlay.classList.remove('open');
   importData=null;
+  console.log('Import modal closed');
 }
 function switchImportTab(tab){
   document.querySelectorAll('.import-tab').forEach(t=>t.classList.remove('active'));
