@@ -1601,8 +1601,8 @@ function renderPin(layer,inc,x,y,cols){
     background:${c};border:2px solid rgba(255,255,255,.85);border-radius:50% 50% 50% 0;
     transform:rotate(-45deg);box-shadow:0 0 10px ${c}99,0 2px 6px rgba(0,0,0,.7);
     cursor:pointer;pointer-events:none;transition:transform .12s;z-index:10;`;
-  pin.addEventListener('mouseenter',()=>{pin.style.transform='rotate(-45deg) scale(1.35)';});
-  pin.addEventListener('mouseleave',()=>{pin.style.transform='rotate(-45deg)';});
+  pin.addEventListener('mouseenter',()=>{pin.style.transform='rotate(-45deg) scale(1.35)';highlightCard(inc.id);});
+  pin.addEventListener('mouseleave',()=>{pin.style.transform='rotate(-45deg)';unhighlightCard(inc.id);});
   layer.appendChild(pin);
 }
 
@@ -1616,6 +1616,18 @@ function highlightPin(incidentId){
 function unhighlightPin(incidentId){
   const pin=document.querySelector(`.pin[data-inc-id="${incidentId}"]`);
   if(pin) pin.classList.remove('highlighted');
+}
+
+// Highlight incident card when pin is hovered
+function highlightCard(incidentId){
+  const card=document.querySelector(`.inc-card[data-incident-id="${incidentId}"]`);
+  if(card) card.style.backgroundColor='var(--border)';
+}
+
+// Unhighlight incident card when pin is unhovered
+function unhighlightCard(incidentId){
+  const card=document.querySelector(`.inc-card[data-incident-id="${incidentId}"]`);
+  if(card) card.style.backgroundColor='';
 }
 
 // ── Heatmap ──
