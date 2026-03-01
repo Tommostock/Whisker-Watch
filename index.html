@@ -61,6 +61,10 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .hdr-right{display:flex;align-items:center;gap:10px;}
 .stat-pill{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-family:'Inter',sans-serif;font-size:12px;color:var(--text-muted);display:flex;align-items:center;gap:5px;white-space:nowrap;font-weight:500;}
 .stat-pill .n{font-weight:700;}
+/* Status toggle styling */
+.status-toggle{cursor:pointer;transition:all .15s;}
+.status-toggle.active{background:rgba(230,57,70,.1);border-color:var(--accent);color:var(--accent);}
+.status-toggle.inactive{opacity:0.5;}
 .btn{padding:9px 16px;border-radius:var(--r);border:none;cursor:pointer;font-family:'Inter',sans-serif;font-weight:500;font-size:13px;letter-spacing:0.01em;transition:all .15s;white-space:nowrap;}
 .btn-primary{background:var(--accent);color:#fff;}.btn-primary:hover{background:#c1121f;}
 .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-muted);}.btn-ghost:hover{border-color:var(--accent);color:var(--accent);}
@@ -738,9 +742,9 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
   <div class="hdr-right">
     <div class="stat-pill" id="dbStatus" title="Database connection status">📡 Connecting…</div>
     <div class="stat-pill">Total <span class="n" id="cTotal" style="color:var(--text)">0</span></div>
-    <div class="stat-pill">Unconfirmed <span class="n" id="cOpen" style="color:var(--green)">0</span></div>
-    <div class="stat-pill">Suspected <span class="n" id="cSuspected" style="color:var(--yellow)">0</span></div>
-    <div class="stat-pill">Confirmed <span class="n" id="cClosed" style="color:var(--accent)">0</span></div>
+    <div class="stat-pill status-toggle active" id="toggle-unconfirmed" onclick="toggleStatusFilter('unconfirmed')" title="Click to filter: Unconfirmed">Unconfirmed <span class="n" id="cOpen" style="color:var(--green)">0</span></div>
+    <div class="stat-pill status-toggle active" id="toggle-suspected" onclick="toggleStatusFilter('suspected')" title="Click to filter: Suspected">Suspected <span class="n" id="cSuspected" style="color:var(--yellow)">0</span></div>
+    <div class="stat-pill status-toggle active" id="toggle-confirmed" onclick="toggleStatusFilter('confirmed')" title="Click to filter: Confirmed">Confirmed <span class="n" id="cClosed" style="color:var(--accent)">0</span></div>
     <!-- TODO: Implement authentication - currently non-functional -->
     <button class="btn btn-ghost btn-sm" onclick="handleLogin()" title="Login (not yet implemented)">Login</button>
     <button class="btn-icon" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode">🌙</button>
@@ -1537,6 +1541,8 @@ function drawPins(){
   const visible=incidents.filter(inc=>{
     const lat=+inc.lat,lng=+inc.lng;
     if(isNaN(lat)||isNaN(lng))return false;
+    // Filter by status filter (always show 'sighted' incidents since they don't have a toggle)
+    if(inc.status!=='sighted'&&!mapStatusFilter[inc.status])return false;
     const {x,y}=ll2px(lat,lng);
     return x>-20&&x<mapC.width+20&&y>-20&&y<mapC.height+20;
   });
@@ -2018,6 +2024,16 @@ function toggleSidebar(){
   else{sb.classList.toggle('collapsed',!sbOpen);sb.classList.remove('mob-open');}
   setTimeout(resizeCvs,300);
 }
+// Toggle status filter for map display
+function toggleStatusFilter(status){
+  mapStatusFilter[status]=!mapStatusFilter[status];
+  const btn=document.getElementById(`toggle-${status}`);
+  if(btn){
+    btn.classList.toggle('active',mapStatusFilter[status]);
+    btn.classList.toggle('inactive',!mapStatusFilter[status]);
+  }
+  drawPins();
+}
 function resizeCvs(){
   const wrap=document.getElementById('mapWrap');
   const W=wrap.clientWidth,H=wrap.clientHeight;
@@ -2036,6 +2052,7 @@ let filters={status:'',method:'',area:''};
 let storedPhotos=[],currentDetailId=null,confirmResolve=null;
 let editingIncidentId=null; // Track which incident we're editing
 let currentGeocodingRequestId=null; // Track current geocoding request to prevent race conditions
+let mapStatusFilter={unconfirmed:true,suspected:true,confirmed:true}; // Track which statuses are enabled on map
 
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
