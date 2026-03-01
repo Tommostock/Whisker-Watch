@@ -116,6 +116,8 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .inc-card.s-confirmed::before{background:var(--accent);}
 .inc-card.s-sighted::before{background:var(--blue);}
 .inc-card:hover{border-color:var(--accent);transform:translateX(2px);}
+/* Card highlight from pin hover */
+.inc-card.card-highlighted{background:var(--border);}
 /* Pin highlight from incident hover */
 .pin.highlighted{transform:rotate(-45deg) scale(1.5) !important;}
 .card-hdr{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:4px;gap:6px;}
@@ -1621,13 +1623,13 @@ function unhighlightPin(incidentId){
 // Highlight incident card when pin is hovered
 function highlightCard(incidentId){
   const card=document.querySelector(`.inc-card[data-incident-id="${incidentId}"]`);
-  if(card) card.style.backgroundColor='var(--border)';
+  if(card) card.classList.add('card-highlighted');
 }
 
 // Unhighlight incident card when pin is unhovered
 function unhighlightCard(incidentId){
   const card=document.querySelector(`.inc-card[data-incident-id="${incidentId}"]`);
-  if(card) card.style.backgroundColor='';
+  if(card) card.classList.remove('card-highlighted');
 }
 
 // ── Heatmap ──
