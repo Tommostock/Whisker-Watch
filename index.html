@@ -747,6 +747,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     <div class="stat-pill status-toggle active" id="toggle-confirmed" onclick="toggleStatusFilter('confirmed')" title="Click to filter: Confirmed">Confirmed <span class="n" id="cClosed" style="color:var(--accent)">0</span></div>
     <div class="stat-pill status-toggle active" id="toggle-suspected" onclick="toggleStatusFilter('suspected')" title="Click to filter: Suspected">Suspected <span class="n" id="cSuspected" style="color:var(--yellow)">0</span></div>
     <div class="stat-pill status-toggle active" id="toggle-unconfirmed" onclick="toggleStatusFilter('unconfirmed')" title="Click to filter: Unconfirmed">Unconfirmed <span class="n" id="cOpen" style="color:var(--green)">0</span></div>
+    <div class="stat-pill status-toggle active" id="toggle-sighted" onclick="toggleStatusFilter('sighted')" title="Click to filter: Suspect Sighted">Suspects <span class="n" id="cSighted" style="color:var(--blue)">0</span></div>
     <!-- TODO: Implement authentication - currently non-functional -->
     <button class="btn btn-ghost btn-sm" onclick="handleLogin()" title="Login (not yet implemented)">Login</button>
     <button class="btn btn-ghost btn-sm" onclick="openImportModal()" title="Import incidents from CSV or JSON">📥 Import</button>
@@ -1543,8 +1544,8 @@ function drawPins(){
   const visible=incidents.filter(inc=>{
     const lat=+inc.lat,lng=+inc.lng;
     if(isNaN(lat)||isNaN(lng))return false;
-    // Filter by status filter (always show 'sighted' incidents since they don't have a toggle)
-    if(inc.status!=='sighted'&&!mapStatusFilter[inc.status])return false;
+    // Filter by status filter
+    if(!mapStatusFilter[inc.status])return false;
     const {x,y}=ll2px(lat,lng);
     return x>-20&&x<mapC.width+20&&y>-20&&y<mapC.height+20;
   });
@@ -2069,7 +2070,7 @@ let filters={status:'',method:'',area:''};
 let storedPhotos=[],currentDetailId=null,confirmResolve=null;
 let editingIncidentId=null; // Track which incident we're editing
 let currentGeocodingRequestId=null; // Track current geocoding request to prevent race conditions
-let mapStatusFilter={unconfirmed:true,suspected:true,confirmed:true}; // Track which statuses are enabled on map
+let mapStatusFilter={unconfirmed:true,suspected:true,confirmed:true,sighted:true}; // Track which statuses are enabled on map
 
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
@@ -3115,7 +3116,7 @@ function getFiltered(){
 
 // ── Render ──
 function renderAll(){renderList();updateCounts();updateAreaFilter();renderStats();renderAnalysis();drawPins();if(showHeat)drawHeat();}
-function updateCounts(){document.getElementById('cTotal').textContent=incidents.length;document.getElementById('cOpen').textContent=incidents.filter(i=>i.status==='unconfirmed').length;document.getElementById('cSuspected').textContent=incidents.filter(i=>i.status==='suspected').length;document.getElementById('cClosed').textContent=incidents.filter(i=>i.status==='confirmed').length;}
+function updateCounts(){document.getElementById('cTotal').textContent=incidents.length;document.getElementById('cOpen').textContent=incidents.filter(i=>i.status==='unconfirmed').length;document.getElementById('cSuspected').textContent=incidents.filter(i=>i.status==='suspected').length;document.getElementById('cClosed').textContent=incidents.filter(i=>i.status==='confirmed').length;document.getElementById('cSighted').textContent=incidents.filter(i=>i.status==='sighted').length;}
 function updateAreaFilter(){
   const areas=[...new Set(incidents.map(i=>i.area).filter(a=>a&&a!=='Unknown'))].sort();
   const sel=document.getElementById('fArea');const cur=sel.value;
