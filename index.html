@@ -721,6 +721,8 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
 .ai-section-btn:hover{background:rgba(230,57,70,.05);}
 .ai-section-btn span{font-size:18px;flex-shrink:0;}
 .ai-section-btn .ai-btn-label{flex:1;}
+.ai-chevron{font-size:14px;color:var(--text-muted);transition:transform .2s;flex-shrink:0;}
+.ai-section-btn.open .ai-chevron{transform:rotate(180deg);}
 .ai-btn-sub{font-size:10px;color:var(--text-muted);font-weight:400;margin-top:2px;}
 .ai-output{display:none;padding:10px 12px;border-top:1px solid var(--border);font-size:12px;line-height:1.75;color:var(--text);white-space:pre-wrap;word-break:break-word;}
 .ai-output.visible{display:block;}
@@ -851,32 +853,35 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     <div class="tab-pane" id="pane-ai">
       <div class="ai-wrap">
         <div class="ai-section">
-          <button class="ai-section-btn" onclick="generateBriefing()">
+          <button class="ai-section-btn" id="btnBriefing" onclick="toggleAiSection('aiBriefingOutput','btnBriefing',generateBriefing)">
             <span>🔍</span>
             <div class="ai-btn-label">
               <div>Investigation Briefing</div>
               <div class="ai-btn-sub">Narrative summary, patterns &amp; suspect profile</div>
             </div>
+            <span class="ai-chevron">▾</span>
           </button>
           <div class="ai-output" id="aiBriefingOutput"></div>
         </div>
         <div class="ai-section">
-          <button class="ai-section-btn" onclick="generateAlerts()">
+          <button class="ai-section-btn" id="btnAlerts" onclick="toggleAiSection('aiAlertsOutput','btnAlerts',generateAlerts)">
             <span>⚡</span>
             <div class="ai-btn-label">
               <div>Pattern Alerts</div>
               <div class="ai-btn-sub">Escalation, clusters &amp; anomalies</div>
             </div>
+            <span class="ai-chevron">▾</span>
           </button>
           <div class="ai-output" id="aiAlertsOutput"></div>
         </div>
         <div class="ai-section">
-          <button class="ai-section-btn" onclick="generatePriorityZones()">
+          <button class="ai-section-btn" id="btnZones" onclick="toggleAiSection('aiZonesOutput','btnZones',generatePriorityZones)">
             <span>📍</span>
             <div class="ai-btn-label">
               <div>Priority Zones</div>
               <div class="ai-btn-sub">Risk-ranked areas for surveillance</div>
             </div>
+            <span class="ai-chevron">▾</span>
           </button>
           <div class="ai-output" id="aiZonesOutput"></div>
         </div>
@@ -3780,6 +3785,18 @@ function loadSamples(){
 // ═══════════════════════════════════════════
 //  AI INSIGHTS — CLIENT-SIDE ANALYSIS ENGINE
 // ═══════════════════════════════════════════
+
+function toggleAiSection(outputId, btnId, generateFn){
+  const el=document.getElementById(outputId);
+  const btn=document.getElementById(btnId);
+  if(el.classList.contains('visible')){
+    el.classList.remove('visible');
+    btn.classList.remove('open');
+  } else {
+    generateFn();
+    btn.classList.add('open');
+  }
+}
 
 // Haversine distance between two lat/lng points, returns km
 function haversineKm(lat1,lng1,lat2,lng2){
