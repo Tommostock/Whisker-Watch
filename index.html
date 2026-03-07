@@ -713,10 +713,10 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
 /* ═══════════════════════════════════════════
    AI INSIGHTS TAB
 ═══════════════════════════════════════════ */
-.ai-wrap{flex:1;overflow-y:auto;padding:10px;display:flex;flex-direction:column;gap:8px;min-height:0;}
+.ai-wrap{flex:1;overflow-y:auto;overflow-x:hidden;padding:10px;display:block;min-height:0;}
 .ai-wrap::-webkit-scrollbar{width:5px;}
 .ai-wrap::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
-.ai-section{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;}
+.ai-section{background:var(--surface2);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:8px;}
 .ai-section-btn{width:100%;padding:11px 12px;background:transparent;border:none;color:var(--text);font-family:'Inter',sans-serif;font-size:12px;font-weight:600;cursor:pointer;text-align:left;transition:background .15s;display:flex;align-items:center;gap:10px;}
 .ai-section-btn:hover{background:rgba(230,57,70,.05);}
 .ai-section-btn span{font-size:18px;flex-shrink:0;}
