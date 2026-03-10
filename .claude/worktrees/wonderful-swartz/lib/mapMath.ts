@@ -142,8 +142,8 @@ export function getTilesToLoad(
   );
 
   // Get tile range
-  const minTile = getTileCoords(bottomRight.lat, topLeft.lng, z);
-  const maxTile = getTileCoords(topLeft.lat, bottomRight.lng, z);
+  const minTile = getTileCoords(topLeft.lat, topLeft.lng, z);
+  const maxTile = getTileCoords(bottomRight.lat, bottomRight.lng, z);
 
   // Iterate through tile grid
   for (let y = Math.max(0, minTile.y); y <= maxTile.y; y++) {
