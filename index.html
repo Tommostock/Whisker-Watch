@@ -7,8 +7,12 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#080a0d">
 <title>Whisker Watch — SLAIN Network</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" onload="this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet"></noscript>
 <!-- Supabase Client -->
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
 <script async src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 @font-face {
@@ -796,7 +800,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
         <div class="search-drop" id="searchDrop"></div>
       </div>
       <div class="inc-search-wrap">
-        <input class="inc-search-input" id="incSearch" type="text" placeholder="🔍  Filter incidents by name, address, notes…" autocomplete="off" oninput="renderList()">
+        <input class="inc-search-input" id="incSearch" type="text" placeholder="🔍  Filter incidents by name, address, notes…" autocomplete="off" oninput="clearTimeout(_srchTimer);_srchTimer=setTimeout(renderList,200)">
       </div>
       <div class="filter-bar">
         <select class="filter-sel" id="fStatus" onchange="applyFilters()">
@@ -1381,6 +1385,7 @@ function convertDBIncidents(dbIncidents) {
     createdAt: db.created_at,
     updatedAt: db.updated_at
   }));
+  searchIndex.clear();incidents.forEach(_indexIncident);_invalidateCache();
 }
 
 // ═══════════════════════════════════════════
@@ -1685,6 +1690,9 @@ function unhighlightPin(incidentId){
 // ── Heatmap ──
 function drawHeat(){
   const W=heatC.width,H=heatC.height;
+  const _hk=`${ms.zoom}|${Math.round(ms.lat*500)}|${Math.round(ms.lng*500)}|${incidents.length}`;
+  if(_hk===_heatKey)return;
+  _heatKey=_hk;
   hctx.clearRect(0,0,W,H);
   if(!incidents.length) return;
   const r=Math.max(24,Math.min(70,ms.zoom*4.5));
@@ -2122,6 +2130,11 @@ let storedPhotos=[],currentDetailId=null,confirmResolve=null;
 let editingIncidentId=null; // Track which incident we're editing
 let currentGeocodingRequestId=null; // Track current geocoding request to prevent race conditions
 let mapStatusFilter={unconfirmed:true,suspected:true,confirmed:true,sighted:true}; // Track which statuses are enabled on map
+let _filteredCache=null,_srchTimer=null; // Performance: filter result cache + search debounce timer
+let _heatKey=null; // Performance: heatmap cache key
+const searchIndex=new Map(); // Performance: pre-lowercased searchable strings per incident
+function _indexIncident(inc){searchIndex.set(inc.id,[inc.id,inc.address,inc.catName,inc.animalType,inc.animalDesc,inc.notes,inc.witnessName,inc.witnessStatement,inc.sightedDesc,inc.method,inc.severity,inc.area].filter(Boolean).join(' ').toLowerCase());}
+function _invalidateCache(){_filteredCache=null;_heatKey=null;}
 
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
@@ -2164,7 +2177,7 @@ async function loadData(){
   try{
     const local = JSON.parse(localStorage.getItem('lckData')||'[]');
     if(local.length > 0){
-      incidents = local;
+      incidents = local;searchIndex.clear();incidents.forEach(_indexIncident);_invalidateCache();
       // Sync local data to database
       if(dbConnected && supabaseClient){
         for(const inc of local){
@@ -3109,7 +3122,7 @@ function doSave(addr,lat,lng,dt){
     // Edit existing incident
     const idx=incidents.findIndex(i=>i.id===editingIncidentId);
     if(idx!==-1){
-      incidents[idx]={...incidents[idx],...incidentData,updatedAt:new Date().toISOString()};
+      incidents[idx]={...incidents[idx],...incidentData,updatedAt:new Date().toISOString()};_indexIncident(incidents[idx]);_invalidateCache();
       saveData();closeReport();renderAll();
       showToast('Incident '+editingIncidentId+' updated');
       ms.lat=incidentData.lat;ms.lng=incidentData.lng;ms.zoom=Math.max(ms.zoom,13);sched();
@@ -3117,7 +3130,7 @@ function doSave(addr,lat,lng,dt){
   }else{
     // Create new incident with sequential ID
     const id=getNextIncidentId();
-    incidents.push({id,...incidentData,createdAt:new Date().toISOString()});
+    const _newInc={id,...incidentData,createdAt:new Date().toISOString()};incidents.push(_newInc);_indexIncident(_newInc);_invalidateCache();
     saveData();closeReport();renderAll();
     showToast('Incident '+id+' logged');
     ms.lat=incidentData.lat;ms.lng=incidentData.lng;ms.zoom=Math.max(ms.zoom,13);sched();
@@ -3137,12 +3150,13 @@ function setSort(f,el){
   renderAll();
 }
 function getFiltered(){
+  if(_filteredCache)return _filteredCache;
   let d=[...incidents];
   if(filters.status)d=d.filter(i=>i.status===filters.status);
   if(filters.method)d=d.filter(i=>i.method===filters.method);
   if(filters.area)d=d.filter(i=>i.area===filters.area);
   const q=(document.getElementById('incSearch')?.value||'').trim().toLowerCase();
-  if(q){d=d.filter(i=>[i.id,i.address,i.catName,i.animalType,i.animalDesc,i.notes,i.witnessName,i.witnessStatement,i.sightedDesc,i.method,i.severity,i.area].some(v=>v&&String(v).toLowerCase().includes(q)));}
+  if(q){d=d.filter(i=>{const s=searchIndex.get(i.id);return s?s.includes(q):[i.id,i.address,i.catName,i.animalType,i.animalDesc,i.notes,i.witnessName,i.witnessStatement,i.sightedDesc,i.method,i.severity,i.area].some(v=>v&&String(v).toLowerCase().includes(q));});}
   d.sort((a,b)=>{
     let av,bv;
     if(sortField==='date'){
@@ -3162,11 +3176,14 @@ function getFiltered(){
       return av<bv?sortDir:av>bv?-sortDir:0;
     }
   });
+  _filteredCache=d;
   return d;
 }
 
 // ── Render ──
-function renderAll(){renderList();updateCounts();updateAreaFilter();renderStats();renderAnalysis();drawPins();if(showHeat)drawHeat();}
+let _renderTimer=null;
+function renderAll(){clearTimeout(_renderTimer);_renderTimer=setTimeout(()=>requestAnimationFrame(_doRenderAll),100);}
+function _doRenderAll(){renderList();updateCounts();updateAreaFilter();renderStats();renderAnalysis();drawPins();if(showHeat)drawHeat();}
 function updateCounts(){document.getElementById('cTotal').textContent=incidents.length;document.getElementById('cOpen').textContent=incidents.filter(i=>i.status==='unconfirmed').length;document.getElementById('cSuspected').textContent=incidents.filter(i=>i.status==='suspected').length;document.getElementById('cClosed').textContent=incidents.filter(i=>i.status==='confirmed').length;document.getElementById('cSighted').textContent=incidents.filter(i=>i.status==='sighted').length;}
 function updateAreaFilter(){
   const areas=[...new Set(incidents.map(i=>i.area).filter(a=>a&&a!=='Unknown'))].sort();
@@ -3523,7 +3540,7 @@ document.getElementById('deleteBtn').addEventListener('click',async()=>{
   if(!currentDetailId)return;
   if(!await new Promise(r=>{confirmResolve=r;document.getElementById('confirmOverlay').classList.add('open');}))return;
   const idToDelete = currentDetailId;
-  incidents=incidents.filter(i=>i.id!==idToDelete);
+  incidents=incidents.filter(i=>i.id!==idToDelete);searchIndex.delete(idToDelete);_invalidateCache();
   saveData();
   // Also delete from database if available
   if(dbConnected && supabaseClient){
@@ -3783,6 +3800,7 @@ function loadSamples(){
     {id:'INC-DEMO7',address:'Catford, Lewisham',area:'Lewisham',lat:51.4451,lng:-0.0194,datetime:'2025-01-12T22:00:00+00:00',status:'sighted',animalType:'Domestic Cat',catName:'Bella',animalDesc:'Tortoiseshell, female',age:'12',sex:'Spayed Female',method:'Strangulation',severity:'Fatal',notes:'Only strangulation case. Suspect description circulated locally.',witnessName:'T. Okonkwo',witnessContact:'07700900003',witnessStatement:'Man in dark clothing near bins ~22:00.',photos:[],createdAt:'2025-01-12T23:15:00Z'},
     {id:'INC-DEMO8',address:'Peckham, Southwark',area:'Southwark',lat:51.4729,lng:-0.0694,datetime:'2025-01-22T20:45:00+00:00',status:'unconfirmed',animalType:'Domestic Cat',catName:'Oscar',animalDesc:'Siamese mix',age:'6',sex:'Neutered Male',method:'Accident',severity:'Fatal',notes:'Fell from third-floor balcony.',witnessName:'',witnessContact:'',witnessStatement:'',photos:[],createdAt:'2025-01-22T21:30:00Z'},
   ];
+  searchIndex.clear();incidents.forEach(_indexIncident);_invalidateCache();
   saveData();
 }
 
