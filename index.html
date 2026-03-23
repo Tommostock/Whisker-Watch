@@ -777,28 +777,6 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
 .linked-item:hover{border-color:#a78bfa;}
 .linked-item-id{font-family:'Space Mono',monospace;font-size:10px;color:#a78bfa;font-weight:700;flex-shrink:0;}
 .linked-item-info{flex:1;color:var(--text-muted);font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
-
-/* Help System */
-.help-btn{position:fixed;bottom:18px;left:18px;z-index:150;width:40px;height:40px;border-radius:50%;background:var(--surface2);border:1px solid var(--border);color:var(--text-muted);font-family:'Inter',sans-serif;font-size:18px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.3);}
-.help-btn:hover{border-color:var(--accent);color:var(--accent);transform:scale(1.05);}
-@keyframes helpPulse{0%{box-shadow:0 0 0 0 rgba(230,57,70,.5)}70%{box-shadow:0 0 0 10px rgba(230,57,70,0)}100%{box-shadow:0 0 0 0 rgba(230,57,70,0)}}
-.help-btn.help-pulse{animation:helpPulse 2s ease-in-out infinite;}
-.help-drawer{position:fixed;bottom:0;left:0;z-index:160;width:100%;max-width:420px;max-height:55vh;background:var(--surface);border:1px solid var(--border);border-bottom:none;border-radius:12px 12px 0 0;box-shadow:0 -4px 24px rgba(0,0,0,.4);transform:translateY(100%);opacity:0;pointer-events:none;transition:transform .3s cubic-bezier(.175,.885,.32,1.275),opacity .2s;display:flex;flex-direction:column;}
-.help-drawer.open{transform:translateY(0);opacity:1;pointer-events:auto;}
-.help-drawer-hdr{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
-.help-drawer-title{font-size:14px;font-weight:700;color:var(--text);display:flex;align-items:center;gap:8px;}
-.help-drawer-x{width:28px;height:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);font-size:16px;border-radius:4px;transition:all .15s;}
-.help-drawer-x:hover{color:var(--accent);background:rgba(230,57,70,.08);}
-.help-drawer-body{flex:1;overflow-y:auto;padding:8px 12px 16px;min-height:0;}
-.help-drawer-body::-webkit-scrollbar{width:4px;}
-.help-drawer-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
-.help-item{display:flex;gap:10px;padding:10px;border-radius:6px;transition:background .15s;}
-.help-item:hover{background:var(--surface2);}
-.help-item-icon{font-size:20px;flex-shrink:0;width:28px;text-align:center;line-height:1.2;}
-.help-item-text{flex:1;min-width:0;}
-.help-item-heading{font-size:12px;font-weight:600;color:var(--text);margin-bottom:2px;}
-.help-item-desc{font-size:11px;color:var(--text-muted);line-height:1.5;}
-@media(max-width:768px){.help-drawer{max-width:100%;max-height:60vh;}.help-btn{bottom:12px;left:12px;width:36px;height:36px;font-size:16px;}}
 </style>
 </head>
 <body>
@@ -991,16 +969,6 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     <div class="attr">© OpenStreetMap contributors © CARTO</div>
     <div class="radius-results" id="radiusResults" style="display:none"></div>
   </div>
-</div>
-
-<!-- HELP SYSTEM -->
-<button class="help-btn" id="helpBtn" onclick="toggleHelp()" title="Help">?</button>
-<div class="help-drawer" id="helpDrawer">
-  <div class="help-drawer-hdr">
-    <div class="help-drawer-title" id="helpTitle">Help</div>
-    <div class="help-drawer-x" onclick="toggleHelp()">✕</div>
-  </div>
-  <div class="help-drawer-body" id="helpBody"></div>
 </div>
 
 <!-- REPORT PANEL (side panel — no overlay backdrop) -->
@@ -4597,155 +4565,6 @@ function renderLinkedIncidents(inc){
     return`<div class="linked-item" onclick="showDetail('${l.id.replace(/'/g,"\\'")}')"><span class="linked-item-id">${esc(l.id)}</span><span class="linked-item-info">${esc(title)}, ${esc(l.area||'')} (${ds})</span></div>`;
   }).join('')}</div></div></div>`;
 }
-
-// ═══════════════════════════════════════════
-//  CONTEXTUAL HELP SYSTEM
-// ═══════════════════════════════════════════
-
-const HELP_CONTENT={
-  general:{title:'Getting Started',items:[
-    {icon:'📍',heading:'Log an Incident',desc:"Click 'Log Incident +' in the top-right to record a new case. You can also click directly on the map to pin a location."},
-    {icon:'🗂',heading:'Browse Incidents',desc:'The sidebar shows all logged incidents. Use the tabs at the top to switch between different views.'},
-    {icon:'🗺',heading:'Map Controls',desc:'Toggle heatmap, markers, and satellite view using the buttons in the top-right of the map.'},
-    {icon:'🔍',heading:'Search & Filter',desc:'Use the search bar to find addresses, or the filter dropdowns to narrow by status, method, or area.'},
-    {icon:'🌙',heading:'Dark / Light Mode',desc:'Click the moon icon in the bottom-right zoom controls to switch themes.'},
-    {icon:'📤',heading:'Export & Reports',desc:'Use the Export button to download filtered data as CSV, or Report to generate a full investigation report.'}
-  ]},
-  'tab-inc':{title:'Incidents Tab',items:[
-    {icon:'🔍',heading:'Search',desc:'Type an address or postcode in the top search bar. Click 📍 to use your current location.'},
-    {icon:'🔎',heading:'Filter Incidents',desc:'Use the text filter to search by name, address, notes, or witness info. Use the dropdowns to filter by status, method, or area.'},
-    {icon:'📊',heading:'Sort',desc:'Click DATE, AREA, or STATUS to change the sort order. Click DATE again to toggle newest/oldest first.'},
-    {icon:'🏷',heading:'Status Pills',desc:'The coloured pills in the header (Confirmed, Suspected, etc.) are clickable toggles — click to show/hide that status.'},
-    {icon:'👆',heading:'Incident Cards',desc:'Click any card to view full details. Hover over a card to highlight its pin on the map.'}
-  ]},
-  'tab-timeline':{title:'Timeline Tab',items:[
-    {icon:'📅',heading:'Chronological View',desc:'Incidents displayed newest-first with colour-coded dots matching their status.'},
-    {icon:'🔽',heading:'Filters',desc:'Use the Status and Area dropdowns to narrow the timeline to specific cases.'},
-    {icon:'👆',heading:'Click to View',desc:'Click any timeline entry to open the full incident detail.'}
-  ]},
-  'tab-stats':{title:'Statistics Tab',items:[
-    {icon:'📊',heading:'Dashboard',desc:'Visual breakdown of all incidents by status, method, severity, animal type, area, and time patterns.'},
-    {icon:'🕐',heading:'Time Analysis',desc:'See when incidents happen most — by time of day and monthly trends.'},
-    {icon:'📍',heading:'Hotspot Areas',desc:'Top 10 areas ranked by incident count.'},
-    {icon:'📷',heading:'Evidence Coverage',desc:'Shows how many incidents have witness info, statements, or photos attached.'}
-  ]},
-  'tab-analysis':{title:'Analysis Tab',items:[
-    {icon:'🐱',heading:'Breakdowns',desc:'Percentage-based analysis of animals targeted, geographic hotspots, methods used, and severity distribution.'},
-    {icon:'📈',heading:'Pattern Recognition',desc:'Use this alongside the Insights tab to identify trends across your data.'}
-  ]},
-  'tab-ai':{title:'Insights Tab',items:[
-    {icon:'🔍',heading:'Investigation Briefing',desc:'Click to generate a narrative summary including patterns, suspect profile, and recommended next steps.'},
-    {icon:'⚡',heading:'Pattern Alerts',desc:'Automated detection of escalation trends, activity spikes, geographic clustering, and method consistency.'},
-    {icon:'📍',heading:'Priority Zones',desc:'Risk-scored areas ranked for surveillance priority. Based on incident count and recency.'},
-    {icon:'💡',heading:'How It Works',desc:'All analysis is computed locally from your data — nothing is sent to external servers.'}
-  ]},
-  report:{title:'Logging an Incident',items:[
-    {icon:'📍',heading:'Set Location',desc:"Type an address and click 'Find on Map', use 'My Location', or close this panel and click directly on the map to auto-fill coordinates."},
-    {icon:'📋',heading:'Required Fields',desc:'Address and Date/Time are required. All other fields are optional but help with analysis.'},
-    {icon:'🔄',heading:'Status Types',desc:'Confirmed = verified case. Suspected = likely but unverified. Unconfirmed = reported but unclear. Sighted = suspect person seen (hides animal fields, shows suspect description).'},
-    {icon:'📷',heading:'Photos',desc:'Click the photo zone to attach images. Photos are stored securely in the cloud.'}
-  ]},
-  detail:{title:'Incident Detail View',items:[
-    {icon:'✎',heading:'Edit',desc:'Click Edit to modify any field. Changes sync to the database automatically.'},
-    {icon:'⚖',heading:'Compare',desc:'Compare this incident side-by-side with another to spot similarities.'},
-    {icon:'🔗',heading:'Link',desc:"Group related incidents together as a case series (e.g. 'Croydon Cluster'). Linked incidents appear in each other's detail views."},
-    {icon:'🔍',heading:'Intel',desc:'Add investigation notes. These are timestamped and stored separately from the incident description.'},
-    {icon:'📄',heading:'Export',desc:'Generate a print-ready incident report with all details, photos, and case notes.'},
-    {icon:'🗑',heading:'Delete',desc:"Permanently removes the incident. You'll be asked to confirm."}
-  ]},
-  radius:{title:'Radius Search',items:[
-    {icon:'⊕',heading:'How It Works',desc:'Click the RADIUS button on the map, then click anywhere on the map to set the centre point. A circle appears showing all incidents within range.'},
-    {icon:'📏',heading:'Adjust Range',desc:'The default radius is 500m. Use the controls in the results panel to adjust the search distance.'},
-    {icon:'📋',heading:'Results',desc:'Matching incidents appear in a panel at the bottom, sorted by distance from the centre.'},
-    {icon:'✕',heading:'Clear',desc:'Click the RADIUS button again or press the Clear button to exit radius search mode.'}
-  ]},
-  comparison:{title:'Comparing Incidents',items:[
-    {icon:'🟢',heading:'Green = Match',desc:'Fields highlighted green have the same value in both incidents.'},
-    {icon:'🔴',heading:'Red = Different',desc:'Fields highlighted red differ between the two incidents.'},
-    {icon:'💡',heading:'What to Look For',desc:'Matching methods, similar time-of-day, nearby locations, or consistent animal descriptions may indicate a serial pattern.'}
-  ]},
-  linking:{title:'Linking Incidents',items:[
-    {icon:'🆕',heading:'Create Group',desc:"Type a name (e.g. 'Croydon Series') to create a new case series."},
-    {icon:'🔗',heading:'Join Group',desc:'Select an existing group from the dropdown to add this incident to it.'},
-    {icon:'🔓',heading:'Unlink',desc:'Click Unlink to remove this incident from its current group.'}
-  ]},
-  intel:{title:'Adding Intel',items:[
-    {icon:'📝',heading:'Case Notes',desc:'Add timestamped investigation notes to any incident. Max 500 characters per note.'},
-    {icon:'💡',heading:'What to Log',desc:'CCTV findings, witness follow-ups, police reference numbers, forensic observations, suspect sightings nearby.'}
-  ]},
-  import:{title:'Importing Data',items:[
-    {icon:'📄',heading:'JSON Import',desc:'Paste or upload a JSON file exported from another Whisker Watch instance.'},
-    {icon:'📊',heading:'CSV Import',desc:'Upload a CSV file with columns matching the incident fields (ID, address, lat, lng, etc.).'},
-    {icon:'🔄',heading:'Duplicates',desc:"If imported incidents match existing ones, you'll be asked to keep the old version, use the new one, or merge them."}
-  ]}
-};
-
-function getHelpContext(){
-  // Check modals first (highest priority)
-  const rp=document.getElementById('reportOverlay');
-  if(rp&&rp.style.display!=='none'&&rp.offsetParent!==null)return'report';
-  const overlays=[
-    {id:'comparisonOverlay',key:'comparison'},
-    {id:'linkGroupOverlay',key:'linking'},
-    {id:'intelOverlay',key:'intel'},
-    {id:'importOverlay',key:'import'},
-    {id:'detailOverlay',key:'detail'}
-  ];
-  for(const o of overlays){
-    const el=document.getElementById(o.id);
-    if(el&&(el.classList.contains('open')||el.style.display==='flex'))return o.key;
-  }
-  // Check radius mode
-  const radiusBtn=document.getElementById('btnRadius');
-  if(radiusBtn&&radiusBtn.classList.contains('on'))return'radius';
-  // Check active tab
-  const tabs=['inc','timeline','stats','analysis','ai'];
-  const tabEls=document.querySelectorAll('.tab');
-  for(let i=0;i<tabEls.length&&i<tabs.length;i++){
-    if(tabEls[i].classList.contains('active'))return'tab-'+tabs[i];
-  }
-  return'general';
-}
-
-function renderHelp(){
-  const ctx=getHelpContext();
-  const content=HELP_CONTENT[ctx]||HELP_CONTENT.general;
-  document.getElementById('helpTitle').textContent='❓ '+content.title;
-  document.getElementById('helpBody').innerHTML=content.items.map(item=>
-    `<div class="help-item"><div class="help-item-icon">${item.icon}</div><div class="help-item-text"><div class="help-item-heading">${item.heading}</div><div class="help-item-desc">${item.desc}</div></div></div>`
-  ).join('');
-}
-
-function toggleHelp(){
-  const drawer=document.getElementById('helpDrawer');
-  const btn=document.getElementById('helpBtn');
-  const isOpen=drawer.classList.contains('open');
-  if(isOpen){
-    drawer.classList.remove('open');
-  }else{
-    renderHelp();
-    drawer.classList.add('open');
-    // Remove first-visit pulse
-    if(!localStorage.getItem('helpSeen')){
-      localStorage.setItem('helpSeen','1');
-      btn.classList.remove('help-pulse');
-    }
-  }
-}
-
-// First-visit pulse
-if(!localStorage.getItem('helpSeen')){
-  document.getElementById('helpBtn').classList.add('help-pulse');
-}
-
-// Close help drawer when clicking outside
-document.addEventListener('click',e=>{
-  const drawer=document.getElementById('helpDrawer');
-  const btn=document.getElementById('helpBtn');
-  if(drawer.classList.contains('open')&&!drawer.contains(e.target)&&!btn.contains(e.target)){
-    drawer.classList.remove('open');
-  }
-});
 
 // ═══════════════════════════════════════════
 //  EXPORT & PRINT REPORTS
