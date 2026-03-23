@@ -232,7 +232,10 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
 .dlabel{font-family:'Space Mono',monospace;font-size:12px;color:var(--text-muted);width:95px;flex-shrink:0;padding-top:1px;}
 .dval{font-size:12px;flex:1;line-height:1.5;word-break:break-word;}
 .dphotos{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;}
+.dphotos .photo-wrap{position:relative;display:inline-block;}
 .dphotos img{width:60px;height:60px;object-fit:cover;border-radius:4px;border:1px solid var(--border);cursor:pointer;}
+.photo-del{position:absolute;top:-6px;right:-6px;width:18px;height:18px;background:var(--accent);color:#fff;border:none;border-radius:50%;font-size:10px;line-height:18px;text-align:center;cursor:pointer;padding:0;z-index:1;opacity:.7;transition:opacity .15s;}
+.photo-del:hover{opacity:1;}
 .stats-wrap{flex:1;overflow-y:auto;padding:14px;min-height:0;}
 .stats-wrap::-webkit-scrollbar{width:3px;}
 .stats-wrap::-webkit-scrollbar-thumb{background:var(--border);}
@@ -3106,14 +3109,24 @@ function openReport(lat,lng,incidentId){
     document.getElementById('fSightedDesc').value=inc.sightedDesc||'';
     updateFormForStatus(inc.status||'unconfirmed');
     
-    // Show existing photos
+    // Show existing photos with delete buttons
     if(inc.photos&&inc.photos.length){
       storedPhotos=[...inc.photos];
       const prev=document.getElementById('photoPrev');
-      inc.photos.forEach(p=>{
+      inc.photos.forEach((p,idx)=>{
+        const wrap=document.createElement('div');
+        wrap.style.cssText='position:relative;display:inline-block;';
         const img=document.createElement('img');
         img.src=p.data;
-        prev.appendChild(img);
+        const del=document.createElement('button');
+        del.textContent='✕';
+        del.className='photo-del';
+        del.style.display='block';
+        del.title='Remove photo';
+        del.onclick=(e)=>{e.preventDefault();e.stopPropagation();storedPhotos.splice(idx,1);openReport(null,null,editingId);};
+        wrap.appendChild(img);
+        wrap.appendChild(del);
+        prev.appendChild(wrap);
       });
     }
   }else{
@@ -3880,7 +3893,7 @@ function showDetail(id){
   if(inc.updatedAt)fields.push(['Last Edited',esc(new Date(inc.updatedAt).toLocaleString('en-GB'))]);
   
   // Update photo display to open lightbox instead of new window - using safe event delegation
-  const photos=inc.photos&&inc.photos.length?`<div class="dfield"><div class="dlabel">Photos</div><div class="dval"><div class="dphotos" data-incident-id="${esc(id)}">${inc.photos.map((p,idx)=>`<img src="${p.data}" title="${esc(p.name)}" class="photo-thumbnail" data-photo-index="${idx}">`).join('')}</div></div></div>`:'';
+  const photos=inc.photos&&inc.photos.length?`<div class="dfield"><div class="dlabel">Photos</div><div class="dval"><div class="dphotos" data-incident-id="${esc(id)}">${inc.photos.map((p,idx)=>`<div class="photo-wrap"><img src="${p.data}" title="${esc(p.name)}" class="photo-thumbnail" data-photo-index="${idx}"><button class="photo-del" data-del-index="${idx}" data-del-incident="${esc(id)}" title="Delete photo">✕</button></div>`).join('')}</div></div></div>`:'';
   const flyBtn=(!isNaN(lat)&&!isNaN(lng))?`<button class="btn btn-ghost btn-sm" onclick="flyTo('${id.replace(/'/g,"\\'")}')" style="margin-top:12px">📍 Show on Map</button>`:'';
   const linkedHtml=renderLinkedIncidents(inc);
   document.getElementById('detailBody').innerHTML=fields.map(([l,v])=>`<div class="dfield"><div class="dlabel">${l}</div><div class="dval">${v}</div></div>`).join('')+linkedHtml+photos+`<div style="text-align:center">${flyBtn}</div>`;
@@ -3903,13 +3916,36 @@ function showDetail(id){
 }
 function closeDetail(){document.getElementById('detailOverlay').classList.remove('open');currentDetailId=null;}
 
-// Safe event delegation for photo clicks - prevents XSS from inline onclick
+// Safe event delegation for photo clicks and deletes
 document.addEventListener('click',e=>{
+  // Delete photo button
+  if(e.target.classList.contains('photo-del')){
+    e.stopPropagation();
+    const idx=parseInt(e.target.dataset.delIndex);
+    const incId=e.target.dataset.delIncident;
+    deletePhoto(incId,idx);
+    return;
+  }
   if(e.target.classList.contains('photo-thumbnail')){
     openLightbox(e.target.src);
     e.stopPropagation();
   }
 });
+function deletePhoto(incidentId,photoIndex){
+  const inc=incidents.find(i=>i.id===incidentId);
+  if(!inc||!inc.photos||!inc.photos[photoIndex])return;
+  const photo=inc.photos[photoIndex];
+  // Delete from Supabase Storage if it's a cloud URL
+  if(dbConnected&&photo.data&&!photo.data.startsWith('data:')){
+    deletePhotoFromStorage(photo.data);
+  }
+  inc.photos.splice(photoIndex,1);
+  inc.updatedAt=new Date().toISOString();
+  _filteredCache=null;
+  saveData();
+  showToast('🗑 Photo deleted','var(--green)');
+  showDetail(incidentId);
+}
 // MARKER BEHAVIOR: "Show on Map" button handler
 // Closes current dialog, pans to location, shows informational popup with "View Incident" button
 // This prevents the modal-reopening loop bug
