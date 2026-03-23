@@ -1457,6 +1457,88 @@ async function deleteCaseNoteFromDB(noteId) {
   }
 }
 
+// ── Photo Storage Operations ──
+function isBase64Photo(photo){
+  return photo && photo.data && typeof photo.data === 'string' && photo.data.startsWith('data:');
+}
+
+function base64ToBlob(dataUrl){
+  const parts = dataUrl.split(',');
+  const mime = parts[0].match(/:(.*?);/)[1];
+  const binary = atob(parts[1]);
+  const arr = new Uint8Array(binary.length);
+  for(let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+  return new Blob([arr], {type: mime});
+}
+
+async function uploadPhotoToStorage(incidentId, photo){
+  if(!dbConnected || !supabaseClient) return null;
+  try{
+    const ext = (photo.name || 'photo.jpg').split('.').pop().toLowerCase() || 'jpg';
+    const path = `${incidentId}/${Date.now()}-${Math.random().toString(36).slice(2,8)}.${ext}`;
+    const blob = photo._file ? photo._file : base64ToBlob(photo.data);
+    const {error} = await supabaseClient.storage.from('incident-photos').upload(path, blob, {contentType: blob.type, upsert: false});
+    if(error) throw error;
+    const {data: urlData} = supabaseClient.storage.from('incident-photos').getPublicUrl(path);
+    console.log('✅ Photo uploaded to Storage:', path);
+    return urlData.publicUrl;
+  }catch(e){
+    console.error('Failed to upload photo to Storage:', e);
+    return null;
+  }
+}
+
+async function deletePhotoFromStorage(photoUrl){
+  if(!dbConnected || !supabaseClient || !photoUrl) return;
+  try{
+    const marker = '/object/public/incident-photos/';
+    const idx = photoUrl.indexOf(marker);
+    if(idx === -1) return;
+    const path = photoUrl.substring(idx + marker.length);
+    const {error} = await supabaseClient.storage.from('incident-photos').remove([path]);
+    if(error) throw error;
+    console.log('✅ Photo deleted from Storage:', path);
+  }catch(e){
+    console.error('Failed to delete photo from Storage:', e);
+  }
+}
+
+async function migrateBase64Photos(){
+  if(!dbConnected || !supabaseClient) return;
+  let total = 0, migrated = 0;
+  for(const inc of incidents){
+    if(!inc.photos || !inc.photos.length) continue;
+    for(const p of inc.photos){
+      if(isBase64Photo(p)) total++;
+    }
+  }
+  if(total === 0) return;
+  console.log(`📷 Migrating ${total} base64 photos to Storage...`);
+  showToast(`📷 Migrating ${total} photos...`, 'var(--blue)');
+  const dirty = new Set();
+  for(const inc of incidents){
+    if(!inc.photos || !inc.photos.length) continue;
+    for(let i = 0; i < inc.photos.length; i++){
+      if(!isBase64Photo(inc.photos[i])) continue;
+      const url = await uploadPhotoToStorage(inc.id, inc.photos[i]);
+      if(url){
+        inc.photos[i] = {name: inc.photos[i].name, data: url};
+        migrated++;
+        dirty.add(inc.id);
+      }
+    }
+  }
+  // Save migrated incidents
+  if(dirty.size > 0){
+    try{ localStorage.setItem('lckData', JSON.stringify(incidents)); }catch(e){}
+    for(const inc of incidents){
+      if(dirty.has(inc.id)) await saveIncidentToDB(inc);
+    }
+  }
+  console.log(`✅ Photo migration complete: ${migrated}/${total} migrated`);
+  if(migrated > 0) showToast(`✅ ${migrated} photos migrated to cloud storage`, 'var(--green)');
+}
+
 // Convert database format (snake_case) back to app format (camelCase)
 function convertDBIncidents(dbIncidents, notesMap) {
   incidents = dbIncidents.map(db => ({
@@ -3029,7 +3111,7 @@ function handlePhotos(input){
   storedPhotos=[];document.getElementById('photoPrev').innerHTML='';
   Array.from(input.files).forEach(f=>{
     const r=new FileReader();
-    r.onload=e=>{storedPhotos.push({name:f.name,data:e.target.result});const img=document.createElement('img');img.src=e.target.result;document.getElementById('photoPrev').appendChild(img);};
+    r.onload=e=>{storedPhotos.push({name:f.name,data:e.target.result,_file:f});const img=document.createElement('img');img.src=e.target.result;document.getElementById('photoPrev').appendChild(img);};
     r.readAsDataURL(f);
   });
 }
@@ -3204,10 +3286,23 @@ function submitReport(){
   doSave(addr||`${lat.toFixed(4)},${lng.toFixed(4)}`,lat||51.505,lng||-0.09,dt);
 }
 
-function doSave(addr,lat,lng,dt){
+async function doSave(addr,lat,lng,dt){
   const off=-new Date(dt).getTimezoneOffset();
   const tzStr=(off>=0?'+':'-')+String(Math.floor(Math.abs(off)/60)).padStart(2,'0')+':'+String(Math.abs(off)%60).padStart(2,'0');
-  
+
+  // Upload photos to Storage before saving
+  const incId = editingIncidentId || getNextIncidentId();
+  const uploadedPhotos = [];
+  for(const p of storedPhotos){
+    if(isBase64Photo(p) && dbConnected){
+      const url = await uploadPhotoToStorage(incId, p);
+      if(url){ uploadedPhotos.push({name: p.name, data: url}); }
+      else{ uploadedPhotos.push({name: p.name, data: p.data}); } // fallback to base64
+    }else{
+      uploadedPhotos.push({name: p.name, data: p.data});
+    }
+  }
+
   const incidentData={
     address:addr,area:extractArea(addr),lat,lng,
     datetime:dt+':00'+tzStr,status:document.getElementById('fStatus2').value,
@@ -3223,9 +3318,9 @@ function doSave(addr,lat,lng,dt){
     witnessContact:document.getElementById('fWitContact').value.trim(),
     witnessStatement:document.getElementById('fWitStatement').value.trim(),
     sightedDesc:document.getElementById('fSightedDesc').value.trim(),
-    photos:[...storedPhotos]
+    photos:uploadedPhotos
   };
-  
+
   if(editingIncidentId){
     // Edit existing incident
     const idx=incidents.findIndex(i=>i.id===editingIncidentId);
@@ -3237,10 +3332,9 @@ function doSave(addr,lat,lng,dt){
     }
   }else{
     // Create new incident with sequential ID
-    const id=getNextIncidentId();
-    const _newInc={id,...incidentData,createdAt:new Date().toISOString()};incidents.push(_newInc);_indexIncident(_newInc);_invalidateCache();
+    const _newInc={id:incId,...incidentData,createdAt:new Date().toISOString()};incidents.push(_newInc);_indexIncident(_newInc);_invalidateCache();
     saveData();closeReport();renderAll();
-    showToast('Incident '+id+' logged');
+    showToast('Incident '+incId+' logged');
     ms.lat=incidentData.lat;ms.lng=incidentData.lng;ms.zoom=Math.max(ms.zoom,13);sched();
   }
 }
@@ -3648,6 +3742,13 @@ document.getElementById('deleteBtn').addEventListener('click',async()=>{
   if(!currentDetailId)return;
   if(!await new Promise(r=>{confirmResolve=r;document.getElementById('confirmOverlay').classList.add('open');}))return;
   const idToDelete = currentDetailId;
+  const incToDelete = incidents.find(i=>i.id===idToDelete);
+  // Delete photos from Storage
+  if(incToDelete && incToDelete.photos && dbConnected){
+    for(const p of incToDelete.photos){
+      if(!isBase64Photo(p) && p.data) await deletePhotoFromStorage(p.data);
+    }
+  }
   incidents=incidents.filter(i=>i.id!==idToDelete);searchIndex.delete(idToDelete);_invalidateCache();
   saveData();
   // Also delete from database if available
@@ -4165,6 +4266,9 @@ function generatePriorityZones(){
   renderAll();
   resizeCvs();
   sched();
+
+  // Migrate any existing base64 photos to Supabase Storage
+  if(dbConnected) migrateBase64Photos();
 
   console.log('✅ App initialization complete');
   showToast('✅ Whisker Watch ready', 'var(--green)');
