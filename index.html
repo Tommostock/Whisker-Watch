@@ -2496,7 +2496,7 @@ new ResizeObserver(resizeCvs).observe(document.getElementById('mapWrap'));
 //  DATA
 // ═══════════════════════════════════════════
 let incidents=[];
-let sortField='date',sortDir=-1;
+let sortField='date',sortDir=1;
 let filters={status:'',method:'',area:''};
 let storedPhotos=[],currentDetailId=null,confirmResolve=null;
 let editingIncidentId=null; // Track which incident we're editing
@@ -3555,12 +3555,12 @@ async function doSave(addr,lat,lng,dt){
 function applyFilters(){filters.status=document.getElementById('fStatus').value;filters.method=document.getElementById('fMethod').value;filters.area=document.getElementById('fArea').value;_filteredCache=null;renderAll();}
 function clearFilters(){['fStatus','fMethod','fArea'].forEach(id=>document.getElementById(id).value='');filters={status:'',method:'',area:''};const s=document.getElementById('incSearch');if(s)s.value='';_filteredCache=null;renderAll();}
 function setSort(f,el){
-  if(sortField===f)sortDir*=-1;else sortDir=-1;
+  if(sortField===f)sortDir*=-1;else sortDir=1;
   sortField=f;
   const labels={date:'DATE',area:'AREA',status:'STATUS'};
   document.querySelectorAll('.sort-opt').forEach(e=>{e.classList.remove('active');e.textContent=labels[e.dataset.sort]||e.dataset.sort;});
   el.classList.add('active');
-  el.textContent=(labels[f]||f)+(sortDir===-1?' ▼':' ▲');
+  el.textContent=(labels[f]||f)+(sortDir===1?' ▼':' ▲');
   _filteredCache=null;
   renderAll();
 }
