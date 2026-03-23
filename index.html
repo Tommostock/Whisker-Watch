@@ -742,6 +742,20 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
 .ai-zone-bar{height:100%;background:var(--accent);border-radius:3px;transition:width .3s;}
 .ai-zone-score{font-family:'Space Mono',monospace;font-size:10px;color:var(--text-muted);width:28px;text-align:right;flex-shrink:0;}
 
+/* Radius Search Results */
+.radius-results{position:absolute;bottom:40px;left:50%;transform:translateX(-50%);background:var(--surface);border:1px solid var(--border);border-radius:var(--r);box-shadow:0 4px 16px rgba(0,0,0,.4);z-index:90;min-width:260px;max-width:360px;max-height:220px;overflow:hidden;display:flex;flex-direction:column;}
+.radius-header{padding:8px 12px;font-size:12px;font-weight:600;color:var(--text);display:flex;align-items:center;justify-content:space-between;gap:8px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.radius-clear{background:none;border:none;color:var(--text-muted);font-size:11px;cursor:pointer;padding:2px 6px;border-radius:3px;transition:all .15s;}
+.radius-clear:hover{color:var(--accent);background:rgba(230,57,70,.1);}
+.radius-list{overflow-y:auto;max-height:170px;padding:4px 0;}
+.radius-list::-webkit-scrollbar{width:4px;}
+.radius-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.radius-item{padding:6px 12px;font-size:12px;display:flex;align-items:center;gap:8px;cursor:pointer;transition:background .1s;}
+.radius-item:hover{background:rgba(59,130,246,.08);}
+.radius-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.radius-name{flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
+.radius-dist{font-family:'Space Mono',monospace;font-size:10px;color:var(--text-muted);flex-shrink:0;}
+
 /* Linked Groups */
 .link-badge{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;padding:2px 6px;border-radius:10px;letter-spacing:.05em;white-space:nowrap;background:rgba(139,92,246,.13);color:#a78bfa;border:1px solid rgba(139,92,246,.28);}
 .link-tag{background:rgba(139,92,246,.1);color:#a78bfa;border:1px solid rgba(139,92,246,.2);}
@@ -923,6 +937,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
       <button class="map-btn on" id="btnMarkers" onclick="toggleMarkers()">📍 MARKERS ON</button>
       <button class="map-btn" id="btnSatellite" onclick="toggleSatellite()">🛰 SATELLITE OFF</button>
       <button class="map-btn" onclick="fitAll()">⌖ FIT ALL</button>
+      <button class="map-btn" id="btnRadius" onclick="toggleRadiusMode()">⊕ RADIUS OFF</button>
     </div>
     <div class="zoom-wrap">
       <button class="zoom-btn" id="themeToggle" onclick="toggleTheme()" title="Toggle dark/light mode">🌙</button>
@@ -937,6 +952,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
       <div class="leg-row"><div class="leg-dot" style="background:var(--blue)"></div>Suspect Sighted</div>
     </div>
     <div class="attr">© OpenStreetMap contributors © CARTO</div>
+    <div class="radius-results" id="radiusResults" style="display:none"></div>
   </div>
 </div>
 
@@ -1685,6 +1701,7 @@ let ms = { lat:51.505, lng:-0.09, zoom:11 };
 let dragging=false, dragStart=null;
 let tileCache = new Map();
 let showHeat=true, showPins=true, showSatellite=false;
+let radiusMode=false, radiusCenter=null, radiusMeters=500, radiusDragging=false, radiusDragStart=null;
 let renderPending=false;
 
 // Render loop throttling for performance optimization
@@ -1818,6 +1835,7 @@ async function render(){
   });
   drawPins();
   if(showHeat)drawHeat();
+  if(radiusCenter)drawRadiusCircle();
   // Keep rendering so tiles that load late appear
   sched();
 }
@@ -2207,9 +2225,21 @@ let lastTouchTime=0;
 
 mapC.addEventListener('wheel',e=>{
   e.preventDefault();
-  markUserInteraction(); // User is zooming, keep rendering smooth
+  markUserInteraction();
   const rect=mapC.getBoundingClientRect();
   const mx=e.clientX-rect.left, my=e.clientY-rect.top;
+  // If cursor is inside radius circle, resize radius instead of zooming
+  if(radiusCenter){
+    const {x:rx,y:ry}=ll2px(radiusCenter.lat,radiusCenter.lng);
+    const pxR=metersToPixelRadius(radiusCenter.lat,radiusCenter.lng,radiusMeters);
+    if(Math.hypot(mx-rx,my-ry)<=pxR+20){
+      const factor=e.deltaY<0?1.15:0.87;
+      radiusMeters=Math.max(50,Math.min(10000,radiusMeters*factor));
+      updateRadiusResults();
+      sched();
+      return;
+    }
+  }
   const {lat:cLat,lng:cLng}=px2ll(mx,my);
   const nz=Math.max(MIN_Z,Math.min(MAX_Z,ms.zoom+(e.deltaY<0?1:-1)));
   if(nz===ms.zoom)return;
@@ -2234,9 +2264,24 @@ function isPinUnderCursor(cx,cy){
 // Mouse click handler
 mapC.addEventListener('click',e=>{
   if(Math.abs(e.clientX-(dragStart&&dragStart.x||e.clientX))>4) return;
+  if(radiusDragging){radiusDragging=false;return;} // Finished radius drag, don't process click
   markUserInteraction();
   const rect=mapC.getBoundingClientRect();
   const cx=e.clientX-rect.left, cy=e.clientY-rect.top;
+  // Radius mode: set center on click
+  if(radiusMode){
+    const {lat,lng}=px2ll(cx,cy);
+    radiusCenter={lat,lng};
+    radiusMeters=500; // default 500m
+    radiusMode=false; // exit placement mode
+    const b=document.getElementById('btnRadius');
+    b.classList.remove('on');b.textContent='⊕ RADIUS OFF';
+    mapC.style.cursor='grab';
+    updateRadiusResults();
+    sched();
+    showToast('Scroll wheel over circle to resize radius','var(--blue)');
+    return;
+  }
   // Hit-test pins first — check if click lands within 24px of any marker centre
   if(showPins){
     const hit=incidents.find(inc=>{
@@ -2286,6 +2331,112 @@ function fitAll(){
   }
   ms.zoom=v.length===1?14:z;
   closePopup();sched();
+}
+// ── Radius / Geofence Search ──
+function haversineMeters(lat1,lng1,lat2,lng2){
+  const R=6371000,toRad=d=>d*Math.PI/180;
+  const dLat=toRad(lat2-lat1),dLng=toRad(lng2-lng1);
+  const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function metersToPixelRadius(lat,lng,meters){
+  // Calculate pixel distance for given meters at current zoom
+  const latOffset=meters/111320; // approx degrees per meter
+  const p1=ll2px(lat,lng);
+  const p2=ll2px(lat+latOffset,lng);
+  return Math.abs(p2.y-p1.y);
+}
+function drawRadiusCircle(){
+  if(!radiusCenter)return;
+  const {x,y}=ll2px(radiusCenter.lat,radiusCenter.lng);
+  const pxR=metersToPixelRadius(radiusCenter.lat,radiusCenter.lng,radiusMeters);
+  // Draw on main canvas
+  mctx.save();
+  mctx.beginPath();
+  mctx.arc(x,y,pxR,0,Math.PI*2);
+  mctx.strokeStyle='rgba(59,130,246,0.8)';
+  mctx.lineWidth=2;
+  mctx.setLineDash([6,4]);
+  mctx.stroke();
+  mctx.fillStyle='rgba(59,130,246,0.08)';
+  mctx.fill();
+  mctx.setLineDash([]);
+  // Center dot
+  mctx.beginPath();
+  mctx.arc(x,y,4,0,Math.PI*2);
+  mctx.fillStyle='rgba(59,130,246,0.9)';
+  mctx.fill();
+  // Label
+  mctx.font='bold 11px Inter,sans-serif';
+  mctx.fillStyle='rgba(59,130,246,0.95)';
+  const label=radiusMeters>=1000?`${(radiusMeters/1000).toFixed(1)}km`:`${Math.round(radiusMeters)}m`;
+  const hits=getIncidentsInRadius();
+  const txt=`${label} — ${hits.length} incident${hits.length!==1?'s':''}`;
+  mctx.fillText(txt,x-mctx.measureText(txt).width/2,y-pxR-8);
+  mctx.restore();
+}
+function getIncidentsInRadius(){
+  if(!radiusCenter)return[];
+  return incidents.filter(inc=>{
+    const lat=+inc.lat,lng=+inc.lng;
+    if(isNaN(lat)||isNaN(lng))return false;
+    return haversineMeters(radiusCenter.lat,radiusCenter.lng,lat,lng)<=radiusMeters;
+  });
+}
+function toggleRadiusMode(){
+  radiusMode=!radiusMode;
+  const b=document.getElementById('btnRadius');
+  b.classList.toggle('on',radiusMode);
+  b.textContent=`⊕ RADIUS ${radiusMode?'ON':'OFF'}`;
+  if(!radiusMode){
+    // Keep the circle visible, just exit placement mode
+    mapC.style.cursor='grab';
+  } else {
+    mapC.style.cursor='crosshair';
+    showToast('Click map to set center, then drag outward to set radius','var(--blue)');
+  }
+}
+function clearRadius(){
+  radiusCenter=null;
+  radiusMeters=500;
+  radiusMode=false;
+  radiusDragging=false;
+  const b=document.getElementById('btnRadius');
+  b.classList.remove('on');
+  b.textContent='⊕ RADIUS OFF';
+  mapC.style.cursor='grab';
+  // Clear radius results panel
+  const rp=document.getElementById('radiusResults');
+  if(rp)rp.style.display='none';
+  sched();
+}
+function updateRadiusResults(){
+  const rp=document.getElementById('radiusResults');
+  if(!rp||!radiusCenter)return;
+  const hits=getIncidentsInRadius();
+  const label=radiusMeters>=1000?`${(radiusMeters/1000).toFixed(1)}km`:`${Math.round(radiusMeters)}m`;
+  let html=`<div class="radius-header"><span>⊕ ${hits.length} incident${hits.length!==1?'s':''} within ${label}</span><button class="radius-clear" onclick="clearRadius()">✕ Clear</button></div>`;
+  if(hits.length){
+    const sorted=[...hits].sort((a,b)=>{
+      const da=haversineMeters(radiusCenter.lat,radiusCenter.lng,+a.lat,+a.lng);
+      const db=haversineMeters(radiusCenter.lat,radiusCenter.lng,+b.lat,+b.lng);
+      return da-db;
+    });
+    html+=`<div class="radius-list">`;
+    sorted.forEach(inc=>{
+      const dist=haversineMeters(radiusCenter.lat,radiusCenter.lng,+inc.lat,+inc.lng);
+      const distLabel=dist>=1000?`${(dist/1000).toFixed(1)}km`:`${Math.round(dist)}m`;
+      const cols={confirmed:'var(--accent)',suspected:'var(--yellow)',unconfirmed:'var(--green)',sighted:'var(--blue)'};
+      html+=`<div class="radius-item" onclick="showDetail('${inc.id}')">
+        <span class="radius-dot" style="background:${cols[inc.status]||'var(--text-dim)'}"></span>
+        <span class="radius-name">${esc(inc.catName||inc.animalType||'Unknown')}</span>
+        <span class="radius-dist">${distLabel}</span>
+      </div>`;
+    });
+    html+=`</div>`;
+  }
+  rp.innerHTML=html;
+  rp.style.display='block';
 }
 function toggleHeat(){
   markUserInteraction();
