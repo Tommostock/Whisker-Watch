@@ -1224,6 +1224,8 @@ function initSupabase() {
     supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     console.log('✅ Supabase client initialized');
     dbConnected = true;
+    // Clean up orphaned photos from offline deletions
+    try{const q=JSON.parse(localStorage.getItem('orphanedPhotos')||'[]');if(q.length){q.forEach(url=>deletePhotoFromStorage(url).catch(()=>{}));localStorage.removeItem('orphanedPhotos');console.log(`🧹 Cleaned up ${q.length} orphaned photos`);}}catch(e){}
   } catch (e) {
     console.error('❌ Failed to initialize Supabase:', e);
     dbConnected = false;
@@ -1653,26 +1655,9 @@ function toggleTheme(){
   sched(); // Re-render map with new theme
 }
 
-// TODO: Authentication system
-// When auth is implemented, this will handle login flow
 function handleLogin(){
-  showToast('Authentication coming soon - stay tuned!','var(--yellow)');
-  // TODO: Show login modal
-  // TODO: Handle OAuth or email/password
-  // TODO: Store auth token
-  // TODO: Update UI based on auth state
-  // TODO: Enable/disable submit buttons based on permissions
+  showToast('Authentication coming soon — stay tuned!','var(--yellow)');
 }
-
-// TODO: Auth state management
-// Structure for future auth implementation:
-// const authState = {
-//   isAuthenticated: false,
-//   user: null,
-//   role: 'viewer', // 'viewer' | 'contributor' | 'admin'
-// };
-// function checkAuth() { ... }
-// function requireAuth() { ... }
 
 // ═══════════════════════════════════════════
 //  IMAGE LIGHTBOX
@@ -3267,7 +3252,8 @@ function geoLocateModal(){
       st.textContent='✗ '+error.message;
       st.style.color='var(--accent)';
       console.error('Geolocation error:',error);
-    }
+    },
+    {timeout:10000,enableHighAccuracy:true}
   );
 }
 
@@ -3315,7 +3301,8 @@ function geoLocateSearch(){
     (error)=>{
       showToast('✗ '+error.message,'var(--accent)');
       console.error('Geolocation error:',error);
-    }
+    },
+    {timeout:10000,enableHighAccuracy:true}
   );
 }
 
@@ -3491,8 +3478,11 @@ function submitReport(){
     vm.textContent='🔄 Geocoding address…';vm.style.display='block';
     const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(addr+' UK')}&limit=1&countrycodes=gb`;
     fetchWithTimeout(url, 5000)
-      .then(r=>r.json()).then(d=>{doSave(addr,d.length?+d[0].lat:51.505,d.length?+d[0].lon:-0.09,dt);})
-      .catch(()=>doSave(addr,51.505,-0.09,dt));
+      .then(r=>r.json()).then(d=>{
+        if(d.length){doSave(addr,+d[0].lat,+d[0].lon,dt);}
+        else{showToast('⚠️ Address not found — please add coordinates manually','var(--yellow)');vm.style.display='none';}
+      })
+      .catch(()=>{showToast('⚠️ Geocoding failed — please add coordinates manually','var(--yellow)');vm.style.display='none';});
     return;
   }
   doSave(addr||`${lat.toFixed(4)},${lng.toFixed(4)}`,lat||51.505,lng||-0.09,dt);
@@ -3504,13 +3494,14 @@ async function doSave(addr,lat,lng,dt){
 
   // Upload photos to Storage before saving (parallel for speed)
   const incId = editingIncidentId || getNextIncidentId();
-  const uploadedPhotos = await Promise.all(storedPhotos.map(async p => {
+  const results = await Promise.allSettled(storedPhotos.map(async p => {
     if(isBase64Photo(p) && dbConnected){
       const url = await uploadPhotoToStorage(incId, p);
       return url ? {name: p.name, data: url} : {name: p.name, data: p.data};
     }
     return {name: p.name, data: p.data};
   }));
+  const uploadedPhotos = results.map((r, i) => r.status === 'fulfilled' ? r.value : {name: storedPhotos[i].name, data: storedPhotos[i].data});
 
   const incidentData={
     address:addr,area:extractArea(addr),lat,lng,
@@ -3937,20 +3928,20 @@ document.addEventListener('click',e=>{
     e.stopPropagation();
   }
 });
-function deletePhoto(incidentId,photoIndex){
+async function deletePhoto(incidentId,photoIndex){
   const inc=incidents.find(i=>i.id===incidentId);
   if(!inc||!inc.photos||!inc.photos[photoIndex])return;
   const photo=inc.photos[photoIndex];
-  // Delete from Supabase Storage if it's a cloud URL
-  if(dbConnected&&photo.data&&!photo.data.startsWith('data:')){
-    deletePhotoFromStorage(photo.data);
-  }
   inc.photos.splice(photoIndex,1);
   inc.updatedAt=new Date().toISOString();
   _filteredCache=null;
   saveData(incidentId);
-  showToast('🗑 Photo deleted','var(--green)');
   showDetail(incidentId);
+  // Delete from Supabase Storage after UI update
+  if(dbConnected&&photo.data&&!photo.data.startsWith('data:')){
+    await deletePhotoFromStorage(photo.data).catch(e=>console.error('Failed to delete photo from storage:',e));
+  }
+  showToast('🗑 Photo deleted','var(--green)');
 }
 // MARKER BEHAVIOR: "Show on Map" button handler
 // Closes current dialog, pans to location, shows informational popup with "View Incident" button
@@ -3983,17 +3974,25 @@ document.getElementById('deleteBtn').addEventListener('click',async()=>{
   if(!await new Promise(r=>{confirmResolve=r;document.getElementById('confirmOverlay').classList.add('open');}))return;
   const idToDelete = currentDetailId;
   const incToDelete = incidents.find(i=>i.id===idToDelete);
-  // Delete photos from Storage
-  if(incToDelete && incToDelete.photos && dbConnected){
+  // Delete photos from Storage (queue for later if offline)
+  if(incToDelete && incToDelete.photos){
     for(const p of incToDelete.photos){
-      if(!isBase64Photo(p) && p.data) await deletePhotoFromStorage(p.data);
+      if(!isBase64Photo(p) && p.data){
+        if(dbConnected){
+          await deletePhotoFromStorage(p.data).catch(e=>console.error('Photo cleanup failed:',e));
+        }else{
+          // Queue orphaned photo URLs for cleanup when back online
+          try{const q=JSON.parse(localStorage.getItem('orphanedPhotos')||'[]');q.push(p.data);localStorage.setItem('orphanedPhotos',JSON.stringify(q));}catch(e){}
+        }
+      }
     }
   }
   incidents=incidents.filter(i=>i.id!==idToDelete);searchIndex.delete(idToDelete);_invalidateCache();
   saveData();
   // Also delete from database if available
   if(dbConnected && supabaseClient){
-    await deleteIncidentFromDB(idToDelete);
+    const ok = await deleteIncidentFromDB(idToDelete);
+    if(!ok) showToast('⚠️ Could not delete from database — removed locally only','var(--yellow)');
   }
   closeDetail();renderAll();showToast('Incident deleted','var(--yellow)');
 });
@@ -4554,10 +4553,10 @@ function renderLinkedIncidents(inc){
 (async function initApp(){
   initTheme(); // Initialize theme from localStorage
 
-  // Wait for Supabase to be ready
+  // Wait for Supabase to be ready (exponential backoff)
   let attempts = 0;
-  while(!dbConnected && attempts < 10){
-    await new Promise(r => setTimeout(r, 500));
+  while(!dbConnected && attempts < 8){
+    await new Promise(r => setTimeout(r, Math.min(300 * Math.pow(1.5, attempts), 3000)));
     attempts++;
   }
 
