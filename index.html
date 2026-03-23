@@ -189,7 +189,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .log-prompt-no:hover{border-color:var(--text-muted);color:var(--text);}
 .overlay{position:fixed;inset:0;background:rgba(0,0,0,.8);backdrop-filter:blur(5px);z-index:200;display:none;align-items:center;justify-content:center;padding:16px;}
 .overlay.open{display:flex;}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:100%;max-width:540px;max-height:92vh;overflow-y:auto;box-shadow:0 28px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:10px;width:100%;max-width:540px;max-height:92vh;overflow:hidden;box-shadow:0 28px 80px rgba(0,0,0,.6);display:flex;flex-direction:column;}
 /* Report side panel — no backdrop, slides in from right over map */
 .report-panel{position:fixed;top:64px;right:0;width:400px;max-width:100vw;height:calc(100vh - 64px);background:var(--surface);border-left:1px solid var(--border);box-shadow:-8px 0 32px rgba(0,0,0,.5);z-index:150;display:flex;flex-direction:column;transform:translateX(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);overflow:hidden;}
 .report-panel.open{transform:translateX(0);}
@@ -204,7 +204,7 @@ header{display:flex;align-items:center;justify-content:space-between;padding:0 2
 .modal-sub{font-family:'Space Mono',monospace;font-size:12px;color:var(--text-muted);margin-top:3px;line-height:1.5;}
 .modal-x{background:var(--surface2);border:1px solid var(--border);border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text-muted);font-size:12px;flex-shrink:0;transition:all .15s;}
 .modal-x:hover{border-color:var(--accent);color:var(--accent);}
-.modal-body{padding:18px;flex:1;}
+.modal-body{padding:18px;flex:1;overflow-y:auto;min-height:0;}
 .modal-ftr{padding:14px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;}
 .fsec{margin-bottom:18px;}
 .fsec-title{font-family:'Space Mono',monospace;font-size:11px;font-weight:700;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px;padding-bottom:6px;border-bottom:1px solid var(--border);}
@@ -1023,14 +1023,14 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
       <div class="modal-x" onclick="closeDetail()">✕</div>
     </div>
     <div class="modal-body" id="detailBody"></div>
-    <div class="modal-ftr" style="justify-content:space-between">
+    <div class="modal-ftr" style="justify-content:space-between;flex-wrap:wrap;gap:6px">
       <button class="btn btn-danger btn-sm" id="deleteBtn">🗑 Delete</button>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-ghost" id="compareBtn">⚖ Compare</button>
-        <button class="btn btn-ghost" id="linkBtn">🔗 Link</button>
-        <button class="btn btn-ghost" id="addNoteBtn">🔍 Intel</button>
-        <button class="btn btn-ghost" id="editBtn">✎ Edit</button>
-        <button class="btn btn-ghost" onclick="closeDetail()">Close</button>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <button class="btn btn-ghost btn-sm" id="compareBtn">⚖ Compare</button>
+        <button class="btn btn-ghost btn-sm" id="linkBtn">🔗 Link</button>
+        <button class="btn btn-ghost btn-sm" id="addNoteBtn">🔍 Intel</button>
+        <button class="btn btn-ghost btn-sm" id="editBtn">✎ Edit</button>
+        <button class="btn btn-ghost btn-sm" onclick="closeDetail()">Close</button>
       </div>
     </div>
   </div>
