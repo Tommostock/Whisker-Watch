@@ -471,6 +471,16 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     content:'📥';
     display:block;
   }
+  .hdr-right .btn-ghost[onclick="exportCSV()"]::before{
+    font-size:18px;
+    content:'📤';
+    display:block;
+  }
+  .hdr-right .btn-ghost[onclick="openFullReport()"]::before{
+    font-size:18px;
+    content:'📊';
+    display:block;
+  }
   .hdr-right .btn-icon::before{
     font-size:18px;
     content:'🌙';
@@ -804,6 +814,8 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
     <!-- TODO: Implement authentication - currently non-functional -->
     <button class="btn btn-ghost btn-sm" onclick="handleLogin()" title="Login (not yet implemented)">Login</button>
     <button class="btn btn-ghost btn-sm" onclick="openImportModal()" title="Import incidents from CSV or JSON">📥 Import</button>
+    <button class="btn btn-ghost btn-sm" onclick="exportCSV()" title="Export filtered incidents as CSV">📤 Export</button>
+    <button class="btn btn-ghost btn-sm" onclick="openFullReport()" title="Generate full investigation report">📊 Report</button>
     <button class="btn btn-primary" onclick="openReport(null,null,null)">Log Incident +</button>
   </div>
 </header>
@@ -1048,6 +1060,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
         <button class="btn btn-ghost btn-sm" id="compareBtn">⚖ Compare</button>
         <button class="btn btn-ghost btn-sm" id="linkBtn">🔗 Link</button>
         <button class="btn btn-ghost btn-sm" id="addNoteBtn">🔍 Intel</button>
+        <button class="btn btn-ghost btn-sm" id="exportDetailBtn">📄 Export</button>
         <button class="btn btn-ghost btn-sm" id="editBtn">✎ Edit</button>
         <button class="btn btn-ghost btn-sm" onclick="closeDetail()">Close</button>
       </div>
@@ -4002,6 +4015,10 @@ document.getElementById('compareBtn').addEventListener('click',()=>{
   startComparison(currentDetailId);
 });
 
+document.getElementById('exportDetailBtn').addEventListener('click',()=>{
+  if(!currentDetailId)return;
+  exportIncidentPDF(currentDetailId);
+});
 document.getElementById('editBtn').addEventListener('click',()=>{
   if(!currentDetailId)return;
   editIncident(currentDetailId);
@@ -4547,6 +4564,292 @@ function renderLinkedIncidents(inc){
     const title=l.catName||l.animalType||'Incident';
     return`<div class="linked-item" onclick="showDetail('${l.id.replace(/'/g,"\\'")}')"><span class="linked-item-id">${esc(l.id)}</span><span class="linked-item-info">${esc(title)}, ${esc(l.area||'')} (${ds})</span></div>`;
   }).join('')}</div></div></div>`;
+}
+
+// ═══════════════════════════════════════════
+//  EXPORT & PRINT REPORTS
+// ═══════════════════════════════════════════
+
+function exportCSV(){
+  const data=getFiltered();
+  if(!data.length){showToast('No incidents to export','var(--yellow)');return;}
+  const headers=['ID','Status','Date','Address','Area','Lat','Lng','Animal Type','Cat Name','Description','Age','Sex','Method','Severity','Notes','Witness Name','Witness Contact','Witness Statement','Suspect Desc','Linked Group','Photo Count','Intel Count','Created At','Updated At'];
+  const esc=v=>{const s=String(v==null?'':v);return s.includes(',')||s.includes('"')||s.includes('\n')?'"'+s.replace(/"/g,'""')+'"':s;};
+  const rows=data.map(i=>[i.id,i.status,i.datetime?new Date(i.datetime).toISOString():'',i.address,i.area,i.lat,i.lng,i.animalType,i.catName,i.animalDesc,i.age,i.sex,i.method,i.severity,i.notes,i.witnessName,i.witnessContact,i.witnessStatement,i.sightedDesc,i.linkedGroup,(i.photos||[]).length,(i.caseNotes||[]).length,i.createdAt,i.updatedAt].map(esc).join(','));
+  const csv=[headers.join(','),...rows].join('\n');
+  const blob=new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');a.href=url;a.download=`whisker-watch-export-${new Date().toISOString().slice(0,10)}.csv`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);URL.revokeObjectURL(url);
+  showToast(`📤 Exported ${data.length} incidents to CSV`,'var(--green)');
+}
+
+function exportIncidentPDF(incidentId){
+  const inc=incidents.find(i=>i.id===incidentId);
+  if(!inc){showToast('Incident not found','var(--accent)');return;}
+  const statusLabels={confirmed:'Confirmed Case',suspected:'Suspected Case',unconfirmed:'Unconfirmed Case',sighted:'Suspect Sighted'};
+  const statusColors={confirmed:'#e63946',suspected:'#d4a017',unconfirmed:'#2d9d6e',sighted:'#3b82f6'};
+  const dt=inc.datetime?new Date(inc.datetime):null;
+  const dateStr=dt?dt.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'})+' at '+dt.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):'Unknown';
+
+  // Build linked incidents HTML
+  let linkedHtml='';
+  if(inc.linkedGroup){
+    const linked=incidents.filter(i=>i.linkedGroup===inc.linkedGroup&&i.id!==inc.id);
+    if(linked.length){
+      linkedHtml=`<div class="section"><h2>Linked Incidents (${inc.linkedGroup})</h2><table><tr><th>ID</th><th>Date</th><th>Area</th><th>Status</th><th>Animal</th></tr>${linked.map(l=>{
+        const ld=l.datetime?new Date(l.datetime).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';
+        return`<tr><td>${e(l.id)}</td><td>${ld}</td><td>${e(l.area||'—')}</td><td>${e(statusLabels[l.status]||l.status)}</td><td>${e(l.catName||l.animalType||'—')}</td></tr>`;
+      }).join('')}</table></div>`;
+    }
+  }
+
+  // Build case notes HTML
+  let notesHtml='';
+  if(inc.caseNotes&&inc.caseNotes.length){
+    notesHtml=`<div class="section"><h2>Intelligence (Case Notes)</h2>${inc.caseNotes.sort((a,b)=>new Date(b.timestamp)-new Date(a.timestamp)).map(n=>{
+      const nd=new Date(n.timestamp).toLocaleString('en-GB',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      return`<div class="note"><span class="note-date">${nd}</span><span class="note-author">${e(n.author||'System')}</span><p>${e(n.text)}</p></div>`;
+    }).join('')}</div>`;
+  }
+
+  // Build photos HTML
+  let photosHtml='';
+  if(inc.photos&&inc.photos.length){
+    photosHtml=`<div class="section"><h2>Photographs (${inc.photos.length})</h2><div class="photos">${inc.photos.map(p=>`<img src="${e(p.data)}" alt="${e(p.name||'Photo')}">`).join('')}</div></div>`;
+  }
+
+  function e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+  const isSighted=inc.status==='sighted';
+  const animalSection=isSighted?`
+    <tr><td class="label">Suspect Description</td><td>${e(inc.sightedDesc||'—')}</td></tr>`:`
+    <tr><td class="label">Animal</td><td>${e(inc.animalType||'—')}${inc.animalDesc?' — '+e(inc.animalDesc):''}</td></tr>
+    <tr><td class="label">Cat Name</td><td>${e(inc.catName||'—')}</td></tr>
+    <tr><td class="label">Age</td><td>${e(inc.age?inc.age+' years':'—')}</td></tr>
+    <tr><td class="label">Sex</td><td>${e(inc.sex||'—')}</td></tr>`;
+  const injurySection=isSighted?'':`
+    <tr><td class="label">Method</td><td>${e(inc.method||'—')}</td></tr>
+    <tr><td class="label">Severity</td><td>${e(inc.severity||'—')}</td></tr>`;
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Incident Report — ${e(inc.id)}</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;line-height:1.5;padding:20px;max-width:800px;margin:0 auto;}
+@media print{@page{margin:15mm;size:A4;}body{padding:0;}.no-print{display:none!important;}.section{page-break-inside:avoid;}}
+.header{border-bottom:3px solid #e63946;padding-bottom:16px;margin-bottom:20px;display:flex;align-items:center;gap:16px;}
+.header svg{width:48px;height:48px;fill:#1a1a1a;}
+.header-text h1{font-size:22px;font-weight:700;letter-spacing:-0.02em;}
+.header-text p{font-size:12px;color:#666;margin-top:2px;}
+.meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding:10px 14px;background:#f8f9fa;border:1px solid #e5e7eb;border-radius:6px;}
+.meta-id{font-size:16px;font-weight:700;}
+.meta-status{display:inline-block;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:600;color:#fff;text-transform:uppercase;letter-spacing:.04em;}
+.meta-date{font-size:11px;color:#666;}
+.section{margin-bottom:20px;}
+.section h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#e63946;border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:10px;}
+table{width:100%;border-collapse:collapse;}
+table td,table th{padding:7px 10px;font-size:12px;border-bottom:1px solid #f0f0f0;text-align:left;vertical-align:top;}
+table .label{width:140px;font-weight:600;color:#666;white-space:nowrap;}
+table th{background:#f8f9fa;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#666;}
+.note{padding:8px 12px;background:#f8f9fa;border-left:3px solid #e63946;border-radius:0 4px 4px 0;margin-bottom:8px;}
+.note-date{font-size:10px;font-weight:600;color:#666;margin-right:8px;}
+.note-author{font-size:10px;color:#999;}
+.note p{font-size:12px;margin-top:4px;}
+.photos{display:flex;flex-wrap:wrap;gap:10px;}
+.photos img{max-width:280px;max-height:220px;border-radius:4px;border:1px solid #e5e7eb;object-fit:cover;}
+.footer{margin-top:30px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#999;text-align:center;}
+.print-btn{background:#e63946;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:500;}
+.print-btn:hover{background:#c1121f;}
+</style></head><body>
+<div class="no-print" style="text-align:right;margin-bottom:16px"><button class="print-btn" onclick="window.print()">🖨 Print / Save as PDF</button></div>
+<div class="header">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M 50 48 L 42 58 L 58 58 Z"/><path d="M 20 35 L 28 55 L 33 40 L 38 55 L 46 35" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M 54 35 L 62 55 L 67 40 L 72 55 L 80 35" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M 50 58 Q 44 64 40 68" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 50 58 Q 56 64 60 68" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+<div class="header-text"><h1>Whisker Watch</h1><p>SLAIN: South London Animal Investigation Network</p><p style="font-weight:600;margin-top:4px">INCIDENT REPORT</p></div>
+</div>
+<div class="meta">
+<div><div class="meta-id">${e(inc.id)}</div><div class="meta-date">Generated: ${new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'long',year:'numeric'})}</div></div>
+<span class="meta-status" style="background:${statusColors[inc.status]||'#666'}">${e(statusLabels[inc.status]||inc.status)}</span>
+</div>
+<div class="section"><h2>Incident Details</h2><table>
+<tr><td class="label">Date &amp; Time</td><td>${dateStr}</td></tr>
+<tr><td class="label">Location</td><td>${e(inc.address||'—')}</td></tr>
+<tr><td class="label">Area</td><td>${e(inc.area||'—')}</td></tr>
+<tr><td class="label">Coordinates</td><td>${inc.lat?inc.lat.toFixed(5)+', '+inc.lng.toFixed(5):'—'}</td></tr>
+</table></div>
+<div class="section"><h2>${isSighted?'Suspect Details':'Animal Details'}</h2><table>${animalSection}${injurySection}</table></div>
+${inc.notes?`<div class="section"><h2>Notes</h2><p style="font-size:12px;padding:8px 10px;background:#f8f9fa;border-radius:4px">${e(inc.notes)}</p></div>`:''}
+<div class="section"><h2>Witness Information</h2><table>
+<tr><td class="label">Name</td><td>${e(inc.witnessName||'—')}</td></tr>
+<tr><td class="label">Contact</td><td>${e(inc.witnessContact||'—')}</td></tr>
+<tr><td class="label">Statement</td><td>${e(inc.witnessStatement||'—')}</td></tr>
+</table></div>
+${notesHtml}${linkedHtml}${photosHtml}
+<div class="footer">Generated by Whisker Watch — SLAIN Network &bull; ${new Date().toLocaleString('en-GB',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+</body></html>`;
+
+  const w=window.open('','_blank');
+  if(!w){showToast('Pop-up blocked — please allow pop-ups for this site','var(--yellow)');return;}
+  w.document.write(html);w.document.close();
+  showToast('📄 Incident report generated','var(--green)');
+}
+
+function openFullReport(){
+  const data=[...incidents].sort((a,b)=>new Date(b.datetime||0)-new Date(a.datetime||0));
+  if(!data.length){showToast('No incidents to report','var(--yellow)');return;}
+  function e(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+  const statusLabels={confirmed:'Confirmed',suspected:'Suspected',unconfirmed:'Unconfirmed',sighted:'Suspect Sighted'};
+  const statusColors={confirmed:'#e63946',suspected:'#d4a017',unconfirmed:'#2d9d6e',sighted:'#3b82f6'};
+
+  // Stats calculations
+  const total=data.length;
+  const dates=data.filter(i=>i.datetime).map(i=>new Date(i.datetime)).sort((a,b)=>a-b);
+  const earliest=dates.length?dates[0].toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';
+  const latest=dates.length?dates[dates.length-1].toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';
+
+  // Status breakdown
+  const statusCounts={};
+  data.forEach(i=>{statusCounts[i.status]=(statusCounts[i.status]||0)+1;});
+
+  // Area breakdown
+  const areaCounts={};
+  data.forEach(i=>{const a=i.area||'Unknown';areaCounts[a]=(areaCounts[a]||0)+1;});
+  const areasSorted=Object.entries(areaCounts).sort((a,b)=>b[1]-a[1]);
+
+  // Method breakdown
+  const methodCounts={};
+  data.filter(i=>i.method).forEach(i=>{methodCounts[i.method]=(methodCounts[i.method]||0)+1;});
+  const methodsSorted=Object.entries(methodCounts).sort((a,b)=>b[1]-a[1]);
+
+  // Severity breakdown
+  const sevCounts={};
+  data.filter(i=>i.severity).forEach(i=>{sevCounts[i.severity]=(sevCounts[i.severity]||0)+1;});
+  const sevSorted=Object.entries(sevCounts).sort((a,b)=>b[1]-a[1]);
+
+  // Time of day
+  const tod={Morning:0,Afternoon:0,Evening:0,Night:0};
+  data.filter(i=>i.datetime).forEach(i=>{const h=new Date(i.datetime).getHours();if(h>=6&&h<12)tod.Morning++;else if(h>=12&&h<17)tod.Afternoon++;else if(h>=17&&h<21)tod.Evening++;else tod.Night++;});
+
+  // Day of week
+  const dow=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const dowCounts=Array(7).fill(0);
+  data.filter(i=>i.datetime).forEach(i=>{dowCounts[new Date(i.datetime).getDay()]++;});
+
+  // Monthly trend (last 12 months)
+  const monthCounts={};
+  data.filter(i=>i.datetime).forEach(i=>{const d=new Date(i.datetime);const k=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');monthCounts[k]=(monthCounts[k]||0)+1;});
+  const monthsSorted=Object.entries(monthCounts).sort((a,b)=>a[0].localeCompare(b[0])).slice(-12);
+
+  // Evidence coverage
+  const withWitness=data.filter(i=>i.witnessName).length;
+  const withStatement=data.filter(i=>i.witnessStatement).length;
+  const withPhotos=data.filter(i=>i.photos&&i.photos.length).length;
+
+  // Linked groups
+  const groups={};
+  data.filter(i=>i.linkedGroup).forEach(i=>{if(!groups[i.linkedGroup])groups[i.linkedGroup]=[];groups[i.linkedGroup].push(i);});
+
+  const html=`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Investigation Report — Whisker Watch</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;color:#1a1a1a;line-height:1.5;padding:20px;max-width:900px;margin:0 auto;font-size:12px;}
+@media print{@page{margin:12mm;size:A4;}body{padding:0;font-size:11px;}.no-print{display:none!important;}.section{page-break-inside:avoid;}table{page-break-inside:auto;}tr{page-break-inside:avoid;}}
+.header{border-bottom:3px solid #e63946;padding-bottom:16px;margin-bottom:20px;display:flex;align-items:center;gap:16px;}
+.header svg{width:48px;height:48px;fill:#1a1a1a;}
+.header-text h1{font-size:22px;font-weight:700;letter-spacing:-0.02em;}
+.header-text p{font-size:12px;color:#666;margin-top:2px;}
+.section{margin-bottom:24px;}
+.section h2{font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#e63946;border-bottom:1px solid #e5e7eb;padding-bottom:6px;margin-bottom:10px;}
+table{width:100%;border-collapse:collapse;margin-bottom:8px;}
+td,th{padding:6px 10px;border-bottom:1px solid #f0f0f0;text-align:left;vertical-align:top;}
+th{background:#f8f9fa;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#666;}
+tr:nth-child(even){background:#fafafa;}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
+.stat-box{background:#f8f9fa;border:1px solid #e5e7eb;border-radius:6px;padding:12px;text-align:center;}
+.stat-box .n{font-size:28px;font-weight:700;}
+.stat-box .l{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#666;margin-top:2px;}
+.summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+.summary-item{background:#f8f9fa;border:1px solid #e5e7eb;border-radius:6px;padding:10px 14px;}
+.summary-item .label{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#666;font-weight:600;}
+.summary-item .value{font-size:14px;font-weight:600;margin-top:2px;}
+.badge{display:inline-block;padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;color:#fff;}
+.footer{margin-top:30px;padding-top:12px;border-top:1px solid #e5e7eb;font-size:10px;color:#999;text-align:center;}
+.print-btn{background:#e63946;color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:500;}
+.print-btn:hover{background:#c1121f;}
+</style></head><body>
+<div class="no-print" style="text-align:right;margin-bottom:16px"><button class="print-btn" onclick="window.print()">🖨 Print / Save as PDF</button></div>
+<div class="header">
+<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg"><path d="M 50 48 L 42 58 L 58 58 Z"/><path d="M 20 35 L 28 55 L 33 40 L 38 55 L 46 35" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M 54 35 L 62 55 L 67 40 L 72 55 L 80 35" stroke="currentColor" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M 50 58 Q 44 64 40 68" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/><path d="M 50 58 Q 56 64 60 68" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>
+<div class="header-text"><h1>Whisker Watch</h1><p>SLAIN: South London Animal Investigation Network</p><p style="font-weight:600;margin-top:4px">FULL INVESTIGATION REPORT</p></div>
+</div>
+
+<div class="section"><h2>Executive Summary</h2>
+<div class="summary-grid">
+<div class="summary-item"><div class="label">Total Incidents</div><div class="value">${total}</div></div>
+<div class="summary-item"><div class="label">Date Range</div><div class="value">${earliest} — ${latest}</div></div>
+<div class="summary-item"><div class="label">Areas Affected</div><div class="value">${areasSorted.length}</div></div>
+<div class="summary-item"><div class="label">Linked Case Series</div><div class="value">${Object.keys(groups).length}</div></div>
+</div>
+<div class="stat-grid">
+${['confirmed','suspected','unconfirmed','sighted'].map(s=>`<div class="stat-box"><div class="n" style="color:${statusColors[s]}">${statusCounts[s]||0}</div><div class="l">${statusLabels[s]}</div></div>`).join('')}
+</div>
+</div>
+
+<div class="section"><h2>Geographic Analysis</h2>
+<table><tr><th>Area</th><th>Incidents</th><th>% of Total</th></tr>
+${areasSorted.map(([a,c])=>`<tr><td>${e(a)}</td><td>${c}</td><td>${(c/total*100).toFixed(1)}%</td></tr>`).join('')}
+</table></div>
+
+<div class="section"><h2>Method Analysis</h2>
+<table><tr><th>Method</th><th>Count</th><th>% of Total</th></tr>
+${methodsSorted.map(([m,c])=>`<tr><td>${e(m)}</td><td>${c}</td><td>${(c/total*100).toFixed(1)}%</td></tr>`).join('')}
+</table></div>
+
+<div class="section"><h2>Severity Analysis</h2>
+<table><tr><th>Severity</th><th>Count</th><th>% of Total</th></tr>
+${sevSorted.map(([s,c])=>`<tr><td>${e(s)}</td><td>${c}</td><td>${(c/total*100).toFixed(1)}%</td></tr>`).join('')}
+</table></div>
+
+<div class="section"><h2>Temporal Analysis</h2>
+<h3 style="font-size:11px;color:#666;margin-bottom:6px">Monthly Trend</h3>
+<table><tr><th>Month</th><th>Incidents</th></tr>
+${monthsSorted.map(([m,c])=>{const[y,mo]=m.split('-');return`<tr><td>${new Date(y,mo-1).toLocaleDateString('en-GB',{month:'long',year:'numeric'})}</td><td>${c}</td></tr>`;}).join('')}
+</table>
+<h3 style="font-size:11px;color:#666;margin:12px 0 6px">Time of Day</h3>
+<table><tr><th>Period</th><th>Count</th><th>% of Total</th></tr>
+${Object.entries(tod).map(([p,c])=>`<tr><td>${p} (${p==='Morning'?'06:00–12:00':p==='Afternoon'?'12:00–17:00':p==='Evening'?'17:00–21:00':'21:00–06:00'})</td><td>${c}</td><td>${total?(c/total*100).toFixed(1):'0'}%</td></tr>`).join('')}
+</table>
+<h3 style="font-size:11px;color:#666;margin:12px 0 6px">Day of Week</h3>
+<table><tr><th>Day</th><th>Count</th></tr>
+${dow.map((d,i)=>`<tr><td>${d}</td><td>${dowCounts[i]}</td></tr>`).join('')}
+</table></div>
+
+<div class="section"><h2>Evidence Coverage</h2>
+<table><tr><th>Metric</th><th>Count</th><th>% of Total</th></tr>
+<tr><td>Incidents with Witness Name</td><td>${withWitness}</td><td>${(withWitness/total*100).toFixed(1)}%</td></tr>
+<tr><td>Incidents with Statement</td><td>${withStatement}</td><td>${(withStatement/total*100).toFixed(1)}%</td></tr>
+<tr><td>Incidents with Photos</td><td>${withPhotos}</td><td>${(withPhotos/total*100).toFixed(1)}%</td></tr>
+</table></div>
+
+${Object.keys(groups).length?`<div class="section"><h2>Linked Case Series</h2>
+${Object.entries(groups).map(([name,incs])=>`<h3 style="font-size:12px;font-weight:600;margin:10px 0 4px">🔗 ${e(name)} (${incs.length} incidents)</h3>
+<table><tr><th>ID</th><th>Date</th><th>Area</th><th>Status</th></tr>
+${incs.sort((a,b)=>new Date(a.datetime||0)-new Date(b.datetime||0)).map(i=>{const d=i.datetime?new Date(i.datetime).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';return`<tr><td>${e(i.id)}</td><td>${d}</td><td>${e(i.area||'—')}</td><td><span class="badge" style="background:${statusColors[i.status]||'#666'}">${e(statusLabels[i.status]||i.status)}</span></td></tr>`;}).join('')}
+</table>`).join('')}
+</div>`:''}
+
+<div class="section"><h2>Full Incident Register</h2>
+<table><tr><th>ID</th><th>Date</th><th>Area</th><th>Status</th><th>Animal / Suspect</th><th>Method</th><th>Severity</th></tr>
+${data.map(i=>{const d=i.datetime?new Date(i.datetime).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}):'—';const animal=i.status==='sighted'?'Suspect: '+(i.sightedDesc||'—').slice(0,40):(i.catName||i.animalType||'—');return`<tr><td>${e(i.id)}</td><td>${d}</td><td>${e(i.area||'—')}</td><td><span class="badge" style="background:${statusColors[i.status]||'#666'}">${e(statusLabels[i.status]||i.status)}</span></td><td>${e(animal)}</td><td>${e(i.method||'—')}</td><td>${e(i.severity||'—')}</td></tr>`;}).join('')}
+</table></div>
+
+<div class="footer">Generated by Whisker Watch — SLAIN Network &bull; ${new Date().toLocaleString('en-GB',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'})}</div>
+</body></html>`;
+
+  const w=window.open('','_blank');
+  if(!w){showToast('Pop-up blocked — please allow pop-ups for this site','var(--yellow)');return;}
+  w.document.write(html);w.document.close();
+  showToast('📊 Investigation report generated','var(--green)');
 }
 
 // ── Init ──
