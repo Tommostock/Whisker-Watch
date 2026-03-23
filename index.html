@@ -3922,6 +3922,7 @@ document.addEventListener('click',e=>{
   // Delete photo button
   if(e.target.classList.contains('photo-del')){
     e.stopPropagation();
+    if(!confirm('Delete this photo? This cannot be undone.'))return;
     const idx=parseInt(e.target.dataset.delIndex);
     const incId=e.target.dataset.delIncident;
     deletePhoto(incId,idx);
