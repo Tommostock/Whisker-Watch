@@ -826,7 +826,7 @@ textarea.finput{resize:vertical;min-height:80px;line-height:1.5;}
         <div class="search-drop" id="searchDrop"></div>
       </div>
       <div class="inc-search-wrap">
-        <input class="inc-search-input" id="incSearch" type="text" placeholder="🔍  Filter incidents by name, address, notes…" autocomplete="off" oninput="clearTimeout(_srchTimer);_srchTimer=setTimeout(renderList,200)">
+        <input class="inc-search-input" id="incSearch" type="text" placeholder="🔍  Filter incidents by name, address, notes…" autocomplete="off" oninput="clearTimeout(_srchTimer);_srchTimer=setTimeout(()=>{_filteredCache=null;renderList();},200)">
       </div>
       <div class="filter-bar">
         <select class="filter-sel" id="fStatus" onchange="applyFilters()">
@@ -3546,8 +3546,8 @@ async function doSave(addr,lat,lng,dt){
 }
 
 // ── Filters / sort ──
-function applyFilters(){filters.status=document.getElementById('fStatus').value;filters.method=document.getElementById('fMethod').value;filters.area=document.getElementById('fArea').value;renderAll();}
-function clearFilters(){['fStatus','fMethod','fArea'].forEach(id=>document.getElementById(id).value='');filters={status:'',method:'',area:''};const s=document.getElementById('incSearch');if(s)s.value='';renderAll();}
+function applyFilters(){filters.status=document.getElementById('fStatus').value;filters.method=document.getElementById('fMethod').value;filters.area=document.getElementById('fArea').value;_filteredCache=null;renderAll();}
+function clearFilters(){['fStatus','fMethod','fArea'].forEach(id=>document.getElementById(id).value='');filters={status:'',method:'',area:''};const s=document.getElementById('incSearch');if(s)s.value='';_filteredCache=null;renderAll();}
 function setSort(f,el){
   if(sortField===f)sortDir*=-1;else sortDir=-1;
   sortField=f;
@@ -3555,6 +3555,7 @@ function setSort(f,el){
   document.querySelectorAll('.sort-opt').forEach(e=>{e.classList.remove('active');e.textContent=labels[e.dataset.sort]||e.dataset.sort;});
   el.classList.add('active');
   el.textContent=(labels[f]||f)+(sortDir===-1?' ▼':' ▲');
+  _filteredCache=null;
   renderAll();
 }
 function getFiltered(){
