@@ -3495,18 +3495,15 @@ async function doSave(addr,lat,lng,dt){
   const off=-new Date(dt).getTimezoneOffset();
   const tzStr=(off>=0?'+':'-')+String(Math.floor(Math.abs(off)/60)).padStart(2,'0')+':'+String(Math.abs(off)%60).padStart(2,'0');
 
-  // Upload photos to Storage before saving
+  // Upload photos to Storage before saving (parallel for speed)
   const incId = editingIncidentId || getNextIncidentId();
-  const uploadedPhotos = [];
-  for(const p of storedPhotos){
+  const uploadedPhotos = await Promise.all(storedPhotos.map(async p => {
     if(isBase64Photo(p) && dbConnected){
       const url = await uploadPhotoToStorage(incId, p);
-      if(url){ uploadedPhotos.push({name: p.name, data: url}); }
-      else{ uploadedPhotos.push({name: p.name, data: p.data}); } // fallback to base64
-    }else{
-      uploadedPhotos.push({name: p.name, data: p.data});
+      return url ? {name: p.name, data: url} : {name: p.name, data: p.data};
     }
-  }
+    return {name: p.name, data: p.data};
+  }));
 
   const incidentData={
     address:addr,area:extractArea(addr),lat,lng,
