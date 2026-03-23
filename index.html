@@ -2084,7 +2084,7 @@ window.addEventListener('mousemove',e=>{
   ms.lng=x2lng(lng2x(dragStart.lng,ms.zoom)-dx,ms.zoom);
   closePopup();closeLogPrompt(); sched();
 });
-window.addEventListener('mouseup',()=>{const wasDragging=dragging;dragging=false;mapC.classList.remove('grabbing');if(showCCTV&&wasDragging)debounceCCTVFetch();});
+window.addEventListener('mouseup',()=>{dragging=false;mapC.classList.remove('grabbing');});
 
 // Touch Event Handlers - Consolidated to prevent memory leaks and duplicate listeners
 let t0=null;
@@ -2515,7 +2515,7 @@ function _invalidateCache(){_filteredCache=null;_heatKey=null;}
 const esc=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 // Hybrid save: tries database first, falls back to localStorage
-function saveData(){
+function saveData(changedIncidentId){
   // Always save to localStorage as fallback
   try{
     localStorage.setItem('lckData',JSON.stringify(incidents));
@@ -2526,15 +2526,22 @@ function saveData(){
 
   // Also save to database asynchronously if available
   if(dbConnected && supabaseClient){
-    (async () => {
-      try{
-        for(const incident of incidents){
-          await saveIncidentToDB(incident);
+    if(changedIncidentId){
+      // Only sync the specific incident that changed
+      const inc=incidents.find(i=>i.id===changedIncidentId);
+      if(inc) saveIncidentToDB(inc).catch(e=>console.error('Failed to save to database:', e));
+    }else{
+      // Full sync (used during initial load/migration only)
+      (async () => {
+        try{
+          for(const incident of incidents){
+            await saveIncidentToDB(incident);
+          }
+        }catch(e){
+          console.error('Failed to save to database:', e);
         }
-      }catch(e){
-        console.error('Failed to save to database:', e);
-      }
-    })();
+      })();
+    }
   }
 }
 
@@ -3034,7 +3041,7 @@ function addCaseNote(incidentId,text){
   };
   inc.caseNotes.push(note);
   inc.updatedAt=new Date().toISOString();
-  saveData();
+  saveData(incidentId);
   if(dbConnected) saveCaseNoteToDB(incidentId, note);
   showToast('✅ Intel added','var(--green)');
   closeAddNoteModal();
@@ -3047,7 +3054,7 @@ function deleteCaseNote(incidentId,noteId){
   if(noteIdx===-1)return;
   inc.caseNotes.splice(noteIdx,1);
   inc.updatedAt=new Date().toISOString();
-  saveData();
+  saveData(incidentId);
   if(dbConnected) deleteCaseNoteFromDB(noteId);
   showToast('🗑 Intel deleted','var(--green)');
   showDetail(incidentId);
@@ -3123,7 +3130,7 @@ function openReport(lat,lng,incidentId){
         del.className='photo-del';
         del.style.display='block';
         del.title='Remove photo';
-        del.onclick=(e)=>{e.preventDefault();e.stopPropagation();storedPhotos.splice(idx,1);openReport(null,null,editingId);};
+        del.onclick=(e)=>{e.preventDefault();e.stopPropagation();storedPhotos.splice(idx,1);openReport(null,null,editingIncidentId);};
         wrap.appendChild(img);
         wrap.appendChild(del);
         prev.appendChild(wrap);
@@ -3529,14 +3536,14 @@ async function doSave(addr,lat,lng,dt){
     const idx=incidents.findIndex(i=>i.id===editingIncidentId);
     if(idx!==-1){
       incidents[idx]={...incidents[idx],...incidentData,updatedAt:new Date().toISOString()};_indexIncident(incidents[idx]);_invalidateCache();
-      saveData();closeReport();renderAll();
+      saveData(editingIncidentId);closeReport();renderAll();
       showToast('Incident '+editingIncidentId+' updated');
       ms.lat=incidentData.lat;ms.lng=incidentData.lng;ms.zoom=Math.max(ms.zoom,13);sched();
     }
   }else{
     // Create new incident with sequential ID
     const _newInc={id:incId,...incidentData,createdAt:new Date().toISOString()};incidents.push(_newInc);_indexIncident(_newInc);_invalidateCache();
-    saveData();closeReport();renderAll();
+    saveData(incId);closeReport();renderAll();
     showToast('Incident '+incId+' logged');
     ms.lat=incidentData.lat;ms.lng=incidentData.lng;ms.zoom=Math.max(ms.zoom,13);sched();
   }
@@ -3941,7 +3948,7 @@ function deletePhoto(incidentId,photoIndex){
   inc.photos.splice(photoIndex,1);
   inc.updatedAt=new Date().toISOString();
   _filteredCache=null;
-  saveData();
+  saveData(incidentId);
   showToast('🗑 Photo deleted','var(--green)');
   showDetail(incidentId);
 }
@@ -4513,7 +4520,7 @@ function saveLinkGroup(){
   inc.linkedGroup=groupName;
   inc.updatedAt=new Date().toISOString();
   _invalidateCache();
-  saveData();
+  saveData(currentDetailId);
   closeLinkGroupModal();
   showDetail(currentDetailId);
   showToast(`🔗 Linked to "${groupName}"`,'#a78bfa');
@@ -4523,7 +4530,7 @@ function unlinkIncident(){
   inc.linkedGroup=null;
   inc.updatedAt=new Date().toISOString();
   _invalidateCache();
-  saveData();
+  saveData(currentDetailId);
   closeLinkGroupModal();
   showDetail(currentDetailId);
   showToast('Unlinked from group','var(--yellow)');
