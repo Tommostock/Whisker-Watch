@@ -1343,7 +1343,8 @@ function setupRealtimeSubscription() {
         // Reload data when database changes
         (async () => {
           const dbIncidents = await loadDataFromDB();
-          convertDBIncidents(dbIncidents);
+          const notesMap = await loadAllCaseNotesFromDB();
+          convertDBIncidents(dbIncidents, notesMap);
           renderAll();
           showToast('📡 Data synced from other user', 'var(--blue)');
         })();
@@ -1352,14 +1353,112 @@ function setupRealtimeSubscription() {
         console.log('Real-time subscription status:', status);
       });
 
+    // Also subscribe to case_notes changes
+    supabaseClient
+      .channel('public:case_notes')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'case_notes'
+      }, (payload) => {
+        console.log('📡 Case note update received:', payload.eventType);
+        const incidentId = (payload.new && payload.new.incident_id) || (payload.old && payload.old.incident_id);
+        if (incidentId) {
+          (async () => {
+            const notes = await loadCaseNotesFromDB(incidentId);
+            const inc = incidents.find(i => i.id === incidentId);
+            if (inc) {
+              inc.caseNotes = notes;
+              renderAll();
+            }
+          })();
+        }
+      })
+      .subscribe();
+
     console.log('✅ Real-time subscription established');
   } catch (e) {
     console.error('❌ Error setting up real-time subscription:', e);
   }
 }
 
+// ── Case Notes Database Operations ──
+async function loadCaseNotesFromDB(incidentId) {
+  if (!dbConnected || !supabaseClient) return [];
+  try {
+    const { data, error } = await supabaseClient
+      .from('case_notes')
+      .select('*')
+      .eq('incident_id', incidentId)
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    return (data || []).map(n => ({ id: n.id, timestamp: n.created_at, text: n.text, author: n.author }));
+  } catch (e) {
+    console.error('Failed to load case notes:', e);
+    return [];
+  }
+}
+
+async function loadAllCaseNotesFromDB() {
+  if (!dbConnected || !supabaseClient) return new Map();
+  try {
+    const { data, error } = await supabaseClient
+      .from('case_notes')
+      .select('*')
+      .order('created_at', { ascending: true });
+    if (error) throw error;
+    const map = new Map();
+    for (const n of (data || [])) {
+      const note = { id: n.id, timestamp: n.created_at, text: n.text, author: n.author };
+      if (!map.has(n.incident_id)) map.set(n.incident_id, []);
+      map.get(n.incident_id).push(note);
+    }
+    return map;
+  } catch (e) {
+    console.error('Failed to load all case notes:', e);
+    return new Map();
+  }
+}
+
+async function saveCaseNoteToDB(incidentId, note) {
+  if (!dbConnected || !supabaseClient) return false;
+  try {
+    const { error } = await supabaseClient
+      .from('case_notes')
+      .upsert({
+        id: note.id,
+        incident_id: incidentId,
+        text: note.text,
+        author: note.author || 'System',
+        created_at: note.timestamp
+      });
+    if (error) throw error;
+    console.log('✅ Case note saved to database:', note.id);
+    return true;
+  } catch (e) {
+    console.error('Failed to save case note to database:', e);
+    return false;
+  }
+}
+
+async function deleteCaseNoteFromDB(noteId) {
+  if (!dbConnected || !supabaseClient) return false;
+  try {
+    const { error } = await supabaseClient
+      .from('case_notes')
+      .delete()
+      .eq('id', noteId);
+    if (error) throw error;
+    console.log('✅ Case note deleted from database:', noteId);
+    return true;
+  } catch (e) {
+    console.error('Failed to delete case note from database:', e);
+    return false;
+  }
+}
+
 // Convert database format (snake_case) back to app format (camelCase)
-function convertDBIncidents(dbIncidents) {
+function convertDBIncidents(dbIncidents, notesMap) {
   incidents = dbIncidents.map(db => ({
     id: db.id,
     address: db.address,
@@ -1381,7 +1480,7 @@ function convertDBIncidents(dbIncidents) {
     witnessStatement: db.witness_statement,
     sightedDesc: db.sighted_desc,
     photos: db.photos || [],
-    caseNotes: [], // TODO: Load from separate table
+    caseNotes: (notesMap && notesMap.get(db.id)) || [],
     createdAt: db.created_at,
     updatedAt: db.updated_at
   }));
@@ -2168,7 +2267,8 @@ async function loadData(){
   if(dbConnected && supabaseClient){
     const dbIncidents = await loadDataFromDB();
     if(dbIncidents.length > 0){
-      convertDBIncidents(dbIncidents);
+      const notesMap = await loadAllCaseNotesFromDB();
+      convertDBIncidents(dbIncidents, notesMap);
       return incidents;
     }
   }
@@ -2182,6 +2282,12 @@ async function loadData(){
       if(dbConnected && supabaseClient){
         for(const inc of local){
           await saveIncidentToDB(inc);
+          // Also sync any locally-stored case notes to database
+          if(inc.caseNotes && inc.caseNotes.length){
+            for(const note of inc.caseNotes){
+              await saveCaseNoteToDB(inc.id, note);
+            }
+          }
         }
       }
       return local;
@@ -2652,6 +2758,7 @@ function addCaseNote(incidentId,text){
   inc.caseNotes.push(note);
   inc.updatedAt=new Date().toISOString();
   saveData();
+  if(dbConnected) saveCaseNoteToDB(incidentId, note);
   showToast('✅ Intel added','var(--green)');
   closeAddNoteModal();
   showDetail(incidentId);
@@ -2664,6 +2771,7 @@ function deleteCaseNote(incidentId,noteId){
   inc.caseNotes.splice(noteIdx,1);
   inc.updatedAt=new Date().toISOString();
   saveData();
+  if(dbConnected) deleteCaseNoteFromDB(noteId);
   showToast('🗑 Intel deleted','var(--green)');
   showDetail(incidentId);
 }
@@ -2676,7 +2784,7 @@ function renderCaseNotes(inc){
     <div class="intel-item">
       <div class="intel-timestamp">
         <span class="intel-time">${formatCaseNoteTime(note.timestamp)}</span>
-        <button class="intel-delete" onclick="deleteCaseNote('${inc.id.replace(/'/g,"\\'")}',' ${note.id}')" title="Delete note">✕</button>
+        <button class="intel-delete" onclick="deleteCaseNote('${inc.id.replace(/'/g,"\\'")}','${note.id}')" title="Delete note">✕</button>
       </div>
       <div class="intel-text">${esc(note.text)}</div>
     </div>
